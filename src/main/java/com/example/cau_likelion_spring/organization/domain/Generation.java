@@ -1,0 +1,40 @@
+package com.example.cau_likelion_spring.organization.domain;
+
+import com.example.cau_likelion_spring.global.common.BaseTimeEntity;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+/**
+ * 기수
+ */
+@Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Generation extends BaseTimeEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    /** 기수 숫자 (예: 13) */
+    @Column(nullable = false)
+    private Integer number;
+
+    /** 공통 인재상 */
+    @Lob
+    private String desiredTalent;
+
+    /** 현재 활동 중인 기수인지 */
+    @Column(nullable = false)
+    private Boolean isCurrent;
+
+    @Builder
+    public Generation(Integer number, String desiredTalent, Boolean isCurrent) {
+        this.number = number;
+        this.desiredTalent = desiredTalent;
+        this.isCurrent = isCurrent;
+    }
+}

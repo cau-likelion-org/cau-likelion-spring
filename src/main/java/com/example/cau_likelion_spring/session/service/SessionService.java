@@ -4,10 +4,12 @@ import com.example.cau_likelion_spring.organization.domain.Part;
 import com.example.cau_likelion_spring.organization.repository.PartRepository;
 
 import com.example.cau_likelion_spring.session.domain.Session;
+import com.example.cau_likelion_spring.session.domain.SessionImage;
 import com.example.cau_likelion_spring.session.dto.SessionCreateRequestDto;
 import com.example.cau_likelion_spring.session.dto.SessionListResponseDto;
 import com.example.cau_likelion_spring.session.dto.SessionResponseDto;
 import com.example.cau_likelion_spring.session.dto.SessionUpdateRequestDto;
+import com.example.cau_likelion_spring.session.repository.SessionImageRepository;
 import com.example.cau_likelion_spring.session.repository.SessionRepository;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -24,6 +26,7 @@ import java.util.List;
 public class SessionService {
 
     private final SessionRepository sessionRepository;
+    private final SessionImageRepository sessionImageRepository;
     private final PartRepository partRepository;
 
     @Transactional
@@ -44,18 +47,36 @@ public class SessionService {
                 .thumbnailUrl(request.getThumbnailUrl())
                 .build();
 
-        return SessionResponseDto.from(sessionRepository.save(session));
+        // 세션을 먼저 저장해서 id를 확보해야 SessionImage가 FK로 참조할 수 있음
+        Session savedSession = sessionRepository.save(session);
+
+        // 세션 이미지 추가 (imageUrls가 안 넘어올 수도 있으니 null-safe하게 처리)
+        List<String> imageUrls = request.getImageUrls() != null
+                ? request.getImageUrls()
+                : List.of();
+
+        List<SessionImage> sessionImages = new ArrayList<>();
+        for (String imageUrl : imageUrls) {
+            sessionImages.add(SessionImage.builder()
+                    .session(savedSession)
+                    .imageUrl(imageUrl)
+                    .build());
+        }
+        sessionImageRepository.saveAll(sessionImages);
+
+        return SessionResponseDto.from(savedSession, imageUrls);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public SessionResponseDto getSession(Long sessionId) {
-        return SessionResponseDto.from(sessionRepository.findById(sessionId)
+        Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "존재하지 않는 세션입니다. sessionId=" + sessionId
-                )));
+                ));
+        return SessionResponseDto.from(session, getImageUrls(session));
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<SessionListResponseDto> getSessionList(String partName, Integer generationNumber) {
         List<Session> sessions;
 
@@ -88,7 +109,25 @@ public class SessionService {
                 request.getDegree(), request.getThumbnailUrl()
         );
 
-        return SessionResponseDto.from(sessionRepository.save(session));
+        // imageUrls가 요청에 명시적으로 넘어온 경우에만 이미지 목록을 통째로 교체
+        List<String> imageUrls;
+        if (request.getImageUrls() != null) {
+            sessionImageRepository.deleteAllBySession(session);
+
+            List<SessionImage> newImages = new ArrayList<>();
+            for (String imageUrl : request.getImageUrls()) {
+                newImages.add(SessionImage.builder()
+                        .session(session)
+                        .imageUrl(imageUrl)
+                        .build());
+            }
+            sessionImageRepository.saveAll(newImages);
+            imageUrls = request.getImageUrls();
+        } else {
+            imageUrls = getImageUrls(session);
+        }
+
+        return SessionResponseDto.from(session, imageUrls);
     }
 
     @Transactional
@@ -97,6 +136,15 @@ public class SessionService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         "존재하지 않는 세션입니다. sessionId=" + sessionId
                 ));
+        sessionImageRepository.deleteAllBySession(session);
         sessionRepository.delete(session);
+    }
+
+    private List<String> getImageUrls(Session session) {
+        List<String> urls = new ArrayList<>();
+        for (SessionImage image : sessionImageRepository.findAllBySession(session)) {
+            urls.add(image.getImageUrl());
+        }
+        return urls;
     }
 }

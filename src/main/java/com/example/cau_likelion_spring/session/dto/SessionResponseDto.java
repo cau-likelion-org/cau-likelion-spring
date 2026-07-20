@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 세션 상세 조회용 응답
@@ -21,8 +22,9 @@ public class SessionResponseDto {
     private String description;
     private LocalDateTime sessionDate;
     private String thumbnailUrl;
+    private List<String> imageUrls;
 
-    public static SessionResponseDto from(Session session) {
+    public static SessionResponseDto from(Session session, List<String> imageUrls) {
         return SessionResponseDto.builder()
                 .id(session.getId())
                 .partName(session.getPart().getName())
@@ -32,6 +34,7 @@ public class SessionResponseDto {
                 .description(session.getDescription())
                 .sessionDate(session.getSessionDate())
                 .thumbnailUrl(session.getThumbnailUrl())
+                .imageUrls(imageUrls)
                 .build();
     }
 }

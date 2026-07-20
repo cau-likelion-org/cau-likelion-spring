@@ -75,4 +75,19 @@ public class SessionService {
         }
         return sessionListResponseDtos;
     }
+
+    @Transactional
+    public SessionResponseDto updateSession(Long sessionId, SessionUpdateRequestDto request) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "존재하지 않는 세션입니다. sessionId=" + sessionId
+                ));
+
+        session.update(
+                request.getTitle(), request.getDescription(), request.getSessionDate(),
+                request.getDegree(), request.getThumbnailUrl()
+        );
+
+        return SessionResponseDto.from(sessionRepository.save(session));
+    }s
 }

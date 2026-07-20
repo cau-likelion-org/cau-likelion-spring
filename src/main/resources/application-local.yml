@@ -1,0 +1,20 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 백엔드는 IDE에서 직접 실행, DB만 도커 컨테이너로 떠있는 상태 (localhost:3306으로 접근)
+    url: jdbc:mysql://localhost:3307/${MYSQL_DATABASE:chunghaha}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+server:
+  port: 8080

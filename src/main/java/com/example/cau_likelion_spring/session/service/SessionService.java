@@ -6,6 +6,7 @@ import com.example.cau_likelion_spring.organization.repository.PartRepository;
 import com.example.cau_likelion_spring.session.domain.Session;
 import com.example.cau_likelion_spring.session.dto.SessionCreateRequestDto;
 import com.example.cau_likelion_spring.session.dto.SessionResponseDto;
+import com.example.cau_likelion_spring.session.dto.SessionUpdateRequestDto;
 import com.example.cau_likelion_spring.session.repository.SessionRepository;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -42,4 +43,11 @@ public class SessionService {
         return SessionResponseDto.from(sessionRepository.save(session));
     }
 
+    @Transactional
+    public SessionResponseDto getSession(Long sessionId) {
+        return SessionResponseDto.from(sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "존재하지 않는 세션입니다. sessionId=" + sessionId
+                )));
+    }
 }

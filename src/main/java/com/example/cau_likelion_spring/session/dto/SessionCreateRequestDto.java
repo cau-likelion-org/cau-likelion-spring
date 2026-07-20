@@ -11,9 +11,9 @@ import java.util.List;
 @NoArgsConstructor
 public class SessionCreateRequestDto {
     @NotBlank
-    private String PartName;
+    private String partName;
     @NotBlank
-    private Integer GenerationNumber;
+    private Integer generationNumber;
 
     @NotBlank
     private String title;

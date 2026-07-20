@@ -1,6 +1,7 @@
 package com.example.cau_likelion_spring.session.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -10,9 +11,11 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 public class SessionCreateRequestDto {
+
     @NotBlank
     private String partName;
-    @NotBlank
+
+    @NotNull
     private Integer generationNumber;
 
     @NotBlank
@@ -20,13 +23,12 @@ public class SessionCreateRequestDto {
 
     private String description;
 
-    @NotBlank
+    @NotNull
     private LocalDateTime sessionDate;
 
-    @NotBlank
+    @NotNull
     private Integer degree;
 
-    @NotBlank
     private String thumbnailUrl;
 
     private List<String> imageUrls;

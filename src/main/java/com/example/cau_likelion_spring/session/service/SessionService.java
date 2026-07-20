@@ -89,5 +89,14 @@ public class SessionService {
         );
 
         return SessionResponseDto.from(sessionRepository.save(session));
-    }s
+    }
+
+    @Transactional
+    public void deleteSession(Long sessionId) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "존재하지 않는 세션입니다. sessionId=" + sessionId
+                ));
+        sessionRepository.delete(session);
+    }
 }

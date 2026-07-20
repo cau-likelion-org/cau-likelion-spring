@@ -1,4 +1,4 @@
-package com.example.cau_likelion_spring.gallery.domain;
+package com.example.cau_likelion_spring.history.domain;
 
 import com.example.cau_likelion_spring.global.common.BaseTimeEntity;
 import com.example.cau_likelion_spring.organization.domain.Generation;
@@ -13,7 +13,7 @@ import java.time.LocalDate;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Gallery extends BaseTimeEntity {
+public class History extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,7 +34,7 @@ public class Gallery extends BaseTimeEntity {
     private LocalDate date;
 
     @Builder
-    public Gallery(Generation generation, String title, String thumbnailUrl, String description, LocalDate date) {
+    public History(Generation generation, String title, String thumbnailUrl, String description, LocalDate date) {
         this.generation = generation;
         this.title = title;
         this.thumbnailUrl = thumbnailUrl;

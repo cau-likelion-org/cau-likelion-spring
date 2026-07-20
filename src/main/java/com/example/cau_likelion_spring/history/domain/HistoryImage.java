@@ -1,4 +1,4 @@
-package com.example.cau_likelion_spring.gallery.domain;
+package com.example.cau_likelion_spring.history.domain;
 
 import com.example.cau_likelion_spring.global.common.BaseTimeEntity;
 import jakarta.persistence.*;
@@ -10,21 +10,21 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class GalleryImage extends BaseTimeEntity {
+public class HistoryImage extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "gallery_id", nullable = false)
-    private Gallery gallery;
+    @JoinColumn(name = "history_id", nullable = false)
+    private History history;
 
     private String imageUrl;
 
     @Builder
-    public GalleryImage(Gallery gallery, String imageUrl) {
-        this.gallery = gallery;
+    public HistoryImage(History history, String imageUrl) {
+        this.history = history;
         this.imageUrl = imageUrl;
     }
 }

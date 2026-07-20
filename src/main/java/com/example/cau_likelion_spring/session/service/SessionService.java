@@ -5,6 +5,7 @@ import com.example.cau_likelion_spring.organization.repository.PartRepository;
 
 import com.example.cau_likelion_spring.session.domain.Session;
 import com.example.cau_likelion_spring.session.dto.SessionCreateRequestDto;
+import com.example.cau_likelion_spring.session.dto.SessionListResponseDto;
 import com.example.cau_likelion_spring.session.dto.SessionResponseDto;
 import com.example.cau_likelion_spring.session.dto.SessionUpdateRequestDto;
 import com.example.cau_likelion_spring.session.repository.SessionRepository;
@@ -13,6 +14,9 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -49,5 +53,26 @@ public class SessionService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         "존재하지 않는 세션입니다. sessionId=" + sessionId
                 )));
+    }
+
+    @Transactional
+    public List<SessionListResponseDto> getSessionList(String partName, Integer generationNumber) {
+        List<Session> sessions;
+
+        if (partName != null && generationNumber != null) {
+            sessions = sessionRepository.findByPart_NameAndPart_Generation_Number(partName, generationNumber);
+        } else if (partName != null) {
+            sessions = sessionRepository.findByPart_Name(partName);
+        } else if (generationNumber != null) {
+            sessions = sessionRepository.findByPart_Generation_Number(generationNumber);
+        } else {
+            sessions = sessionRepository.findAll();
+        }
+
+        List<SessionListResponseDto> sessionListResponseDtos = new ArrayList<>();
+        for (Session session : sessions) {
+            sessionListResponseDtos.add(SessionListResponseDto.from(session));
+        }
+        return sessionListResponseDtos;
     }
 }

@@ -3,6 +3,11 @@ package com.example.cau_likelion_spring.project.controller;
 import com.example.cau_likelion_spring.project.dto.ProjectRequest;
 import com.example.cau_likelion_spring.project.dto.ProjectResponse;
 import com.example.cau_likelion_spring.project.service.ProjectService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -11,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "Project", description = "프로젝트 API")
 @RestController
 @RequestMapping("/api/projects")
 @RequiredArgsConstructor
@@ -18,28 +24,56 @@ public class ProjectController {
 
     private final ProjectService projectService;
 
+    @Operation(summary = "프로젝트 생성", description = "새로운 프로젝트를 이미지/링크/멤버 정보와 함께 생성합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "생성 성공"),
+            @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 기수(generationId)")
+    })
     @PostMapping
     public ResponseEntity<ProjectResponse> create(@Valid @RequestBody ProjectRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(projectService.create(request));
     }
 
+    @Operation(summary = "프로젝트 목록 조회", description = "전체 프로젝트 목록을 조회합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping
     public ResponseEntity<List<ProjectResponse>> getAll() {
         return ResponseEntity.ok(projectService.getAll());
     }
 
+    @Operation(summary = "프로젝트 단건 조회", description = "프로젝트 ID로 상세 정보를 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 프로젝트")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<ProjectResponse> getById(@PathVariable Long id) {
+    public ResponseEntity<ProjectResponse> getById(
+            @Parameter(description = "프로젝트 ID", required = true) @PathVariable Long id) {
         return ResponseEntity.ok(projectService.getById(id));
     }
 
+    @Operation(summary = "프로젝트 수정", description = "프로젝트 정보를 수정합니다. 이미지/링크/멤버는 요청 내용으로 전체 대체됩니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "수정 성공"),
+            @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 프로젝트 또는 기수(generationId)")
+    })
     @PutMapping("/{id}")
-    public ResponseEntity<ProjectResponse> update(@PathVariable Long id, @Valid @RequestBody ProjectRequest request) {
+    public ResponseEntity<ProjectResponse> update(
+            @Parameter(description = "프로젝트 ID", required = true) @PathVariable Long id,
+            @Valid @RequestBody ProjectRequest request) {
         return ResponseEntity.ok(projectService.update(id, request));
     }
 
+    @Operation(summary = "프로젝트 삭제", description = "프로젝트와 연관된 이미지/링크/멤버를 함께 삭제합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "삭제 성공"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 프로젝트")
+    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(
+            @Parameter(description = "프로젝트 ID", required = true) @PathVariable Long id) {
         projectService.delete(id);
         return ResponseEntity.noContent().build();
     }

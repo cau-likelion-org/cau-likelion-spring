@@ -3,6 +3,7 @@ package com.example.cau_likelion_spring.project.service;
 import com.example.cau_likelion_spring.organization.domain.Generation;
 import com.example.cau_likelion_spring.organization.repository.GenerationRepository;
 import com.example.cau_likelion_spring.project.domain.Project;
+import com.example.cau_likelion_spring.project.domain.ProjectCategory;
 import com.example.cau_likelion_spring.project.domain.ProjectImage;
 import com.example.cau_likelion_spring.project.domain.ProjectLink;
 import com.example.cau_likelion_spring.project.domain.ProjectMember;
@@ -15,6 +16,7 @@ import com.example.cau_likelion_spring.project.repository.ProjectLinkRepository;
 import com.example.cau_likelion_spring.project.repository.ProjectMemberRepository;
 import com.example.cau_likelion_spring.project.repository.ProjectRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,8 +54,21 @@ public class ProjectService {
         return toResponse(project);
     }
 
-    public List<ProjectResponse> getAll() {
-        return projectRepository.findAll().stream()
+    public List<ProjectResponse> getAll(Long generationId, ProjectCategory category) {
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+
+        List<Project> projects;
+        if (generationId != null && category != null) {
+            projects = projectRepository.findByGeneration_IdAndCategory(generationId, category, sort);
+        } else if (generationId != null) {
+            projects = projectRepository.findByGeneration_Id(generationId, sort);
+        } else if (category != null) {
+            projects = projectRepository.findByCategory(category, sort);
+        } else {
+            projects = projectRepository.findAll(sort);
+        }
+
+        return projects.stream()
                 .map(this::toResponse)
                 .toList();
     }

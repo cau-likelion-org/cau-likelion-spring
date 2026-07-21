@@ -59,7 +59,7 @@ public class AuthService {
     @Transactional
     public TokenResponse login(LoginRequest request) {
         Member member = memberRepository.findByEmail(request.email())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "사전 등록된 이메일로만 로그인이 가능합니다."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "회원가입한 이메일로만 로그인이 가능합니다."));
 
         return issueTokens(member);
     }

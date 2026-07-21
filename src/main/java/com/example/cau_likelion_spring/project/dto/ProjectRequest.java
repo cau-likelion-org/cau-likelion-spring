@@ -15,7 +15,7 @@ public record ProjectRequest(
         @Schema(description = "기수 ID", example = "1")
         @NotNull Long generationId,
 
-        @Schema(description = "프로젝트 제목", example = "청하하 홈페이지 리뉴얼")
+        @Schema(description = "프로젝트 제목", example = "중하하 홈페이지 리뉴얼")
         @NotBlank String title,
 
         @Schema(description = "프로젝트 카테고리")

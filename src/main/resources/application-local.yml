@@ -4,8 +4,8 @@ spring:
       on-profile: local
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    # 백엔드는 IDE에서 직접 실행, DB만 도커 컨테이너로 떠있는 상태 (localhost:3306으로 접근)
-    url: jdbc:mysql://localhost:3307/${MYSQL_DATABASE:chunghaha}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    # 백엔드는 IDE에서 직접 실행, DB는 로컬에 설치된 MySQL(localhost:3306)로 접근
+    url: jdbc:mysql://localhost:3306/${MYSQL_DATABASE:chunghaha}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: ${MYSQL_USER}
     password: ${MYSQL_PASSWORD}
   jpa:
@@ -18,3 +18,8 @@ spring:
 
 server:
   port: 8080
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION:3600000}
+  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:1209600000}

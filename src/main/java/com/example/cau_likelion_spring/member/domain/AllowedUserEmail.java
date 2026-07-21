@@ -37,4 +37,8 @@ public class AllowedUserEmail extends BaseTimeEntity {
         this.allowedEmail = allowedEmail;
         this.isJoined = isJoined;
     }
+
+    public void markAsJoined() {
+        this.isJoined = true;
+    }
 }

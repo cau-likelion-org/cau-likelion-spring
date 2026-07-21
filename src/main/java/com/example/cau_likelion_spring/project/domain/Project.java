@@ -57,4 +57,16 @@ public class Project extends BaseTimeEntity {
         this.startDate = startDate;
         this.endDate = endDate;
     }
+
+    public void update(Generation generation, String title, ProjectCategory category, String stack,
+                        String summary, String detail, LocalDate startDate, LocalDate endDate) {
+        this.generation = generation;
+        this.title = title;
+        this.category = category;
+        this.stack = stack;
+        this.summary = summary;
+        this.detail = detail;
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
 }

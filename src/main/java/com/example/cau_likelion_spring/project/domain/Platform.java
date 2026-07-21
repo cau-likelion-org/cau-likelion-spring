@@ -6,5 +6,6 @@ package com.example.cau_likelion_spring.project.domain;
  */
 public enum Platform {
     GITHUB,
-    WEB
+    WEB,
+
 }

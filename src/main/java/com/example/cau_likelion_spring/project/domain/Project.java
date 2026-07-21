@@ -33,7 +33,7 @@ public class Project extends BaseTimeEntity {
     @Lob
     private String stack;
 
-    /** 한줄 소개 */
+    /** 한줄 소개 - TODO 추후 글자수 확정 */
     @Lob
     private String summary;
 

@@ -1,5 +1,6 @@
 package com.example.cau_likelion_spring.project.controller;
 
+import com.example.cau_likelion_spring.project.domain.ProjectCategory;
 import com.example.cau_likelion_spring.project.dto.ProjectRequest;
 import com.example.cau_likelion_spring.project.dto.ProjectResponse;
 import com.example.cau_likelion_spring.project.service.ProjectService;
@@ -35,11 +36,14 @@ public class ProjectController {
         return ResponseEntity.status(HttpStatus.CREATED).body(projectService.create(request));
     }
 
-    @Operation(summary = "프로젝트 목록 조회", description = "전체 프로젝트 목록을 조회합니다.")
+    @Operation(summary = "프로젝트 목록 조회",
+            description = "프로젝트 목록을 조회합니다. 기수/카테고리로 필터링할 수 있으며, 생성일 기준 내림차순으로 정렬됩니다.")
     @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping
-    public ResponseEntity<List<ProjectResponse>> getAll() {
-        return ResponseEntity.ok(projectService.getAll());
+    public ResponseEntity<List<ProjectResponse>> getAll(
+            @Parameter(description = "기수 ID로 필터링") @RequestParam(required = false) Long generationId,
+            @Parameter(description = "카테고리로 필터링") @RequestParam(required = false) ProjectCategory category) {
+        return ResponseEntity.ok(projectService.getAll(generationId, category));
     }
 
     @Operation(summary = "프로젝트 단건 조회", description = "프로젝트 ID로 상세 정보를 조회합니다.")

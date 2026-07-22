@@ -46,4 +46,13 @@ public class Session extends BaseTimeEntity {
         this.degree = degree;
         this.thumbnailUrl = thumbnailUrl;
     }
+
+    public void update(String title, String description, LocalDateTime sessionDate,
+                        Integer degree, String thumbnailUrl) {
+        if (title != null) this.title = title;
+        if (description != null) this.description = description;
+        if (sessionDate != null) this.sessionDate = sessionDate;
+        if (degree != null) this.degree = degree;
+        if (thumbnailUrl != null) this.thumbnailUrl = thumbnailUrl;
+    }
 }

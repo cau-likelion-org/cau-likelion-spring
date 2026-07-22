@@ -24,7 +24,7 @@ public class SessionImage extends BaseTimeEntity {
     private String imageUrl;
 
     @Builder
-    public SessionImage(Session session, Part part, String imageUrl) {
+    public SessionImage(Session session, String imageUrl) {
         this.session = session;
         this.imageUrl = imageUrl;
     }

@@ -31,14 +31,30 @@ public class History extends BaseTimeEntity {
     @Lob
     private String description;
 
-    private LocalDate date;
+    @Column(nullable = false)
+    private LocalDate startDate;
+
+    private LocalDate endDate;
 
     @Builder
-    public History(Generation generation, String title, String thumbnailUrl, String description, LocalDate date) {
+    public History(Generation generation, String title, String thumbnailUrl, String description, LocalDate startDate, LocalDate endDate) {
         this.generation = generation;
         this.title = title;
         this.thumbnailUrl = thumbnailUrl;
         this.description = description;
-        this.date = date;
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
+
+    public void update(Generation generation, String title, String description, LocalDate startDate, LocalDate endDate) {
+        this.generation = generation;
+        this.title = title;
+        this.description = description;
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
+
+    public void updateThumbnail(String thumbnailUrl) {
+        this.thumbnailUrl = thumbnailUrl;
     }
 }

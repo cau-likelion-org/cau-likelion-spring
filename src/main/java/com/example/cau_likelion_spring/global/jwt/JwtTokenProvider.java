@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Date;
 
 @Component
@@ -21,13 +22,13 @@ public class JwtTokenProvider {
     private static final String ROLE_CLAIM = "role";
 
     private final SecretKey key;
-    private final long accessTokenExpiration;
-    private final long refreshTokenExpiration;
+    private final Duration accessTokenExpiration;
+    private final Duration refreshTokenExpiration;
 
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secret,
-            @Value("${jwt.access-token-expiration}") long accessTokenExpiration,
-            @Value("${jwt.refresh-token-expiration}") long refreshTokenExpiration
+            @Value("${jwt.access-token-expiration}") Duration accessTokenExpiration,
+            @Value("${jwt.refresh-token-expiration}") Duration refreshTokenExpiration
     ) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessTokenExpiration = accessTokenExpiration;
@@ -40,7 +41,7 @@ public class JwtTokenProvider {
                 .subject(String.valueOf(memberId))
                 .claim(ROLE_CLAIM, role.name())
                 .issuedAt(now)
-                .expiration(new Date(now.getTime() + accessTokenExpiration))
+                .expiration(new Date(now.getTime() + accessTokenExpiration.toMillis()))
                 .signWith(key)
                 .compact();
     }
@@ -50,12 +51,12 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .subject(String.valueOf(memberId))
                 .issuedAt(now)
-                .expiration(new Date(now.getTime() + refreshTokenExpiration))
+                .expiration(new Date(now.getTime() + refreshTokenExpiration.toMillis()))
                 .signWith(key)
                 .compact();
     }
 
-    public long getRefreshTokenExpiration() {
+    public Duration getRefreshTokenExpiration() {
         return refreshTokenExpiration;
     }
 

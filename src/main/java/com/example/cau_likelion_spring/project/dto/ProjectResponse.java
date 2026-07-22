@@ -89,7 +89,7 @@ public record ProjectResponse(
         }
     }
 
-    @Schema(description = "프로젝트 멤버 응답")
+    @Schema(name = "ProjectMemberResponse", description = "프로젝트 멤버 응답")
     public record MemberResponse(
             @Schema(description = "멤버 ID")
             Long id,

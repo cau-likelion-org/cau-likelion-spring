@@ -1,6 +1,7 @@
 package com.example.cau_likelion_spring.attendance.controller;
 
 import com.example.cau_likelion_spring.attendance.dto.AttendanceStatusResponse;
+import com.example.cau_likelion_spring.attendance.dto.MemberAttendanceResponse;
 import com.example.cau_likelion_spring.attendance.service.AttendanceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,5 +26,11 @@ public class AttendanceController {
     @GetMapping("/me")
     public ResponseEntity<List<AttendanceStatusResponse>> getMyAttendances(@AuthenticationPrincipal Long memberId) {
         return ResponseEntity.ok(attendanceService.getMyAttendances(memberId));
+    }
+
+    @Operation(summary = "본인 파트 아기사자 출결 현황 조회", description = "로그인한 운영진이 본인 파트 아기사자들의 주차별 출결 현황을 조회합니다.")
+    @GetMapping("/part")
+    public ResponseEntity<List<MemberAttendanceResponse>> getPartAttendances(@AuthenticationPrincipal Long memberId) {
+        return ResponseEntity.ok(attendanceService.getPartAttendances(memberId));
     }
 }

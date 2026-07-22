@@ -8,4 +8,6 @@ import java.util.List;
 public interface DetailAttendanceRepository extends JpaRepository<DetailAttendance, Long> {
 
     List<DetailAttendance> findByMember_IdOrderByWeeklyAttendance_WeekNumberAsc(Long memberId);
+
+    List<DetailAttendance> findByMember_IdInOrderByWeeklyAttendance_WeekNumberAsc(List<Long> memberIds);
 }

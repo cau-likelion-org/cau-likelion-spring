@@ -33,6 +33,9 @@ public record ProjectResponse(
         String stack,
 
         @Schema(description = "한줄 소개")
+        String tagline,
+
+        @Schema(description = "서비스 요약")
         String summary,
 
         @Schema(description = "상세 소개")
@@ -43,6 +46,9 @@ public record ProjectResponse(
 
         @Schema(description = "종료일")
         LocalDate endDate,
+
+        @Schema(description = "배너 이미지 URL")
+        String banner,
 
         @Schema(description = "프로젝트 이미지 목록")
         List<ImageResponse> images,
@@ -114,10 +120,12 @@ public record ProjectResponse(
                 project.getTitle(),
                 project.getCategory(),
                 project.getStack(),
+                project.getTagline(),
                 project.getSummary(),
                 project.getDetail(),
                 project.getStartDate(),
                 project.getEndDate(),
+                project.getBanner(),
                 images.stream().map(ImageResponse::from).toList(),
                 links.stream().map(LinkResponse::from).toList(),
                 members.stream().map(MemberResponse::from).toList()

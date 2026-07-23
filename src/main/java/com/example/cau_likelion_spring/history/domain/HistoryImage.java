@@ -22,13 +22,9 @@ public class HistoryImage extends BaseTimeEntity {
 
     private String imageUrl;
 
-    @Column(nullable = false)
-    private int sortOrder;
-
     @Builder
-    public HistoryImage(History history, String imageUrl, int sortOrder) {
+    public HistoryImage(History history, String imageUrl) {
         this.history = history;
         this.imageUrl = imageUrl;
-        this.sortOrder = sortOrder;
     }
 }

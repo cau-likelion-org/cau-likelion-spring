@@ -2,7 +2,6 @@ package com.example.cau_likelion_spring.history.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -29,8 +28,10 @@ public record HistoryUpdateRequest(
         @Schema(description = "종료일 (하루짜리 일정이면 생략)", example = "2026-08-02")
         LocalDate endDate,
 
-        @Schema(description = "이미지 URL 목록 (최소 1장, 최대 10장, 첫 번째가 대표사진). 기존 이미지를 전체 교체합니다.")
-        @NotEmpty(message = "사진을 최소 1장 등록해주세요.")
+        @Schema(description = "대표 이미지 URL. 생략하면 기존 값 유지")
+        String thumbnailUrl,
+
+        @Schema(description = "이미지 URL 목록 (최대 10장). 생략하면 기존 이미지 유지, 값을 보내면 전체 교체")
         @Size(max = 10, message = "사진은 최대 10장까지 등록 가능합니다.")
         List<String> imageUrls
 ) {

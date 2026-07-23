@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface HistoryImageRepository extends JpaRepository<HistoryImage, Long> {
 
-    List<HistoryImage> findByHistoryOrderBySortOrderAsc(History history);
+    List<HistoryImage> findByHistoryOrderByIdAsc(History history);
 
     void deleteAllByHistory(History history);
 }

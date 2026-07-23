@@ -48,6 +48,7 @@ public class HistoryService {
         History history = historyRepository.save(History.builder()
                 .generation(generation)
                 .title(request.title())
+                .thumbnailUrl(request.thumbnailUrl())
                 .description(request.description())
                 .startDate(request.startDate())
                 .endDate(request.endDate())
@@ -66,10 +67,20 @@ public class HistoryService {
 
         history.update(generation, request.title(), request.description(), request.startDate(), request.endDate());
 
-        historyImageRepository.deleteAllByHistory(history);
-        saveImages(history, request.imageUrls());
+        if (request.thumbnailUrl() != null) {
+            history.updateThumbnail(request.thumbnailUrl());
+        }
 
-        return HistoryDetailResponse.of(history, request.imageUrls());
+        List<String> imageUrls;
+        if (request.imageUrls() != null) {
+            historyImageRepository.deleteAllByHistory(history);
+            saveImages(history, request.imageUrls());
+            imageUrls = request.imageUrls();
+        } else {
+            imageUrls = getImageUrls(history);
+        }
+
+        return HistoryDetailResponse.of(history, imageUrls);
     }
 
     @Transactional
@@ -81,18 +92,16 @@ public class HistoryService {
     }
 
     private void saveImages(History history, List<String> imageUrls) {
-        for (int i = 0; i < imageUrls.size(); i++) {
+        for (String imageUrl : imageUrls) {
             historyImageRepository.save(HistoryImage.builder()
                     .history(history)
-                    .imageUrl(imageUrls.get(i))
-                    .sortOrder(i)
+                    .imageUrl(imageUrl)
                     .build());
         }
-        history.updateThumbnail(imageUrls.get(0));
     }
 
     private List<String> getImageUrls(History history) {
-        return historyImageRepository.findByHistoryOrderBySortOrderAsc(history).stream()
+        return historyImageRepository.findByHistoryOrderByIdAsc(history).stream()
                 .map(HistoryImage::getImageUrl)
                 .toList();
     }

@@ -30,8 +30,8 @@ public record ProjectRequest(
         @Schema(description = "서비스 요약")
         String summary,
 
-        @Schema(description = "상세 소개")
-        String detail,
+        @Schema(description = "팀명")
+        String teamName,
 
         @Schema(description = "시작일")
         LocalDate startDate,

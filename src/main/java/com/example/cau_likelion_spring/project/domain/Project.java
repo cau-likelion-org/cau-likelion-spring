@@ -41,9 +41,8 @@ public class Project extends BaseTimeEntity {
     @Lob
     private String summary;
 
-    /** 상세 소개 */
-    @Lob
-    private String detail;
+    @Column(length = 255)
+    private String teamName;
 
     private LocalDate startDate;
 
@@ -54,28 +53,28 @@ public class Project extends BaseTimeEntity {
 
     @Builder
     public Project(Generation generation, String title, ProjectCategory category, String stack, String tagline,
-                    String summary, String detail, LocalDate startDate, LocalDate endDate, String banner) {
+                    String summary, String teamName, LocalDate startDate, LocalDate endDate, String banner) {
         this.generation = generation;
         this.title = title;
         this.category = category;
         this.stack = stack;
         this.tagline = tagline;
         this.summary = summary;
-        this.detail = detail;
+        this.teamName = teamName;
         this.startDate = startDate;
         this.endDate = endDate;
         this.banner = banner;
     }
 
     public void update(Generation generation, String title, ProjectCategory category, String stack, String tagline,
-                        String summary, String detail, LocalDate startDate, LocalDate endDate, String banner) {
+                        String summary, String teamName, LocalDate startDate, LocalDate endDate, String banner) {
         this.generation = generation;
         this.title = title;
         this.category = category;
         this.stack = stack;
         this.tagline = tagline;
         this.summary = summary;
-        this.detail = detail;
+        this.teamName = teamName;
         this.startDate = startDate;
         this.endDate = endDate;
         this.banner = banner;

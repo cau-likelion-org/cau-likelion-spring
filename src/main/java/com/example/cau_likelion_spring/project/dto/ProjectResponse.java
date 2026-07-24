@@ -38,8 +38,8 @@ public record ProjectResponse(
         @Schema(description = "서비스 요약")
         String summary,
 
-        @Schema(description = "상세 소개")
-        String detail,
+        @Schema(description = "팀명")
+        String teamName,
 
         @Schema(description = "시작일")
         LocalDate startDate,
@@ -122,7 +122,7 @@ public record ProjectResponse(
                 project.getStack(),
                 project.getTagline(),
                 project.getSummary(),
-                project.getDetail(),
+                project.getTeamName(),
                 project.getStartDate(),
                 project.getEndDate(),
                 project.getBanner(),

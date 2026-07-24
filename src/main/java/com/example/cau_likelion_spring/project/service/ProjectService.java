@@ -45,7 +45,7 @@ public class ProjectService {
                 .stack(request.stack())
                 .tagline(request.tagline())
                 .summary(request.summary())
-                .detail(request.detail())
+                .teamName(request.teamName())
                 .startDate(request.startDate())
                 .endDate(request.endDate())
                 .banner(request.banner())
@@ -85,7 +85,7 @@ public class ProjectService {
         Generation generation = getGeneration(request.generationId());
 
         project.update(generation, request.title(), request.category(), request.stack(), request.tagline(),
-                request.summary(), request.detail(), request.startDate(), request.endDate(), request.banner());
+                request.summary(), request.teamName(), request.startDate(), request.endDate(), request.banner());
 
         projectImageRepository.deleteAllByProject(project);
         projectLinkRepository.deleteAllByProject(project);

@@ -21,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Service
@@ -94,7 +93,7 @@ public class AuthService {
         refreshTokenRepository.save(RefreshToken.builder()
                 .member(member)
                 .token(refreshToken)
-                .expiryDate(LocalDateTime.now().plus(Duration.ofMillis(jwtTokenProvider.getRefreshTokenExpiration())))
+                .expiryDate(LocalDateTime.now().plus(jwtTokenProvider.getRefreshTokenExpiration()))
                 .build());
 
         return new TokenResponse(accessToken, refreshToken);

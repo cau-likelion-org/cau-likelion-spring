@@ -1,7 +1,7 @@
 package com.example.cau_likelion_spring.blog.controller;
 
-import com.example.cau_likelion_spring.blog.dto.LinkPreviewDto;
-import com.example.cau_likelion_spring.blog.service.LinkPreviewService;
+import com.example.cau_likelion_spring.blog.dto.BlogScrapingResponse;
+import com.example.cau_likelion_spring.blog.service.BlogScrapingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,15 +15,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "Link Preview", description = "블로그 링크 미리보기 API")
+@Tag(name = "Blog", description = "블로그 API")
 @RestController
-@RequestMapping("/api/preview")
+@RequestMapping("/api/blogs/scraping")
 @RequiredArgsConstructor
-public class LinkPreviewController {
+public class BlogScrapingController {
 
-    private final LinkPreviewService linkPreviewService;
+    private final BlogScrapingService blogScrapingService;
 
-    @Operation(summary = "블로그 링크 미리보기",
+    @Operation(summary = "블로그 링크 스크래핑",
             description = "블로그 URL에서 썸네일 이미지, 초반 본문 텍스트(3줄), 작성일을 추출합니다. ADMIN, STAFF 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
@@ -33,8 +33,8 @@ public class LinkPreviewController {
     })
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @GetMapping
-    public ResponseEntity<LinkPreviewDto> preview(
-            @Parameter(description = "미리보기를 생성할 블로그 URL", required = true) @RequestParam String url) {
-        return ResponseEntity.ok(linkPreviewService.preview(url));
+    public ResponseEntity<BlogScrapingResponse> scrape(
+            @Parameter(description = "스크래핑할 블로그 URL", required = true) @RequestParam String url) {
+        return ResponseEntity.ok(blogScrapingService.scrape(url));
     }
 }

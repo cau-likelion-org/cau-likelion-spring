@@ -2,8 +2,8 @@ package com.example.cau_likelion_spring.blog.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-@Schema(description = "블로그 링크 미리보기 응답")
-public record LinkPreviewDto(
+@Schema(description = "블로그 링크 스크래핑 응답")
+public record BlogScrapingResponse(
 
         @Schema(description = "원문 블로그 URL")
         String url,

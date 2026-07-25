@@ -1,10 +1,10 @@
 package com.example.cau_likelion_spring.blog.service;
 
-import com.example.cau_likelion_spring.blog.dto.LinkPreviewDto;
-import com.example.cau_likelion_spring.blog.exception.InvalidPreviewUrlException;
-import com.example.cau_likelion_spring.blog.exception.LinkPreviewFetchException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.cau_likelion_spring.blog.dto.BlogScrapingResponse;
+import com.example.cau_likelion_spring.blog.exception.BlogScrapingFetchException;
+import com.example.cau_likelion_spring.blog.exception.InvalidScrapingUrlException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
  */
 @Service
 @RequiredArgsConstructor
-public class LinkPreviewService {
+public class BlogScrapingService {
 
     private static final String USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
@@ -69,11 +69,11 @@ public class LinkPreviewService {
 
     private final ObjectMapper objectMapper;
 
-    public LinkPreviewDto preview(String url) {
+    public BlogScrapingResponse scrape(String url) {
         validateUrl(url);
         Document doc = fetchDocument(url);
 
-        return new LinkPreviewDto(
+        return new BlogScrapingResponse(
                 url,
                 extractTitle(doc),
                 extractThumbnail(doc),
@@ -87,10 +87,10 @@ public class LinkPreviewService {
             URI uri = new URI(url);
             String scheme = uri.getScheme();
             if (uri.getHost() == null || !("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))) {
-                throw new InvalidPreviewUrlException(url);
+                throw new InvalidScrapingUrlException(url);
             }
         } catch (URISyntaxException e) {
-            throw new InvalidPreviewUrlException(url);
+            throw new InvalidScrapingUrlException(url);
         }
     }
 
@@ -103,7 +103,7 @@ public class LinkPreviewService {
                     .ignoreHttpErrors(true)
                     .get();
         } catch (IOException e) {
-            throw new LinkPreviewFetchException(url);
+            throw new BlogScrapingFetchException(url);
         }
     }
 
@@ -315,18 +315,18 @@ public class LinkPreviewService {
         if (node == null) {
             return null;
         }
-        if (node.isTextual()) {
-            return node.asText();
+        if (node.isString()) {
+            return node.asString();
         }
         if (node.isArray() && !node.isEmpty()) {
             return jsonLdValueToString(node.get(0));
         }
         if (node.isObject()) {
             if (node.has("url")) {
-                return node.get("url").asText();
+                return node.get("url").asString();
             }
             if (node.has("@id")) {
-                return node.get("@id").asText();
+                return node.get("@id").asString();
             }
         }
         return null;

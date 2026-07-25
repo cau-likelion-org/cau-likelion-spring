@@ -33,7 +33,7 @@ public record BlogResponse(
         @Schema(description = "작성자")
         String writer,
 
-        @Schema(description = "원문 블로그 URL")
+        @Schema(description = "원문 블로그 URL (클릭 시 이 URL로 바로 이동)")
         String url,
 
         @Schema(description = "업로드 일시")

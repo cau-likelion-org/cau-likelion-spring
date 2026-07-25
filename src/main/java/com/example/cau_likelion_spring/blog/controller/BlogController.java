@@ -42,7 +42,8 @@ public class BlogController {
     }
 
     @Operation(summary = "블로그 목록 조회",
-            description = "블로그 목록을 조회합니다. 기수/카테고리로 필터링할 수 있으며, 업로드일 기준 내림차순으로 정렬됩니다.")
+            description = "블로그 목록을 조회합니다. 기수/카테고리로 필터링할 수 있으며, 업로드일 기준 내림차순으로 정렬됩니다. "
+                    + "카드 클릭 시에는 응답의 url 필드로 원문 페이지에 바로 이동시키면 됩니다.")
     @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping
     public ResponseEntity<List<BlogResponse>> getAll(

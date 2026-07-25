@@ -9,8 +9,7 @@ public enum ProjectCategory {
 
     IDEATHON("아이디어톤"),
     HACKATHON("해커톤"),
-    CHUNGHATHON("중커톤"),
-    SELF_PROJECT("자체 프로젝트"),
+    CHUNGKATHON("중커톤"),
     ETC("기타");
 
     private final String description;

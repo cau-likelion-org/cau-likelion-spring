@@ -1,4 +1,4 @@
-package com.example.cau_likelion_spring.project.exception;
+package com.example.cau_likelion_spring.organization.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;

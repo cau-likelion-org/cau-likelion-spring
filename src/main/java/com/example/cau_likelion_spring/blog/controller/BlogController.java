@@ -27,7 +27,7 @@ public class BlogController {
     private final BlogService blogService;
 
     @Operation(summary = "블로그 생성",
-            description = "기수/작성자/URL/카테고리를 입력받아 생성합니다. 제목·썸네일·요약은 URL을 스크래핑해서 채워집니다. ADMIN, STAFF 권한이 필요합니다.")
+            description = "기수/작성자/URL/카테고리를 입력받아 생성합니다. 제목·썸네일·요약은 URL을 스크래핑해서 채워집니다. ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "생성 성공"),
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패 또는 유효하지 않은 URL"),
@@ -35,7 +35,7 @@ public class BlogController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 기수(generationId)"),
             @ApiResponse(responseCode = "502", description = "대상 페이지를 불러올 수 없음")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<BlogResponse> create(@Valid @RequestBody BlogRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(blogService.create(request));
@@ -64,7 +64,7 @@ public class BlogController {
     }
 
     @Operation(summary = "블로그 수정",
-            description = "블로그 정보를 수정합니다. 제목·썸네일·요약은 URL을 다시 스크래핑해서 갱신됩니다. ADMIN, STAFF 권한이 필요합니다.")
+            description = "블로그 정보를 수정합니다. 제목·썸네일·요약은 URL을 다시 스크래핑해서 갱신됩니다. ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "수정 성공"),
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패 또는 유효하지 않은 URL"),
@@ -72,7 +72,7 @@ public class BlogController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 블로그 또는 기수(generationId)"),
             @ApiResponse(responseCode = "502", description = "대상 페이지를 불러올 수 없음")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id:[0-9]+}")
     public ResponseEntity<BlogResponse> update(
             @Parameter(description = "블로그 ID", required = true) @PathVariable Long id,
@@ -80,13 +80,13 @@ public class BlogController {
         return ResponseEntity.ok(blogService.update(id, request));
     }
 
-    @Operation(summary = "블로그 삭제", description = "블로그를 삭제합니다. ADMIN, STAFF 권한이 필요합니다.")
+    @Operation(summary = "블로그 삭제", description = "블로그를 삭제합니다. ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "삭제 성공"),
             @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 블로그")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id:[0-9]+}")
     public ResponseEntity<Void> delete(
             @Parameter(description = "블로그 ID", required = true) @PathVariable Long id) {

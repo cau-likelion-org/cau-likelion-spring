@@ -46,6 +46,9 @@ dependencies {
 
 	// 블로그 링크 미리보기 HTML 파싱
 	implementation 'org.jsoup:jsoup:1.17.2'
+
+	// 모집 알림 이메일 발송
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
 }
 
 tasks.named('test') {

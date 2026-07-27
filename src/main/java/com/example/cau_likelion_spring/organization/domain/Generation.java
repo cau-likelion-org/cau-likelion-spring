@@ -23,18 +23,13 @@ public class Generation extends BaseTimeEntity {
     @Column(nullable = false)
     private Integer number;
 
-    /** 공통 인재상 */
-    @Lob
-    private String desiredTalent;
-
     /** 현재 활동 중인 기수인지 */
     @Column(nullable = false)
     private Boolean isCurrent;
 
     @Builder
-    public Generation(Integer number, String desiredTalent, Boolean isCurrent) {
+    public Generation(Integer number, Boolean isCurrent) {
         this.number = number;
-        this.desiredTalent = desiredTalent;
         this.isCurrent = isCurrent;
     }
 }

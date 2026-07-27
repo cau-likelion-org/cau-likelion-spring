@@ -27,14 +27,9 @@ public class Part extends BaseTimeEntity {
     @Column(nullable = false)
     private String name;
 
-    /** 파트별 인재상 */
-    @Lob
-    private String desiredTalent;
-
     @Builder
-    public Part(Generation generation, String name, String desiredTalent) {
+    public Part(Generation generation, String name) {
         this.generation = generation;
         this.name = name;
-        this.desiredTalent = desiredTalent;
     }
 }

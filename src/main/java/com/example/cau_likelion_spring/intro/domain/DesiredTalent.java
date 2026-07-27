@@ -33,7 +33,7 @@ public class DesiredTalent extends BaseTimeEntity {
     }
 
     public void update(String partName, String content) {
-        if (partName != null) this.partName = partName;
-        if (content != null) this.content = content;
+        this.partName = partName;
+        this.content = content;
     }
 }

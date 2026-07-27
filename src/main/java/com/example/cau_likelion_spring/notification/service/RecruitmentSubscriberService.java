@@ -6,8 +6,11 @@ import com.example.cau_likelion_spring.notification.dto.RecruitmentSubscriberRes
 import com.example.cau_likelion_spring.notification.exception.DuplicateSubscriptionException;
 import com.example.cau_likelion_spring.notification.repository.RecruitmentSubscriberRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -28,5 +31,11 @@ public class RecruitmentSubscriberService {
                         .build());
 
         return RecruitmentSubscriberResponse.of(subscriber);
+    }
+
+    public List<RecruitmentSubscriberResponse> getAll() {
+        return recruitmentSubscriberRepository.findAll(Sort.by(Sort.Direction.DESC, "registeredAt")).stream()
+                .map(RecruitmentSubscriberResponse::of)
+                .toList();
     }
 }

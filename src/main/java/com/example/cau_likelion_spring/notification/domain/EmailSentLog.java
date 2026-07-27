@@ -2,7 +2,6 @@ package com.example.cau_likelion_spring.notification.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.FetchType;
@@ -15,17 +14,15 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
 /**
- * 신청자에게 모집 공고 이메일을 발송한 이력
+ * 신청자에게 모집 공고 이메일을 발송(예정/완료)한 이력
+ * 생성 시점에는 PENDING 상태이며 sentAt은 null, 실제 발송 시도 후 markSent()로 상태와 발송 시각이 채워짐
  */
 @Entity
 @Getter
-@EntityListeners(AuditingEntityListener.class)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class EmailSentLog {
 
@@ -42,16 +39,20 @@ public class EmailSentLog {
     private RecruitmentText recruitmentText;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "varchar(20)")
     private EmailSentStatus status;
 
-    @CreatedDate
     private LocalDateTime sentAt;
 
     @Builder
-    public EmailSentLog(RecruitmentSubscriber subscriber, RecruitmentText recruitmentText, EmailSentStatus status) {
+    public EmailSentLog(RecruitmentSubscriber subscriber, RecruitmentText recruitmentText) {
         this.subscriber = subscriber;
         this.recruitmentText = recruitmentText;
+        this.status = EmailSentStatus.PENDING;
+    }
+
+    public void markSent(EmailSentStatus status) {
         this.status = status;
+        this.sentAt = LocalDateTime.now();
     }
 }

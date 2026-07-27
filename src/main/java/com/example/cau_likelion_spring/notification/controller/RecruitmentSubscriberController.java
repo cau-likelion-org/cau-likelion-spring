@@ -11,10 +11,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @Tag(name = "Recruitment", description = "모집 알림 API")
 @RestController
@@ -35,5 +39,14 @@ public class RecruitmentSubscriberController {
     public ResponseEntity<RecruitmentSubscriberResponse> subscribe(
             @Valid @RequestBody RecruitmentSubscribeRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(recruitmentSubscriberService.subscribe(request));
+    }
+
+    @Operation(summary = "모집 알림 구독자 목록 조회",
+            description = "공고 발송 대상을 선택하기 위한 전체 구독자 목록입니다. ADMIN 권한이 필요합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping
+    public ResponseEntity<List<RecruitmentSubscriberResponse>> getAll() {
+        return ResponseEntity.ok(recruitmentSubscriberService.getAll());
     }
 }

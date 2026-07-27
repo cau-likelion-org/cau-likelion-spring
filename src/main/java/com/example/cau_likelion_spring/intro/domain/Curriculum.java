@@ -40,9 +40,10 @@ public class Curriculum extends BaseTimeEntity {
         this.description = description;
     }
 
-    public void update(Integer week, String title, String description) {
-        if (week != null) this.week = week;
-        if (title != null) this.title = title;
-        if (description != null) this.description = description;
+    public void update(Track track, Integer week, String title, String description) {
+        this.track = track;
+        this.week = week;
+        this.title = title;
+        this.description = description;
     }
 }

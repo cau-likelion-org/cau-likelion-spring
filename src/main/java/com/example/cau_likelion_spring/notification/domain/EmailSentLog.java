@@ -14,12 +14,15 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
 /**
  * 신청자에게 모집 공고 이메일을 발송(예정/완료)한 이력
  * 생성 시점에는 PENDING 상태이며 sentAt은 null, 실제 발송 시도 후 markSent()로 상태와 발송 시각이 채워짐
+ * 구독자가 삭제(매년 3월 1일 초기화 등)되어도 발송 이력 자체는 남아야 하므로 subscriber는 nullable
  */
 @Entity
 @Getter
@@ -31,7 +34,8 @@ public class EmailSentLog {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subscriber_id", nullable = false)
+    @JoinColumn(name = "subscriber_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private RecruitmentSubscriber subscriber;
 
     @ManyToOne(fetch = FetchType.LAZY)

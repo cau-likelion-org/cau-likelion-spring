@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,12 +26,14 @@ public class ProjectController {
 
     private final ProjectService projectService;
 
-    @Operation(summary = "프로젝트 생성", description = "새로운 프로젝트를 이미지/링크/멤버 정보와 함께 생성합니다.")
+    @Operation(summary = "프로젝트 생성", description = "새로운 프로젝트를 이미지/링크/멤버 정보와 함께 생성합니다. ADMIN, STAFF 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "생성 성공"),
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 기수(generationId)")
     })
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @PostMapping
     public ResponseEntity<ProjectResponse> create(@Valid @RequestBody ProjectRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(projectService.create(request));
@@ -57,12 +60,14 @@ public class ProjectController {
         return ResponseEntity.ok(projectService.getById(id));
     }
 
-    @Operation(summary = "프로젝트 수정", description = "프로젝트 정보를 수정합니다. 이미지/링크/멤버는 요청 내용으로 전체 대체됩니다.")
+    @Operation(summary = "프로젝트 수정", description = "프로젝트 정보를 수정합니다. 이미지/링크/멤버는 요청 내용으로 전체 대체됩니다. ADMIN, STAFF 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "수정 성공"),
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 프로젝트 또는 기수(generationId)")
     })
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @PutMapping("/{id}")
     public ResponseEntity<ProjectResponse> update(
             @Parameter(description = "프로젝트 ID", required = true) @PathVariable Long id,
@@ -70,11 +75,13 @@ public class ProjectController {
         return ResponseEntity.ok(projectService.update(id, request));
     }
 
-    @Operation(summary = "프로젝트 삭제", description = "프로젝트와 연관된 이미지/링크/멤버를 함께 삭제합니다.")
+    @Operation(summary = "프로젝트 삭제", description = "프로젝트와 연관된 이미지/링크/멤버를 함께 삭제합니다. ADMIN, STAFF 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "삭제 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 프로젝트")
     })
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @Parameter(description = "프로젝트 ID", required = true) @PathVariable Long id) {

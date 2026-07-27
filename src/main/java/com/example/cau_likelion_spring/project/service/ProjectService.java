@@ -1,6 +1,7 @@
 package com.example.cau_likelion_spring.project.service;
 
 import com.example.cau_likelion_spring.organization.domain.Generation;
+import com.example.cau_likelion_spring.organization.exception.GenerationNotFoundException;
 import com.example.cau_likelion_spring.organization.repository.GenerationRepository;
 import com.example.cau_likelion_spring.project.domain.Project;
 import com.example.cau_likelion_spring.project.domain.ProjectCategory;
@@ -9,7 +10,6 @@ import com.example.cau_likelion_spring.project.domain.ProjectLink;
 import com.example.cau_likelion_spring.project.domain.ProjectMember;
 import com.example.cau_likelion_spring.project.dto.ProjectRequest;
 import com.example.cau_likelion_spring.project.dto.ProjectResponse;
-import com.example.cau_likelion_spring.project.exception.GenerationNotFoundException;
 import com.example.cau_likelion_spring.project.exception.ProjectNotFoundException;
 import com.example.cau_likelion_spring.project.repository.ProjectImageRepository;
 import com.example.cau_likelion_spring.project.repository.ProjectLinkRepository;

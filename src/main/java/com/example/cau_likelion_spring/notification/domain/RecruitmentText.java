@@ -47,4 +47,10 @@ public class RecruitmentText {
         this.content = content;
         this.scheduledSendAt = scheduledSendAt;
     }
+
+    public void update(String title, String content, LocalDateTime scheduledSendAt) {
+        this.title = title;
+        this.content = content;
+        this.scheduledSendAt = scheduledSendAt;
+    }
 }

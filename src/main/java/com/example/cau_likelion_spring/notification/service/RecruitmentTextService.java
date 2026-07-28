@@ -17,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -108,11 +109,12 @@ public class RecruitmentTextService {
     }
 
     private List<RecruitmentSubscriber> getSubscribers(List<Long> subscriberIds) {
-        List<RecruitmentSubscriber> subscribers = recruitmentSubscriberRepository.findAllById(subscriberIds);
+        Set<Long> uniqueIds = new LinkedHashSet<>(subscriberIds);
+        List<RecruitmentSubscriber> subscribers = recruitmentSubscriberRepository.findAllById(uniqueIds);
 
-        if (subscribers.size() != subscriberIds.size()) {
+        if (subscribers.size() != uniqueIds.size()) {
             Set<Long> foundIds = subscribers.stream().map(RecruitmentSubscriber::getId).collect(Collectors.toSet());
-            List<Long> missingIds = subscriberIds.stream().filter(id -> !foundIds.contains(id)).toList();
+            List<Long> missingIds = uniqueIds.stream().filter(id -> !foundIds.contains(id)).toList();
             throw new SubscriberNotFoundException(missingIds);
         }
 

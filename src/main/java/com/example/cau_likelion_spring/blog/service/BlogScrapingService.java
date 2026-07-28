@@ -38,6 +38,7 @@ public class BlogScrapingService {
     private static final int MIN_IMAGE_SIZE = 100;
     private static final int MIN_PARAGRAPH_LENGTH = 10;
     private static final int DESCRIPTION_PARAGRAPH_LIMIT = 3;
+    private static final int DESCRIPTION_MAX_LENGTH = 150;
 
     private static final String[] CONTENT_CONTAINER_SELECTORS = {
             "article", "main", ".post-content", ".entry-content", "#content", ".article-body", "body"
@@ -77,7 +78,7 @@ public class BlogScrapingService {
                 url,
                 extractTitle(doc),
                 extractThumbnail(doc),
-                extractDescription(doc),
+                truncate(extractDescription(doc)),
                 extractPublishedDate(doc)
         );
     }
@@ -345,5 +346,12 @@ public class BlogScrapingService {
         } catch (Exception e) {
             return maybeRelative;
         }
+    }
+
+    private String truncate(String text) {
+        if (text == null || text.length() <= DESCRIPTION_MAX_LENGTH) {
+            return text;
+        }
+        return text.substring(0, DESCRIPTION_MAX_LENGTH) + "...";
     }
 }

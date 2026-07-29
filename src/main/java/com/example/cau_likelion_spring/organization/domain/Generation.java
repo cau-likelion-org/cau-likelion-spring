@@ -37,4 +37,8 @@ public class Generation extends BaseTimeEntity {
         this.isCurrent = isCurrent;
         this.year = year;
     }
+
+    public void changeCurrent(boolean isCurrent) {
+        this.isCurrent = isCurrent;
+    }
 }

@@ -4,16 +4,13 @@ import com.example.cau_likelion_spring.organization.dto.GenerationCreateRequestD
 import com.example.cau_likelion_spring.organization.dto.GenerationListResponseDto;
 import com.example.cau_likelion_spring.organization.service.GenerationService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -36,5 +33,13 @@ public class GenerationController {
     @GetMapping
     public ResponseEntity<List<GenerationListResponseDto>> getGenerationList() {
         return ResponseEntity.ok(generationService.getGenerationList());
+    }
+
+    @Operation(summary = "현재 기수 전환", description = "해당 id의 기수를 현재 기수(isCurrent=true)로 지정하고, 나머지 기수는 모두 isCurrent=false로 바뀝니다.")
+    @PatchMapping("/{id}/current")
+    public ResponseEntity<Void> changeCurrentGeneration(
+            @Parameter(description = "현재 기수로 지정할 기수 id") @PathVariable Long id) {
+        generationService.changeCurrentGeneration(id);
+        return ResponseEntity.noContent().build();
     }
 }

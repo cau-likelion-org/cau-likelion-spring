@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Year;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -29,6 +28,7 @@ public class GenerationService {
         Generation generation = Generation.builder()
                 .number(request.getNumber())
                 .year(request.getYear())
+                .isCurrent(false) // 새로 만든 기수를 자동으로 현재 기수로 만들지 않음 - 별도로 changeCurrentGeneration 호출해야 함
                 .build();
         Generation savedGeneration = generationRepository.save(generation);
 
@@ -63,13 +63,30 @@ public class GenerationService {
     }
 
     /**
-     * 현재 기수 판단 - 활동 년도(year)가 올해와 같은 기수를 현재 기수로 본다.
+     * 현재 기수를 전환한다.
+     * 대상 기수를 isCurrent = true로, 나머지 모든 기수를 isCurrent = false로 만든다.
+     */
+    @Transactional
+    public void changeCurrentGeneration(Long id) {
+        List<Generation> generations = generationRepository.findAll();
+
+        boolean targetExists = generations.stream().anyMatch(g -> g.getId().equals(id));
+        if (!targetExists) {
+            throw new EntityNotFoundException("존재하지 않는 기수입니다. id=" + id);
+        }
+
+        for (Generation generation : generations) {
+            generation.changeCurrent(generation.getId().equals(id));
+        }
+        // 영속 상태(더티 체킹)라 별도 save() 호출 불필요
+    }
+
+    /**
+     * 현재 기수 판단 - isCurrent가 true인 Generation을 반환
      * 다른 도메인(session, assignment 등)에서 "현재 기수"가 필요할 때 이 메서드를 재사용하면 된다.
      */
     public Generation getCurrentGeneration() {
-        int currentYear = Year.now().getValue();
-        return generationRepository.findByYear(currentYear)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        currentYear + "년에 해당하는 기수가 존재하지 않습니다."));
+        return generationRepository.findByIsCurrentTrue()
+                .orElseThrow(() -> new EntityNotFoundException("현재 기수로 지정된 기수가 없습니다."));
     }
 }

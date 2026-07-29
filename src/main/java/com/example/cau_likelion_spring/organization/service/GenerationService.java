@@ -2,6 +2,7 @@ package com.example.cau_likelion_spring.organization.service;
 
 import com.example.cau_likelion_spring.organization.domain.Generation;
 import com.example.cau_likelion_spring.organization.domain.Part;
+import com.example.cau_likelion_spring.organization.dto.GenerationCreateRequestDto;
 import com.example.cau_likelion_spring.organization.dto.GenerationListResponseDto;
 import com.example.cau_likelion_spring.organization.repository.GenerationRepository;
 import com.example.cau_likelion_spring.organization.repository.PartRepository;
@@ -20,6 +21,25 @@ public class GenerationService {
 
     private final GenerationRepository generationRepository;
     private final PartRepository partRepository;
+
+    @Transactional
+    public GenerationListResponseDto createGeneration(GenerationCreateRequestDto request) {
+        Generation generation = Generation.builder()
+                .number(request.getNumber())
+                .year(request.getYear())
+                .build();
+        Generation savedGeneration = generationRepository.save(generation);
+
+        List<Part> parts = request.getPartNames().stream()
+                .map(partName -> Part.builder()
+                        .generation(savedGeneration)
+                        .name(partName)
+                        .build())
+                .toList();
+        List<Part> savedParts = partRepository.saveAll(parts);
+
+        return GenerationListResponseDto.of(savedGeneration, savedParts);
+    }
 
     public List<GenerationListResponseDto> getGenerationList() {
         List<Generation> generations = generationRepository.findAll();

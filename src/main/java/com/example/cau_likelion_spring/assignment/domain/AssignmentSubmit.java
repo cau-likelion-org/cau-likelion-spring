@@ -8,9 +8,12 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 /**
  * 과제 제출 내역
  * 제출 시각(createdAt)은 BaseTimeEntity에서 상속받음
+ * 재제출마다 새 row가 생성됨 (기존 제출을 수정하지 않음)
  */
 @Entity
 @Getter
@@ -35,24 +38,41 @@ public class AssignmentSubmit extends BaseTimeEntity {
     @JoinColumn(name = "submit_member_id")
     private Member submitMember;
 
-    @Lob
+    @Column(length = 300)
     private String content;
 
-    /** 파일 업로드용 url */
-    private String fileUrl;
+    /** Assignment.type = URL인 경우에만 사용 */
+    private String url;
 
-    /** 반려 여부 */
-    @Column(nullable = false)
-    private Boolean isRejected = false;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(20)")
+    private AssignmentSubmitStatus status;
+
+    private LocalDateTime approvalDate;
+
+    @Lob
+    private String rejectionReason;
 
     @Builder
-    public AssignmentSubmit(Assignment assignment, Member reviewMember, Member submitMember, String content,
-                             String fileUrl, Boolean isRejected) {
+    public AssignmentSubmit(Assignment assignment, Member submitMember, String content, String url) {
         this.assignment = assignment;
-        this.reviewMember = reviewMember;
         this.submitMember = submitMember;
         this.content = content;
-        this.fileUrl = fileUrl;
-        this.isRejected = (isRejected != null) ? isRejected : false;
+        this.url = url;
+        this.status = AssignmentSubmitStatus.PENDING;
+    }
+
+    public void approve(Member reviewMember) {
+        this.reviewMember = reviewMember;
+        this.status = AssignmentSubmitStatus.APPROVED;
+        this.approvalDate = LocalDateTime.now();
+        this.rejectionReason = null;
+    }
+
+    public void reject(Member reviewMember, String rejectionReason) {
+        this.reviewMember = reviewMember;
+        this.status = AssignmentSubmitStatus.REJECTED;
+        this.approvalDate = LocalDateTime.now();
+        this.rejectionReason = rejectionReason;
     }
 }

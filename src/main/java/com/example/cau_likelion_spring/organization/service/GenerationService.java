@@ -6,10 +6,12 @@ import com.example.cau_likelion_spring.organization.dto.GenerationCreateRequestD
 import com.example.cau_likelion_spring.organization.dto.GenerationListResponseDto;
 import com.example.cau_likelion_spring.organization.repository.GenerationRepository;
 import com.example.cau_likelion_spring.organization.repository.PartRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Year;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -58,5 +60,16 @@ public class GenerationService {
                         partsByGenerationId.getOrDefault(generation.getId(), List.of())
                 ))
                 .toList();
+    }
+
+    /**
+     * 현재 기수 판단 - 활동 년도(year)가 올해와 같은 기수를 현재 기수로 본다.
+     * 다른 도메인(session, assignment 등)에서 "현재 기수"가 필요할 때 이 메서드를 재사용하면 된다.
+     */
+    public Generation getCurrentGeneration() {
+        int currentYear = Year.now().getValue();
+        return generationRepository.findByYear(currentYear)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        currentYear + "년에 해당하는 기수가 존재하지 않습니다."));
     }
 }

@@ -49,4 +49,12 @@ public class Assignment extends BaseTimeEntity {
         this.endDate = endDate;
         this.type = type;
     }
+
+    /** 파트/주차는 수정 대상이 아님 - 제목/설명/마감기한/제출형식만 변경 */
+    public void update(String title, String detail, LocalDateTime endDate, AssignmentType type) {
+        this.title = title;
+        this.detail = detail;
+        this.endDate = endDate;
+        this.type = type;
+    }
 }

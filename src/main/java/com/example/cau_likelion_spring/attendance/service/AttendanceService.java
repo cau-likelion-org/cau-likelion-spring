@@ -3,11 +3,15 @@ package com.example.cau_likelion_spring.attendance.service;
 import com.example.cau_likelion_spring.attendance.domain.AttendanceStatus;
 import com.example.cau_likelion_spring.attendance.domain.DetailAttendance;
 import com.example.cau_likelion_spring.attendance.domain.WeeklyAttendance;
+import com.example.cau_likelion_spring.attendance.dto.AttendanceCheckRequest;
 import com.example.cau_likelion_spring.attendance.dto.AttendanceStatusResponse;
 import com.example.cau_likelion_spring.attendance.dto.MemberAttendanceResponse;
 import com.example.cau_likelion_spring.attendance.dto.WeeklyAttendanceCreateRequest;
 import com.example.cau_likelion_spring.attendance.dto.WeeklyAttendanceResponse;
+import com.example.cau_likelion_spring.attendance.exception.AttendanceCheckClosedException;
+import com.example.cau_likelion_spring.attendance.exception.AttendanceTargetNotFoundException;
 import com.example.cau_likelion_spring.attendance.exception.DuplicateWeeklyAttendanceException;
+import com.example.cau_likelion_spring.attendance.exception.InvalidAttendancePasswordException;
 import com.example.cau_likelion_spring.attendance.repository.DetailAttendanceRepository;
 import com.example.cau_likelion_spring.attendance.repository.WeeklyAttendanceRepository;
 import com.example.cau_likelion_spring.member.domain.Member;
@@ -20,6 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -28,6 +34,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AttendanceService {
+
+    /** 세션 시작 시각 (세션 당일 19:00 고정) */
+    private static final int SESSION_START_HOUR = 19;
+
+    /** 정상 출석으로 인정되는 유예 시간(분). 세션 시작 5분 후까지 출석, 6분부터 지각 */
+    private static final int LATE_GRACE_MINUTES = 5;
+
+    /** 출석 체크가 가능한 마감 시각 (세션 당일 22:00) */
+    private static final int CHECK_CLOSE_HOUR = 22;
 
     private final DetailAttendanceRepository detailAttendanceRepository;
     private final WeeklyAttendanceRepository weeklyAttendanceRepository;
@@ -57,6 +72,32 @@ public class AttendanceService {
         detailAttendanceRepository.saveAll(detailAttendances);
 
         return WeeklyAttendanceResponse.from(weeklyAttendance);
+    }
+
+    @PreAuthorize("hasRole('BABY_LION')")
+    @Transactional
+    public AttendanceStatusResponse checkAttendance(Long memberId, AttendanceCheckRequest request) {
+        LocalDate today = LocalDate.now();
+
+        WeeklyAttendance weeklyAttendance = weeklyAttendanceRepository.findByDate(today)
+                .filter(attendance -> attendance.getPassword().equals(request.password()))
+                .orElseThrow(InvalidAttendancePasswordException::new);
+
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isAfter(today.atTime(CHECK_CLOSE_HOUR, 0))) {
+            throw new AttendanceCheckClosedException();
+        }
+
+        DetailAttendance detailAttendance = detailAttendanceRepository
+                .findByMember_IdAndWeeklyAttendance_Id(memberId, weeklyAttendance.getId())
+                .orElseThrow(AttendanceTargetNotFoundException::new);
+
+        LocalDateTime lateStandard = today.atTime(SESSION_START_HOUR, 0).plusMinutes(LATE_GRACE_MINUTES);
+        AttendanceStatus status = now.isAfter(lateStandard) ? AttendanceStatus.LATE : AttendanceStatus.PRESENT;
+
+        detailAttendance.checkIn(status, now);
+
+        return AttendanceStatusResponse.from(detailAttendance);
     }
 
     @PreAuthorize("hasRole('BABY_LION')")

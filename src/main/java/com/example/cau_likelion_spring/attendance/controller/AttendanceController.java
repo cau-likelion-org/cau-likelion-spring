@@ -1,5 +1,6 @@
 package com.example.cau_likelion_spring.attendance.controller;
 
+import com.example.cau_likelion_spring.attendance.dto.AttendanceCheckRequest;
 import com.example.cau_likelion_spring.attendance.dto.AttendanceStatusResponse;
 import com.example.cau_likelion_spring.attendance.dto.MemberAttendanceResponse;
 import com.example.cau_likelion_spring.attendance.dto.WeeklyAttendanceCreateRequest;
@@ -42,6 +43,20 @@ public class AttendanceController {
     public ResponseEntity<WeeklyAttendanceResponse> createWeeklyAttendance(
             @Valid @RequestBody WeeklyAttendanceCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(attendanceService.createWeeklyAttendance(request));
+    }
+
+    @Operation(summary = "출석체크", description = "아기사자가 세션 당일 마이페이지에서 비밀번호 4자리를 입력해 출석 체크합니다. " +
+            "세션 시작(19시) 5분 후까지는 출석, 이후 22시까지는 지각으로 처리됩니다. BABY_LION 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "체크 성공"),
+            @ApiResponse(responseCode = "400", description = "비밀번호 불일치 또는 체크 가능 시간 아님"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "출석 대상이 아님")
+    })
+    @PostMapping("/check")
+    public ResponseEntity<AttendanceStatusResponse> checkAttendance(
+            @AuthenticationPrincipal Long memberId, @Valid @RequestBody AttendanceCheckRequest request) {
+        return ResponseEntity.ok(attendanceService.checkAttendance(memberId, request));
     }
 
     @Operation(summary = "본인 출결 현황 조회", description = "로그인한 아기사자 본인의 주차별 출결 현황을 조회합니다.")

@@ -14,6 +14,7 @@ public class GenerationListResponseDto {
     private Long id;
     private Integer number;
     private Integer year;
+    private Boolean isCurrent;
     private List<PartSummary> parts;
 
     public static GenerationListResponseDto of(Generation generation, List<Part> parts) {
@@ -21,6 +22,7 @@ public class GenerationListResponseDto {
                 .id(generation.getId())
                 .number(generation.getNumber())
                 .year(generation.getYear())
+                .isCurrent(generation.getIsCurrent())
                 .parts(parts.stream()
                         .map(part -> PartSummary.builder()
                                 .id(part.getId())

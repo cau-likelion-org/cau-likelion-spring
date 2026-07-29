@@ -27,9 +27,18 @@ public class Generation extends BaseTimeEntity {
     @Column(nullable = false)
     private Boolean isCurrent;
 
+    /** 활동 년도 (예: 2026) */
+    @Column(nullable = false)
+    private Integer year;
+
     @Builder
-    public Generation(Integer number, Boolean isCurrent) {
+    public Generation(Integer number, Boolean isCurrent, Integer year) {
         this.number = number;
+        this.isCurrent = isCurrent;
+        this.year = year;
+    }
+
+    public void changeCurrent(boolean isCurrent) {
         this.isCurrent = isCurrent;
     }
 }

@@ -14,7 +14,7 @@ public record BlogScrapingResponse(
         @Schema(description = "썸네일 이미지 URL")
         String thumbnailUrl,
 
-        @Schema(description = "초반 본문 텍스트 (최대 3줄)")
+        @Schema(description = "초반 본문 텍스트 (최대 150자, 공백 포함)")
         String description,
 
         @Schema(description = "작성일 (yyyy-MM-dd)")

@@ -41,6 +41,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/projects/**").permitAll()
                         // /api/blogs/scraping은 숫자 id 패턴에 걸리지 않으므로 아래 permitAll 대상에서 제외됨
                         .requestMatchers(HttpMethod.GET, "/api/blogs", "/api/blogs/{id:[0-9]+}").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/recruitment/subscribers").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -22,3 +22,10 @@ jwt:
   secret: ${JWT_SECRET}
   access-token-expiration: ${JWT_ACCESS_EXPIRATION:1h}
   refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:14d}
+
+attendance:
+  session-start-hour: 19
+  check-close-hour: 22
+  late-grace-minutes: 5
+  # session-start-hour/late-grace-minutes를 바꾸면 이 cron도 같이 맞춰서 바꿔야 함 (분 시 * * 요일)
+  absence-check-cron: "0 5 19 * * WED"

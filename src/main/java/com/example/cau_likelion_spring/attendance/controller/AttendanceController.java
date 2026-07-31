@@ -51,7 +51,7 @@ public class AttendanceController {
             @ApiResponse(responseCode = "200", description = "체크 성공"),
             @ApiResponse(responseCode = "400", description = "비밀번호 불일치 또는 체크 가능 시간 아님"),
             @ApiResponse(responseCode = "403", description = "권한 없음"),
-            @ApiResponse(responseCode = "404", description = "출석 대상이 아님")
+            @ApiResponse(responseCode = "404", description = "금일 출석부가 아직 생성되지 않았거나, 출석 대상이 아님")
     })
     @PostMapping("/check")
     public ResponseEntity<AttendanceStatusResponse> checkAttendance(

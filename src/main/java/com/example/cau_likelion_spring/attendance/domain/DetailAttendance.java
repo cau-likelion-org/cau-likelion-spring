@@ -52,4 +52,8 @@ public class DetailAttendance extends BaseTimeEntity {
         this.status = status;
         this.checkedAt = checkedAt;
     }
+
+    public void markAsUnauthorizedAbsent() {
+        this.status = AttendanceStatus.UNAUTHORIZED_ABSENT;
+    }
 }

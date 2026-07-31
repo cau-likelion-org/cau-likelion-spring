@@ -3,8 +3,8 @@ package com.example.cau_likelion_spring.member.service;
 import com.example.cau_likelion_spring.member.domain.Member;
 import com.example.cau_likelion_spring.member.dto.MemberResponse;
 import com.example.cau_likelion_spring.member.dto.MemberUpdateRequest;
-import com.example.cau_likelion_spring.member.exception.MemberNotFoundException;
-import com.example.cau_likelion_spring.member.exception.PartNotFoundException;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.member.repository.MemberRepository;
 import com.example.cau_likelion_spring.organization.domain.Part;
 import com.example.cau_likelion_spring.organization.repository.PartRepository;
@@ -44,7 +44,7 @@ public class MemberService {
 
     private Member getMember(Long id) {
         return memberRepository.findById(id)
-                .orElseThrow(() -> new MemberNotFoundException(id));
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND, "존재하지 않는 구성원입니다. id=" + id));
     }
 
     private Part getPart(Long partId) {
@@ -52,6 +52,6 @@ public class MemberService {
             return null;
         }
         return partRepository.findById(partId)
-                .orElseThrow(() -> new PartNotFoundException(partId));
+                .orElseThrow(() -> new CustomException(ErrorCode.PART_NOT_FOUND, "존재하지 않는 파트입니다. id=" + partId));
     }
 }

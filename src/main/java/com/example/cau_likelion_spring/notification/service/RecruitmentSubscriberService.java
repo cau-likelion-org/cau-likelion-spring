@@ -3,7 +3,8 @@ package com.example.cau_likelion_spring.notification.service;
 import com.example.cau_likelion_spring.notification.domain.RecruitmentSubscriber;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentSubscribeRequest;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentSubscriberResponse;
-import com.example.cau_likelion_spring.notification.exception.DuplicateSubscriptionException;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.notification.repository.RecruitmentSubscriberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +26,7 @@ public class RecruitmentSubscriberService {
     @Transactional
     public RecruitmentSubscriberResponse subscribe(RecruitmentSubscribeRequest request) {
         if (recruitmentSubscriberRepository.existsByEmail(request.email())) {
-            throw new DuplicateSubscriptionException(request.email());
+            throw new CustomException(ErrorCode.DUPLICATE_SUBSCRIPTION, "이미 구독 중인 이메일입니다. email=" + request.email());
         }
 
         RecruitmentSubscriber subscriber = recruitmentSubscriberRepository.save(

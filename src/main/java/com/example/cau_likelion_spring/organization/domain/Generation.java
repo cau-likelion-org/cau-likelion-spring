@@ -23,22 +23,23 @@ public class Generation extends BaseTimeEntity {
     @Column(nullable = false)
     private Integer number;
 
-    /** 현재 활동 중인 기수인지 */
+    /** 활동 상태 (활동 전 / 활동 중 / 활동 후) - IN_ACTIVITY는 전체 중 최대 1개만 존재해야 함 */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Boolean isCurrent;
+    private GenerationStatus status;
 
     /** 활동 년도 (예: 2026) */
     @Column(nullable = false)
     private Integer year;
 
     @Builder
-    public Generation(Integer number, Boolean isCurrent, Integer year) {
+    public Generation(Integer number, GenerationStatus status, Integer year) {
         this.number = number;
-        this.isCurrent = isCurrent;
+        this.status = status;
         this.year = year;
     }
 
-    public void changeCurrent(boolean isCurrent) {
-        this.isCurrent = isCurrent;
+    public void changeStatus(GenerationStatus status) {
+        this.status = status;
     }
 }

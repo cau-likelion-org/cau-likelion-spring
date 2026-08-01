@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -47,6 +48,22 @@ public class AssignmentController {
     public ResponseEntity<List<AssignmentStaffWeekGroupResponse>> getMyAssignmentsForStaff(
             @AuthenticationPrincipal Long memberId) {
         return ResponseEntity.ok(assignmentService.getMyAssignmentsForStaff(memberId));
+    }
+
+    @Operation(summary = "(회장용) 파트별 생성된 과제 목록 조회 (주차별)",
+            description = "로그인한 회장이 partId로 지정한 파트의 과제 목록을 주차별로 묶어서 조회합니다. "
+                    + "본인 소속 파트로 제한되는 위 API와 달리 모든 파트를 조회할 수 있습니다. "
+                    + "개별 과제마다 과제명/마감기한과, 파트원 전체를 대상으로 최신 제출 기준 제출전/미제출/승인대기/지각제출/승인완료 인원 수를 함께 보여줍니다. "
+                    + "PRESIDENT 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 파트")
+    })
+    @GetMapping("/president")
+    public ResponseEntity<List<AssignmentStaffWeekGroupResponse>> getAssignmentsForPresident(
+            @Parameter(description = "조회할 파트 ID", required = true) @RequestParam Long partId) {
+        return ResponseEntity.ok(assignmentService.getAssignmentsForPresident(partId));
     }
 
     @Operation(summary = "과제 생성",

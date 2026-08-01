@@ -4,7 +4,8 @@ import com.example.cau_likelion_spring.intro.domain.Activity;
 import com.example.cau_likelion_spring.intro.dto.ActivityRequestDto;
 import com.example.cau_likelion_spring.intro.dto.ActivityResponseDto;
 import com.example.cau_likelion_spring.intro.repository.ActivityRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +56,6 @@ public class ActivityService {
 
     private Activity findActivityById(Long id) {
         return activityRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 활동입니다. id=" + id));
+                .orElseThrow(() -> new CustomException(ErrorCode.ACTIVITY_NOT_FOUND, "존재하지 않는 활동입니다. id=" + id));
     }
 }

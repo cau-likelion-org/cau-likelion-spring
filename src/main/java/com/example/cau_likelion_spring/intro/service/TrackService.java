@@ -4,7 +4,8 @@ import com.example.cau_likelion_spring.intro.domain.Track;
 import com.example.cau_likelion_spring.intro.dto.TrackRequestDto;
 import com.example.cau_likelion_spring.intro.dto.TrackResponseDto;
 import com.example.cau_likelion_spring.intro.repository.TrackRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,6 +51,6 @@ public class TrackService {
 
     private Track findTrackById(Long id) {
         return trackRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 트랙입니다. id=" + id));
+                .orElseThrow(() -> new CustomException(ErrorCode.TRACK_NOT_FOUND, "존재하지 않는 트랙입니다. id=" + id));
     }
 }

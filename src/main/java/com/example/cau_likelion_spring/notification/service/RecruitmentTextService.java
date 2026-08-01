@@ -6,9 +6,8 @@ import com.example.cau_likelion_spring.notification.domain.RecruitmentSubscriber
 import com.example.cau_likelion_spring.notification.domain.RecruitmentText;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentTextRequest;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentTextResponse;
-import com.example.cau_likelion_spring.notification.exception.RecruitmentTextAlreadySentException;
-import com.example.cau_likelion_spring.notification.exception.RecruitmentTextNotFoundException;
-import com.example.cau_likelion_spring.notification.exception.SubscriberNotFoundException;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.notification.repository.EmailSentLogRepository;
 import com.example.cau_likelion_spring.notification.repository.RecruitmentSubscriberRepository;
 import com.example.cau_likelion_spring.notification.repository.RecruitmentTextRepository;
@@ -95,12 +94,13 @@ public class RecruitmentTextService {
 
     private RecruitmentText getText(Long id) {
         return recruitmentTextRepository.findById(id)
-                .orElseThrow(() -> new RecruitmentTextNotFoundException(id));
+                .orElseThrow(() -> new CustomException(ErrorCode.RECRUITMENT_TEXT_NOT_FOUND, "존재하지 않는 모집 공고입니다. id=" + id));
     }
 
     private void validateNotSent(RecruitmentText text) {
         if (emailSentLogRepository.existsByRecruitmentTextAndStatusNot(text, EmailSentStatus.PENDING)) {
-            throw new RecruitmentTextAlreadySentException(text.getId());
+            throw new CustomException(ErrorCode.RECRUITMENT_TEXT_ALREADY_SENT,
+                    "이미 발송이 시작된 공고는 수정/삭제할 수 없습니다. id=" + text.getId());
         }
     }
 
@@ -115,7 +115,7 @@ public class RecruitmentTextService {
         if (subscribers.size() != uniqueIds.size()) {
             Set<Long> foundIds = subscribers.stream().map(RecruitmentSubscriber::getId).collect(Collectors.toSet());
             List<Long> missingIds = uniqueIds.stream().filter(id -> !foundIds.contains(id)).toList();
-            throw new SubscriberNotFoundException(missingIds);
+            throw new CustomException(ErrorCode.SUBSCRIBER_NOT_FOUND, "존재하지 않는 구독자입니다. ids=" + missingIds);
         }
 
         return subscribers;

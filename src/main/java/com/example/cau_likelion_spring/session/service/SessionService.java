@@ -12,7 +12,8 @@ import com.example.cau_likelion_spring.session.dto.SessionUpdateRequestDto;
 import com.example.cau_likelion_spring.session.repository.SessionImageRepository;
 import com.example.cau_likelion_spring.session.repository.SessionRepository;
 
-import jakarta.persistence.EntityNotFoundException;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +35,7 @@ public class SessionService {
         // 해당 기수의 해당 파트 찾기
         Part part = partRepository.findByNameAndGeneration_Number(
                         request.getPartName(), request.getGenerationNumber())
-                .orElseThrow(() -> new EntityNotFoundException(
+                .orElseThrow(() -> new CustomException(ErrorCode.PART_NOT_FOUND,
                         "존재하지 않는 파트입니다. partName=" + request.getPartName()
                                 + ", generationNumber=" + request.getGenerationNumber()));
 
@@ -70,7 +71,7 @@ public class SessionService {
     @Transactional(readOnly = true)
     public SessionResponseDto getSession(Long sessionId) {
         Session session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new EntityNotFoundException(
+                .orElseThrow(() -> new CustomException(ErrorCode.SESSION_NOT_FOUND,
                         "존재하지 않는 세션입니다. sessionId=" + sessionId
                 ));
         return SessionResponseDto.from(session, getImageUrls(session));
@@ -100,7 +101,7 @@ public class SessionService {
     @Transactional
     public SessionResponseDto updateSession(Long sessionId, SessionUpdateRequestDto request) {
         Session session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new EntityNotFoundException(
+                .orElseThrow(() -> new CustomException(ErrorCode.SESSION_NOT_FOUND,
                         "존재하지 않는 세션입니다. sessionId=" + sessionId
                 ));
 
@@ -133,7 +134,7 @@ public class SessionService {
     @Transactional
     public void deleteSession(Long sessionId) {
         Session session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new EntityNotFoundException(
+                .orElseThrow(() -> new CustomException(ErrorCode.SESSION_NOT_FOUND,
                         "존재하지 않는 세션입니다. sessionId=" + sessionId
                 ));
         sessionImageRepository.deleteAllBySession(session);

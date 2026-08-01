@@ -1,8 +1,8 @@
 package com.example.cau_likelion_spring.blog.service;
 
 import com.example.cau_likelion_spring.blog.dto.BlogScrapingResponse;
-import com.example.cau_likelion_spring.blog.exception.BlogScrapingFetchException;
-import com.example.cau_likelion_spring.blog.exception.InvalidScrapingUrlException;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -88,10 +88,10 @@ public class BlogScrapingService {
             URI uri = new URI(url);
             String scheme = uri.getScheme();
             if (uri.getHost() == null || !("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))) {
-                throw new InvalidScrapingUrlException(url);
+                throw new CustomException(ErrorCode.INVALID_SCRAPING_URL, "유효하지 않은 URL입니다. url=" + url);
             }
         } catch (URISyntaxException e) {
-            throw new InvalidScrapingUrlException(url);
+            throw new CustomException(ErrorCode.INVALID_SCRAPING_URL, "유효하지 않은 URL입니다. url=" + url);
         }
     }
 
@@ -104,7 +104,7 @@ public class BlogScrapingService {
                     .ignoreHttpErrors(true)
                     .get();
         } catch (IOException e) {
-            throw new BlogScrapingFetchException(url);
+            throw new CustomException(ErrorCode.BLOG_SCRAPING_FAILED, "블로그 페이지를 불러올 수 없습니다. url=" + url);
         }
     }
 

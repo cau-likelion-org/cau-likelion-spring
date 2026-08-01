@@ -6,7 +6,8 @@ import com.example.cau_likelion_spring.organization.dto.GenerationCreateRequestD
 import com.example.cau_likelion_spring.organization.dto.GenerationListResponseDto;
 import com.example.cau_likelion_spring.organization.repository.GenerationRepository;
 import com.example.cau_likelion_spring.organization.repository.PartRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,7 +73,7 @@ public class GenerationService {
 
         boolean targetExists = generations.stream().anyMatch(g -> g.getId().equals(id));
         if (!targetExists) {
-            throw new EntityNotFoundException("존재하지 않는 기수입니다. id=" + id);
+            throw new CustomException(ErrorCode.GENERATION_NOT_FOUND, "존재하지 않는 기수입니다. id=" + id);
         }
 
         for (Generation generation : generations) {
@@ -87,6 +88,6 @@ public class GenerationService {
      */
     public Generation getCurrentGeneration() {
         return generationRepository.findByIsCurrentTrue()
-                .orElseThrow(() -> new EntityNotFoundException("현재 기수로 지정된 기수가 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.CURRENT_GENERATION_NOT_FOUND, "현재 기수로 지정된 기수가 없습니다."));
     }
 }

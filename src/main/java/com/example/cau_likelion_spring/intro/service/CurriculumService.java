@@ -6,7 +6,8 @@ import com.example.cau_likelion_spring.intro.dto.CurriculumRequestDto;
 import com.example.cau_likelion_spring.intro.dto.CurriculumResponseDto;
 import com.example.cau_likelion_spring.intro.repository.CurriculumRepository;
 import com.example.cau_likelion_spring.intro.repository.TrackRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,11 +59,11 @@ public class CurriculumService {
 
     private Curriculum findCurriculumById(Long id) {
         return curriculumRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 커리큘럼입니다. id=" + id));
+                .orElseThrow(() -> new CustomException(ErrorCode.CURRICULUM_NOT_FOUND, "존재하지 않는 커리큘럼입니다. id=" + id));
     }
 
     private Track findTrackById(Long trackId) {
         return trackRepository.findById(trackId)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 트랙입니다. trackId=" + trackId));
+                .orElseThrow(() -> new CustomException(ErrorCode.TRACK_NOT_FOUND, "존재하지 않는 트랙입니다. trackId=" + trackId));
     }
 }

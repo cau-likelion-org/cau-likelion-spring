@@ -4,11 +4,14 @@ import com.example.cau_likelion_spring.attendance.domain.AttendanceStatus;
 import com.example.cau_likelion_spring.attendance.domain.DetailAttendance;
 import com.example.cau_likelion_spring.attendance.domain.WeeklyAttendance;
 import com.example.cau_likelion_spring.attendance.dto.AttendanceCheckRequest;
+import com.example.cau_likelion_spring.attendance.dto.AttendanceStatusBatchUpdateRequest;
 import com.example.cau_likelion_spring.attendance.dto.AttendanceStatusResponse;
 import com.example.cau_likelion_spring.attendance.dto.MemberAttendanceResponse;
 import com.example.cau_likelion_spring.attendance.dto.WeeklyAttendanceCreateRequest;
 import com.example.cau_likelion_spring.attendance.dto.WeeklyAttendanceResponse;
 import com.example.cau_likelion_spring.attendance.exception.AttendanceCheckClosedException;
+import com.example.cau_likelion_spring.attendance.exception.AttendancePartAccessDeniedException;
+import com.example.cau_likelion_spring.attendance.exception.AttendanceReasonRequiredException;
 import com.example.cau_likelion_spring.attendance.exception.AttendanceTargetNotFoundException;
 import com.example.cau_likelion_spring.attendance.exception.DuplicateWeeklyAttendanceException;
 import com.example.cau_likelion_spring.attendance.exception.InvalidAttendancePasswordException;
@@ -144,6 +147,35 @@ public class AttendanceService {
         return babyLions.stream()
                 .map(babyLion -> MemberAttendanceResponse.of(babyLion, attendancesByMemberId.getOrDefault(babyLion.getId(), List.of())))
                 .toList();
+    }
+
+    @PreAuthorize("hasAnyRole('STAFF', 'PRESIDENT')")
+    @Transactional
+    public List<AttendanceStatusResponse> updateAttendanceStatuses(Long memberId, AttendanceStatusBatchUpdateRequest request) {
+        Member requester = getMember(memberId);
+
+        return request.updates().stream()
+                .map(item -> updateAttendanceStatus(requester, item))
+                .toList();
+    }
+
+    private AttendanceStatusResponse updateAttendanceStatus(Member requester, AttendanceStatusBatchUpdateRequest.Item item) {
+        boolean requiresReason = item.status() == AttendanceStatus.ABSENT || item.status() == AttendanceStatus.EXCUSED;
+        if (requiresReason && (item.reason() == null || item.reason().isBlank())) {
+            throw new AttendanceReasonRequiredException();
+        }
+
+        DetailAttendance detailAttendance = detailAttendanceRepository.findById(item.detailAttendanceId())
+                .orElseThrow(AttendanceTargetNotFoundException::new);
+
+        boolean isSamePart = detailAttendance.getMember().getPart().getId().equals(requester.getPart().getId());
+        if (requester.getRole() == MemberRole.STAFF && !isSamePart) {
+            throw new AttendancePartAccessDeniedException();
+        }
+
+        detailAttendance.updateStatusByStaff(item.status(), item.reason());
+
+        return AttendanceStatusResponse.from(detailAttendance);
     }
 
     private Member getMember(Long memberId) {

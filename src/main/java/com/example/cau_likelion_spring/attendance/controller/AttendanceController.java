@@ -1,6 +1,7 @@
 package com.example.cau_likelion_spring.attendance.controller;
 
 import com.example.cau_likelion_spring.attendance.dto.AttendanceCheckRequest;
+import com.example.cau_likelion_spring.attendance.dto.AttendanceStatusBatchUpdateRequest;
 import com.example.cau_likelion_spring.attendance.dto.AttendanceStatusResponse;
 import com.example.cau_likelion_spring.attendance.dto.MemberAttendanceResponse;
 import com.example.cau_likelion_spring.attendance.dto.WeeklyAttendanceCreateRequest;
@@ -16,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -69,5 +71,19 @@ public class AttendanceController {
     @GetMapping("/part")
     public ResponseEntity<List<MemberAttendanceResponse>> getPartAttendances(@AuthenticationPrincipal Long memberId) {
         return ResponseEntity.ok(attendanceService.getPartAttendances(memberId));
+    }
+
+    @Operation(summary = "출결 상태 일괄 수정", description = "운영진/회장이 여러 아기사자의 출결 상태를 한 번에 수정합니다. " +
+            "결석 또는 공결로 변경할 때는 사유가 필수입니다. STAFF는 본인 파트 아기사자만, PRESIDENT는 전체 파트를 수정할 수 있습니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "수정 성공"),
+            @ApiResponse(responseCode = "400", description = "요청값 검증 실패 또는 결석/공결 사유 누락"),
+            @ApiResponse(responseCode = "403", description = "권한 없음 (본인 파트 아님)"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 출결 기록")
+    })
+    @PatchMapping("/batch")
+    public ResponseEntity<List<AttendanceStatusResponse>> updateAttendanceStatuses(
+            @AuthenticationPrincipal Long memberId, @Valid @RequestBody AttendanceStatusBatchUpdateRequest request) {
+        return ResponseEntity.ok(attendanceService.updateAttendanceStatuses(memberId, request));
     }
 }

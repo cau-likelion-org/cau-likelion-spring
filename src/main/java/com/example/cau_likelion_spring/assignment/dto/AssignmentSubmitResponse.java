@@ -30,8 +30,8 @@ public record AssignmentSubmitResponse(
         @Schema(description = "제출 상태")
         AssignmentSubmitStatus status,
 
-        @Schema(description = "제출 일시")
-        LocalDateTime createdAt,
+        @Schema(description = "제출 시각 (수정 시 가장 최신 시각으로 갱신됨)")
+        LocalDateTime submittedAt,
 
         @Schema(description = "화면 표시용 상태 (제출전/미제출/승인대기/지각제출/승인완료/승인반려)")
         AssignmentSubmitDisplayStatus displayStatus,
@@ -63,7 +63,7 @@ public record AssignmentSubmitResponse(
                 submit.getUrl(),
                 files.stream().map(FileResponse::from).toList(),
                 submit.getStatus(),
-                submit.getCreatedAt(),
+                submit.getUpdatedAt(),
                 displayStatus,
                 submit.getApprovalDate(),
                 submit.getRejectionReason()

@@ -8,6 +8,7 @@ import com.example.cau_likelion_spring.assignment.domain.AssignmentType;
 import com.example.cau_likelion_spring.assignment.domain.SubmissionFile;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitResponse;
+import com.example.cau_likelion_spring.assignment.exception.AssignmentAlreadyApprovedException;
 import com.example.cau_likelion_spring.assignment.exception.AssignmentNotFoundException;
 import com.example.cau_likelion_spring.assignment.exception.AssignmentPartMismatchException;
 import com.example.cau_likelion_spring.assignment.exception.AssignmentSubmissionClosedException;
@@ -43,6 +44,11 @@ public class AssignmentSubmitService {
     private final SubmissionFileRepository submissionFileRepository;
     private final MemberRepository memberRepository;
 
+    /**
+     * 최근 제출이 PENDING(운영진이 아직 평가하지 않음)이면 '수정'으로 보고 기존 row를 그대로 고치고,
+     * 그 외(제출 이력 없음 / REJECTED)면 '제출' 또는 '재제출'로 보고 새 row를 만든다.
+     * APPROVED(이미 승인됨)면 더 이상 제출할 수 없다.
+     */
     @PreAuthorize("hasRole('BABY_LION')")
     @Transactional
     public AssignmentSubmitResponse submit(Long memberId, Long assignmentId, AssignmentSubmitRequest request) {
@@ -56,16 +62,29 @@ public class AssignmentSubmitService {
                 .orElse(null);
         validateSubmittable(assignment, latest);
 
-        AssignmentSubmit submit = assignmentSubmitRepository.save(AssignmentSubmit.builder()
+        boolean isEdit = latest != null && latest.getStatus() == AssignmentSubmitStatus.PENDING;
+        AssignmentSubmit submit = isEdit
+                ? editSubmission(latest, request)
+                : createSubmission(assignment, member, request);
+
+        List<SubmissionFile> files = saveFiles(submit, request.files());
+
+        return AssignmentSubmitResponse.of(submit, files, AssignmentSubmitDisplayStatusCalculator.calculate(assignment, submit));
+    }
+
+    private AssignmentSubmit editSubmission(AssignmentSubmit latest, AssignmentSubmitRequest request) {
+        latest.editSubmission(request.content(), request.url());
+        submissionFileRepository.deleteAllByAssignmentSubmit(latest);
+        return latest;
+    }
+
+    private AssignmentSubmit createSubmission(Assignment assignment, Member member, AssignmentSubmitRequest request) {
+        return assignmentSubmitRepository.save(AssignmentSubmit.builder()
                 .assignment(assignment)
                 .submitMember(member)
                 .content(request.content())
                 .url(request.url())
                 .build());
-
-        List<SubmissionFile> files = saveFiles(submit, request.files());
-
-        return AssignmentSubmitResponse.of(submit, files, AssignmentSubmitDisplayStatusCalculator.calculate(assignment, submit));
     }
 
     public AssignmentSubmitResponse getMySubmission(Long memberId, Long assignmentId) {
@@ -85,7 +104,7 @@ public class AssignmentSubmitService {
     }
 
     /**
-     * 아기사자 본인의 제출 이력 전체 (최신순). 재제출할 때마다 쌓인 이력을 다 보여준다.
+     * 아기사자 본인의 제출 이력 전체 (최신순). 수정/재제출할 때마다 쌓인 이력을 다 보여준다.
      */
     @PreAuthorize("hasRole('BABY_LION')")
     public List<AssignmentSubmitResponse> getMySubmissionHistory(Long memberId, Long assignmentId) {
@@ -143,6 +162,10 @@ public class AssignmentSubmitService {
                 throw new AssignmentSubmissionClosedException(assignment.getId());
             }
             return;
+        }
+
+        if (latest.getStatus() == AssignmentSubmitStatus.APPROVED) {
+            throw new AssignmentAlreadyApprovedException(assignment.getId());
         }
 
         boolean afterDeadline = now.isAfter(endDate);

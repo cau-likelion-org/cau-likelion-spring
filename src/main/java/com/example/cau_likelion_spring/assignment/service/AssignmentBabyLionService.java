@@ -82,7 +82,7 @@ public class AssignmentBabyLionService {
 
     private AssignmentSummaryResponse toSummary(Assignment assignment, AssignmentSubmit latest) {
         AssignmentSubmitDisplayStatus status = AssignmentSubmitDisplayStatusCalculator.calculate(assignment, latest);
-        LocalDateTime submittedAt = latest == null ? null : latest.getCreatedAt();
+        LocalDateTime submittedAt = latest == null ? null : latest.getUpdatedAt();
         return new AssignmentSummaryResponse(assignment.getId(), assignment.getTitle(), assignment.getEndDate(), status, submittedAt);
     }
 

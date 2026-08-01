@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
-@Schema(description = "과제 제출/재제출 요청 (Assignment.type이 URL이면 url을, FILE이면 files를 채워야 함)")
+@Schema(description = "과제 제출/수정/재제출 요청 (Assignment.type이 URL이면 url을, FILE이면 files를 채워야 함)")
 public record AssignmentSubmitRequest(
 
         @Schema(description = "제출물 설명 (선택, 공백 포함 최대 300자)")

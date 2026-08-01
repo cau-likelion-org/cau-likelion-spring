@@ -1,6 +1,7 @@
 package com.example.cau_likelion_spring.assignment.dto;
 
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmit;
+import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplayStatus;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitStatus;
 import com.example.cau_likelion_spring.assignment.domain.SubmissionFile;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -32,8 +33,8 @@ public record AssignmentSubmitResponse(
         @Schema(description = "제출 일시")
         LocalDateTime createdAt,
 
-        @Schema(description = "마감기한 이후 제출 여부 (지각제출)")
-        boolean late,
+        @Schema(description = "화면 표시용 상태 (제출전/미제출/승인대기/지각제출/승인완료/승인반려)")
+        AssignmentSubmitDisplayStatus displayStatus,
 
         @Schema(description = "평가 일시")
         LocalDateTime approvalDate,
@@ -53,7 +54,8 @@ public record AssignmentSubmitResponse(
         }
     }
 
-    public static AssignmentSubmitResponse of(AssignmentSubmit submit, List<SubmissionFile> files, boolean late) {
+    public static AssignmentSubmitResponse of(AssignmentSubmit submit, List<SubmissionFile> files,
+                                               AssignmentSubmitDisplayStatus displayStatus) {
         return new AssignmentSubmitResponse(
                 submit.getId(),
                 submit.getAssignment().getId(),
@@ -62,7 +64,7 @@ public record AssignmentSubmitResponse(
                 files.stream().map(FileResponse::from).toList(),
                 submit.getStatus(),
                 submit.getCreatedAt(),
-                late,
+                displayStatus,
                 submit.getApprovalDate(),
                 submit.getRejectionReason()
         );

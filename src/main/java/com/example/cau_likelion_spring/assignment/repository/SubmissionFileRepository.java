@@ -12,4 +12,6 @@ public interface SubmissionFileRepository extends JpaRepository<SubmissionFile, 
     void deleteAllByAssignmentSubmit_Assignment(Assignment assignment);
 
     List<SubmissionFile> findAllByAssignmentSubmit(AssignmentSubmit assignmentSubmit);
+
+    List<SubmissionFile> findAllByAssignmentSubmitIn(List<AssignmentSubmit> assignmentSubmits);
 }

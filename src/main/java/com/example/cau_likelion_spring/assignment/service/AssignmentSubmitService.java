@@ -87,22 +87,6 @@ public class AssignmentSubmitService {
                 .build());
     }
 
-    public AssignmentSubmitResponse getMySubmission(Long memberId, Long assignmentId) {
-        Assignment assignment = getAssignment(assignmentId);
-        Member member = getMember(memberId);
-        validateSamePart(assignment, member);
-
-        AssignmentSubmit latest = assignmentSubmitRepository
-                .findFirstByAssignmentAndSubmitMemberOrderByCreatedAtDesc(assignment, member)
-                .orElse(null);
-        if (latest == null) {
-            return null;
-        }
-
-        List<SubmissionFile> files = submissionFileRepository.findAllByAssignmentSubmit(latest);
-        return AssignmentSubmitResponse.of(latest, files, AssignmentSubmitDisplayStatusCalculator.calculate(assignment, latest));
-    }
-
     /**
      * 아기사자 본인의 제출 이력 전체 (최신순). 수정/재제출할 때마다 쌓인 이력을 다 보여준다.
      */

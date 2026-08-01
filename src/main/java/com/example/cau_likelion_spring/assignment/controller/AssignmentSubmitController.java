@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@Tag(name = "Assignment", description = "과제 API")
+@Tag(name = "Assignment", description = "과제 API (아기사자)")
 @RestController
 @RequestMapping("/api/assignments/{assignmentId}/submissions")
 @RequiredArgsConstructor
@@ -52,25 +52,6 @@ public class AssignmentSubmitController {
             @Valid @RequestBody AssignmentSubmitRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(assignmentSubmitService.submit(memberId, assignmentId, request));
-    }
-
-    @Operation(summary = "본인 제출 현황 조회",
-            description = "로그인한 아기사자 본인의 가장 최근 제출 내역을 조회합니다. 제출 이력이 없으면 204를 반환합니다. BABY_LION 권한이 필요합니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "조회 성공"),
-            @ApiResponse(responseCode = "204", description = "제출 이력 없음"),
-            @ApiResponse(responseCode = "403", description = "권한 없음 또는 본인 파트의 과제가 아님"),
-            @ApiResponse(responseCode = "404", description = "존재하지 않는 과제")
-    })
-    @GetMapping("/me")
-    public ResponseEntity<AssignmentSubmitResponse> getMySubmission(
-            @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "과제 ID", required = true) @PathVariable Long assignmentId) {
-        AssignmentSubmitResponse response = assignmentSubmitService.getMySubmission(memberId, assignmentId);
-        if (response == null) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "본인 제출 이력 전체 조회",

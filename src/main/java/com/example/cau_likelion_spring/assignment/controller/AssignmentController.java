@@ -1,6 +1,6 @@
 package com.example.cau_likelion_spring.assignment.controller;
 
-import com.example.cau_likelion_spring.assignment.dto.AssignmentRequest;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentCreateRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentUpdateRequest;
 import com.example.cau_likelion_spring.assignment.service.AssignmentService;
@@ -22,6 +22,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @Tag(name = "Assignment", description = "과제 API")
 @RestController
 @RequestMapping("/api/assignments")
@@ -32,6 +34,7 @@ public class AssignmentController {
 
     @Operation(summary = "과제 생성",
             description = "로그인한 운영진이 본인 파트의 과제를 생성합니다. 파트는 요청으로 받지 않고 로그인한 운영진의 소속 파트로 자동 지정됩니다. "
+                    + "한 주차에 개별 과제를 1개 이상 한 번에 생성할 수 있습니다 (생성 페이지의 + 버튼으로 여러 개 모아 한 번에 저장). "
                     + "STAFF 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "생성 성공"),
@@ -40,9 +43,9 @@ public class AssignmentController {
             @ApiResponse(responseCode = "409", description = "운영진에게 배정된 파트가 없음")
     })
     @PostMapping
-    public ResponseEntity<AssignmentResponse> create(
+    public ResponseEntity<List<AssignmentResponse>> create(
             @AuthenticationPrincipal Long memberId,
-            @Valid @RequestBody AssignmentRequest request) {
+            @Valid @RequestBody AssignmentCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(assignmentService.create(memberId, request));
     }
 

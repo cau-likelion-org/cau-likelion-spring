@@ -1,7 +1,7 @@
 package com.example.cau_likelion_spring.assignment.service;
 
 import com.example.cau_likelion_spring.assignment.domain.Assignment;
-import com.example.cau_likelion_spring.assignment.dto.AssignmentRequest;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentCreateRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentUpdateRequest;
 import com.example.cau_likelion_spring.assignment.exception.AssignmentNotFoundException;
@@ -20,6 +20,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -31,21 +33,28 @@ public class AssignmentService {
     private final PushNotiLogRepository pushNotiLogRepository;
     private final MemberRepository memberRepository;
 
+    /**
+     * 한 주차에 개별 과제 1개 이상을 한 번에 생성한다 (생성 페이지에서 +로 여러 개를 모아 한 번에 저장하는 흐름).
+     */
     @PreAuthorize("hasRole('STAFF')")
     @Transactional
-    public AssignmentResponse create(Long staffMemberId, AssignmentRequest request) {
+    public List<AssignmentResponse> create(Long staffMemberId, AssignmentCreateRequest request) {
         Part part = getStaffPart(staffMemberId);
 
-        Assignment assignment = assignmentRepository.save(Assignment.builder()
-                .part(part)
-                .week(request.week())
-                .title(request.title())
-                .detail(request.detail())
-                .endDate(request.endDate())
-                .type(request.type())
-                .build());
+        List<Assignment> assignments = request.assignments().stream()
+                .map(item -> Assignment.builder()
+                        .part(part)
+                        .week(request.week())
+                        .title(item.title())
+                        .detail(item.detail())
+                        .endDate(item.endDate())
+                        .type(item.type())
+                        .build())
+                .toList();
 
-        return AssignmentResponse.of(assignment);
+        return assignmentRepository.saveAll(assignments).stream()
+                .map(AssignmentResponse::of)
+                .toList();
     }
 
     @PreAuthorize("hasRole('STAFF')")

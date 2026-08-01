@@ -2,6 +2,7 @@ package com.example.cau_likelion_spring.assignment.controller;
 
 import com.example.cau_likelion_spring.assignment.dto.AssignmentCreateRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentResponse;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffWeekGroupResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentUpdateRequest;
 import com.example.cau_likelion_spring.assignment.service.AssignmentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -31,6 +33,21 @@ import java.util.List;
 public class AssignmentController {
 
     private final AssignmentService assignmentService;
+
+    @Operation(summary = "내 파트 생성된 과제 목록 조회 (주차별)",
+            description = "로그인한 운영진이 본인 파트에 생성한 과제 목록을 주차별로 묶어서 조회합니다. "
+                    + "개별 과제마다 과제명/마감기한과, 파트원 전체를 대상으로 최신 제출 기준 제출전/미제출/승인대기/지각제출/승인완료 인원 수를 함께 보여줍니다. "
+                    + "STAFF 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "409", description = "운영진에게 배정된 파트가 없음")
+    })
+    @GetMapping("/staff")
+    public ResponseEntity<List<AssignmentStaffWeekGroupResponse>> getMyAssignmentsForStaff(
+            @AuthenticationPrincipal Long memberId) {
+        return ResponseEntity.ok(assignmentService.getMyAssignmentsForStaff(memberId));
+    }
 
     @Operation(summary = "과제 생성",
             description = "로그인한 운영진이 본인 파트의 과제를 생성합니다. 파트는 요청으로 받지 않고 로그인한 운영진의 소속 파트로 자동 지정됩니다. "

@@ -1,6 +1,7 @@
 package com.example.cau_likelion_spring.organization.service;
 
 import com.example.cau_likelion_spring.organization.domain.Generation;
+import com.example.cau_likelion_spring.organization.domain.GenerationStatus;
 import com.example.cau_likelion_spring.organization.domain.Part;
 import com.example.cau_likelion_spring.organization.dto.GenerationCreateRequestDto;
 import com.example.cau_likelion_spring.organization.dto.GenerationListResponseDto;
@@ -29,7 +30,7 @@ public class GenerationService {
         Generation generation = Generation.builder()
                 .number(request.getNumber())
                 .year(request.getYear())
-                .isCurrent(false) // 새로 만든 기수를 자동으로 현재 기수로 만들지 않음 - 별도로 changeCurrentGeneration 호출해야 함
+                .status(GenerationStatus.BEFORE_ACTIVITY) // 새로 만든 기수는 기본적으로 "활동 전" - 별도로 activateGeneration 호출해야 활동 중으로 전환됨
                 .build();
         Generation savedGeneration = generationRepository.save(generation);
 
@@ -64,30 +65,28 @@ public class GenerationService {
     }
 
     /**
-     * 현재 기수를 전환한다.
-     * 대상 기수를 isCurrent = true로, 나머지 모든 기수를 isCurrent = false로 만든다.
+     * 대상 기수를 "활동 중"으로 전환한다.
+     * 기존에 "활동 중"이었던 기수가 있다면 "활동 후"로 바뀐다.
+     * (전체 기수를 다 순회하지 않고, 관련된 최대 2개 기수만 건드림)
      */
     @Transactional
     public void changeCurrentGeneration(Long id) {
-        List<Generation> generations = generationRepository.findAll();
+        Generation target = generationRepository.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.GENERATION_NOT_FOUND, "존재하지 않는 기수입니다. id=" + id));
 
-        boolean targetExists = generations.stream().anyMatch(g -> g.getId().equals(id));
-        if (!targetExists) {
-            throw new CustomException(ErrorCode.GENERATION_NOT_FOUND, "존재하지 않는 기수입니다. id=" + id);
-        }
+        generationRepository.findByStatus(GenerationStatus.IN_ACTIVITY)
+                .ifPresent(previous -> previous.changeStatus(GenerationStatus.AFTER_ACTIVITY));
 
-        for (Generation generation : generations) {
-            generation.changeCurrent(generation.getId().equals(id));
-        }
+        target.changeStatus(GenerationStatus.IN_ACTIVITY);
         // 영속 상태(더티 체킹)라 별도 save() 호출 불필요
     }
 
     /**
-     * 현재 기수 판단 - isCurrent가 true인 Generation을 반환
+     * 현재 기수 판단 - status가 IN_ACTIVITY인 Generation을 반환
      * 다른 도메인(session, assignment 등)에서 "현재 기수"가 필요할 때 이 메서드를 재사용하면 된다.
      */
     public Generation getCurrentGeneration() {
-        return generationRepository.findByIsCurrentTrue()
+        return generationRepository.findByStatus(GenerationStatus.IN_ACTIVITY)
                 .orElseThrow(() -> new CustomException(ErrorCode.CURRENT_GENERATION_NOT_FOUND, "현재 기수로 지정된 기수가 없습니다."));
     }
 }

@@ -1,6 +1,7 @@
 package com.example.cau_likelion_spring.organization.dto;
 
 import com.example.cau_likelion_spring.organization.domain.Generation;
+import com.example.cau_likelion_spring.organization.domain.GenerationStatus;
 import com.example.cau_likelion_spring.organization.domain.Part;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,7 +15,7 @@ public class GenerationListResponseDto {
     private Long id;
     private Integer number;
     private Integer year;
-    private Boolean isCurrent;
+    private GenerationStatus status;
     private List<PartSummary> parts;
 
     public static GenerationListResponseDto of(Generation generation, List<Part> parts) {
@@ -22,7 +23,7 @@ public class GenerationListResponseDto {
                 .id(generation.getId())
                 .number(generation.getNumber())
                 .year(generation.getYear())
-                .isCurrent(generation.getIsCurrent())
+                .status(generation.getStatus())
                 .parts(parts.stream()
                         .map(part -> PartSummary.builder()
                                 .id(part.getId())

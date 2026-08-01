@@ -1,0 +1,158 @@
+package com.example.cau_likelion_spring.assignment.service;
+
+import com.example.cau_likelion_spring.assignment.domain.Assignment;
+import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmit;
+import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitStatus;
+import com.example.cau_likelion_spring.assignment.domain.AssignmentType;
+import com.example.cau_likelion_spring.assignment.domain.SubmissionFile;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitRequest;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitResponse;
+import com.example.cau_likelion_spring.assignment.exception.AssignmentNotFoundException;
+import com.example.cau_likelion_spring.assignment.exception.AssignmentPartMismatchException;
+import com.example.cau_likelion_spring.assignment.exception.AssignmentSubmissionClosedException;
+import com.example.cau_likelion_spring.assignment.exception.InvalidSubmissionException;
+import com.example.cau_likelion_spring.assignment.repository.AssignmentRepository;
+import com.example.cau_likelion_spring.assignment.repository.AssignmentSubmitRepository;
+import com.example.cau_likelion_spring.assignment.repository.SubmissionFileRepository;
+import com.example.cau_likelion_spring.member.domain.Member;
+import com.example.cau_likelion_spring.member.exception.MemberNotFoundException;
+import com.example.cau_likelion_spring.member.repository.MemberRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class AssignmentSubmitService {
+
+    private static final int LATE_SUBMISSION_GRACE_DAYS = 5;
+
+    private final AssignmentRepository assignmentRepository;
+    private final AssignmentSubmitRepository assignmentSubmitRepository;
+    private final SubmissionFileRepository submissionFileRepository;
+    private final MemberRepository memberRepository;
+
+    @PreAuthorize("hasRole('BABY_LION')")
+    @Transactional
+    public AssignmentSubmitResponse submit(Long memberId, Long assignmentId, AssignmentSubmitRequest request) {
+        Assignment assignment = getAssignment(assignmentId);
+        Member member = getMember(memberId);
+        validateSamePart(assignment, member);
+        validateContent(assignment, request);
+
+        AssignmentSubmit latest = assignmentSubmitRepository
+                .findFirstByAssignmentAndSubmitMemberOrderByCreatedAtDesc(assignment, member)
+                .orElse(null);
+        validateSubmittable(assignment, latest);
+
+        AssignmentSubmit submit = assignmentSubmitRepository.save(AssignmentSubmit.builder()
+                .assignment(assignment)
+                .submitMember(member)
+                .content(request.content())
+                .url(request.url())
+                .build());
+
+        List<SubmissionFile> files = saveFiles(submit, request.files());
+
+        return AssignmentSubmitResponse.of(submit, files, isLate(assignment, submit));
+    }
+
+    public AssignmentSubmitResponse getMySubmission(Long memberId, Long assignmentId) {
+        Assignment assignment = getAssignment(assignmentId);
+        Member member = getMember(memberId);
+        validateSamePart(assignment, member);
+
+        AssignmentSubmit latest = assignmentSubmitRepository
+                .findFirstByAssignmentAndSubmitMemberOrderByCreatedAtDesc(assignment, member)
+                .orElse(null);
+        if (latest == null) {
+            return null;
+        }
+
+        List<SubmissionFile> files = submissionFileRepository.findAllByAssignmentSubmit(latest);
+        return AssignmentSubmitResponse.of(latest, files, isLate(assignment, latest));
+    }
+
+    private void validateContent(Assignment assignment, AssignmentSubmitRequest request) {
+        boolean hasUrl = StringUtils.hasText(request.url());
+        boolean hasFiles = request.files() != null && !request.files().isEmpty();
+
+        if (assignment.getType() == AssignmentType.URL) {
+            if (!hasUrl) {
+                throw new InvalidSubmissionException("URL 제출 형식인 과제입니다. url을 입력해주세요.");
+            }
+            if (hasFiles) {
+                throw new InvalidSubmissionException("URL 제출 형식인 과제에는 파일을 첨부할 수 없습니다.");
+            }
+        } else {
+            if (!hasFiles) {
+                throw new InvalidSubmissionException("파일 제출 형식인 과제입니다. 파일을 1개 이상 첨부해주세요.");
+            }
+            if (hasUrl) {
+                throw new InvalidSubmissionException("파일 제출 형식인 과제에는 URL을 입력할 수 없습니다.");
+            }
+        }
+    }
+
+    private void validateSubmittable(Assignment assignment, AssignmentSubmit latest) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endDate = assignment.getEndDate();
+
+        if (latest == null) {
+            if (now.isAfter(endDate.plusDays(LATE_SUBMISSION_GRACE_DAYS))) {
+                throw new AssignmentSubmissionClosedException(assignment.getId());
+            }
+            return;
+        }
+
+        boolean afterDeadline = now.isAfter(endDate);
+        boolean rejected = latest.getStatus() == AssignmentSubmitStatus.REJECTED;
+        if (afterDeadline && !rejected) {
+            throw new AssignmentSubmissionClosedException(assignment.getId());
+        }
+    }
+
+    private boolean isLate(Assignment assignment, AssignmentSubmit submit) {
+        return submit.getCreatedAt().isAfter(assignment.getEndDate());
+    }
+
+    private List<SubmissionFile> saveFiles(AssignmentSubmit submit, List<AssignmentSubmitRequest.FileInfo> fileInfos) {
+        if (fileInfos == null || fileInfos.isEmpty()) {
+            return List.of();
+        }
+
+        List<SubmissionFile> files = fileInfos.stream()
+                .map(fileInfo -> SubmissionFile.builder()
+                        .assignmentSubmit(submit)
+                        .fileUrl(fileInfo.fileUrl())
+                        .originalFilename(fileInfo.originalFilename())
+                        .build())
+                .toList();
+
+        return submissionFileRepository.saveAll(files);
+    }
+
+    private void validateSamePart(Assignment assignment, Member member) {
+        Optional.ofNullable(member.getPart())
+                .map(part -> part.getId().equals(assignment.getPart().getId()))
+                .filter(Boolean::booleanValue)
+                .orElseThrow(() -> new AssignmentPartMismatchException(assignment.getId()));
+    }
+
+    private Assignment getAssignment(Long id) {
+        return assignmentRepository.findById(id)
+                .orElseThrow(() -> new AssignmentNotFoundException(id));
+    }
+
+    private Member getMember(Long id) {
+        return memberRepository.findById(id)
+                .orElseThrow(() -> new MemberNotFoundException(id));
+    }
+}

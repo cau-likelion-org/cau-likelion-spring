@@ -22,13 +22,13 @@ public record AssignmentStaffSummaryResponse(
         @Schema(description = "미제출 인원 수 (마감+유예기간이 지나도록 한 번도 제출한 적 없음)")
         int missedCount,
 
-        @Schema(description = "승인대기 인원 수 (마감 전 제출, 아직 평가 전)")
+        @Schema(description = "승인대기 인원 수 (정시/지각 제출 모두 포함, 아직 운영진 평가 전)")
         int pendingReviewCount,
 
-        @Schema(description = "지각제출 인원 수 (마감 후 제출, 아직 평가 전)")
+        @Schema(description = "지각제출 인원 수 (마감 후 제출, 운영진 승인까지 완료)")
         int lateSubmittedCount,
 
-        @Schema(description = "승인완료 인원 수")
+        @Schema(description = "승인완료 인원 수 (마감 전 제출, 운영진 승인까지 완료)")
         int approvedCount
 ) {
 }

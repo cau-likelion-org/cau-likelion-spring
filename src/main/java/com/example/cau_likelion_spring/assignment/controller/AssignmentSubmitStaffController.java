@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@Tag(name = "Assignment(STAFF)", description = "과제 API (운영진)")
+@Tag(name = "Assignment (STAFF)", description = "과제 관련 API (운영진)")
 @RestController
 @RequestMapping("/api/assignments/{assignmentId}/submissions/staff")
 @RequiredArgsConstructor

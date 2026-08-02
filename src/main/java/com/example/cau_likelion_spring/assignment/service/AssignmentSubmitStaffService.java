@@ -4,11 +4,15 @@ import com.example.cau_likelion_spring.assignment.domain.Assignment;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmit;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplayStatus;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplayStatusCalculator;
+import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitStatus;
 import com.example.cau_likelion_spring.assignment.domain.SubmissionFile;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberSubmissionResponse;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitEvaluateRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitResponse;
 import com.example.cau_likelion_spring.assignment.exception.AssignmentNotFoundException;
 import com.example.cau_likelion_spring.assignment.exception.AssignmentPartMismatchException;
+import com.example.cau_likelion_spring.assignment.exception.AssignmentSubmitNotFoundException;
+import com.example.cau_likelion_spring.assignment.exception.InvalidSubmissionException;
 import com.example.cau_likelion_spring.assignment.exception.StaffPartNotAssignedException;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentRepository;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentSubmitRepository;
@@ -22,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -76,6 +81,48 @@ public class AssignmentSubmitStaffService {
                     return AssignmentMemberSubmissionResponse.of(member, displayStatus, latestResponse);
                 })
                 .toList();
+    }
+
+    /**
+     * 운영진이 제출을 승인/반려로 평가한다. 승인 시 제출 시각(createdAt)이 마감일 이전이면 '승인완료',
+     * 이후면 '지각제출'로 표시되고(AssignmentSubmitDisplayStatusCalculator가 계산), 반려는 시점과 무관하게 '승인반려'로 표시된다.
+     * 평가하면 reviewMember/approvalDate가 갱신된다.
+     */
+    @PreAuthorize("hasRole('STAFF')")
+    @Transactional
+    public AssignmentSubmitResponse evaluate(Long staffMemberId, Long assignmentId, Long submitId,
+                                              AssignmentSubmitEvaluateRequest request) {
+        Assignment assignment = getAssignment(assignmentId);
+        Part staffPart = getStaffPart(staffMemberId);
+        Member staff = getMember(staffMemberId);
+        if (!assignment.getPart().getId().equals(staffPart.getId())) {
+            throw new AssignmentPartMismatchException(assignmentId);
+        }
+
+        AssignmentSubmit submit = getSubmit(submitId);
+        if (!submit.getAssignment().getId().equals(assignmentId)) {
+            throw new AssignmentSubmitNotFoundException(submitId);
+        }
+
+        switch (request.status()) {
+            case APPROVED -> submit.approve(staff);
+            case REJECTED -> {
+                if (!StringUtils.hasText(request.rejectionReason())) {
+                    throw new InvalidSubmissionException("반려 사유를 입력해주세요.");
+                }
+                submit.reject(staff, request.rejectionReason());
+            }
+            case PENDING -> throw new InvalidSubmissionException("평가 상태는 APPROVED 또는 REJECTED만 가능합니다.");
+        }
+
+        List<SubmissionFile> files = submissionFileRepository.findAllByAssignmentSubmit(submit);
+        AssignmentSubmitDisplayStatus displayStatus = AssignmentSubmitDisplayStatusCalculator.calculate(assignment, submit);
+        return AssignmentSubmitResponse.of(submit, files, displayStatus);
+    }
+
+    private AssignmentSubmit getSubmit(Long submitId) {
+        return assignmentSubmitRepository.findById(submitId)
+                .orElseThrow(() -> new AssignmentSubmitNotFoundException(submitId));
     }
 
     private Map<Long, List<SubmissionFile>> groupFilesBySubmitId(List<AssignmentSubmit> submits) {

@@ -9,13 +9,6 @@ import com.example.cau_likelion_spring.attendance.dto.AttendanceStatusResponse;
 import com.example.cau_likelion_spring.attendance.dto.MemberAttendanceResponse;
 import com.example.cau_likelion_spring.attendance.dto.WeeklyAttendanceCreateRequest;
 import com.example.cau_likelion_spring.attendance.dto.WeeklyAttendanceResponse;
-import com.example.cau_likelion_spring.attendance.exception.AttendanceCheckClosedException;
-import com.example.cau_likelion_spring.attendance.exception.AttendancePartAccessDeniedException;
-import com.example.cau_likelion_spring.attendance.exception.AttendanceReasonRequiredException;
-import com.example.cau_likelion_spring.attendance.exception.AttendanceTargetNotFoundException;
-import com.example.cau_likelion_spring.attendance.exception.DuplicateWeeklyAttendanceException;
-import com.example.cau_likelion_spring.attendance.exception.InvalidAttendancePasswordException;
-import com.example.cau_likelion_spring.attendance.exception.WeeklyAttendanceNotFoundException;
 import com.example.cau_likelion_spring.attendance.repository.DetailAttendanceRepository;
 import com.example.cau_likelion_spring.attendance.repository.WeeklyAttendanceRepository;
 import com.example.cau_likelion_spring.global.exception.CustomException;
@@ -60,7 +53,8 @@ public class AttendanceService {
     @Transactional
     public WeeklyAttendanceResponse createWeeklyAttendance(WeeklyAttendanceCreateRequest request) {
         if (weeklyAttendanceRepository.existsByDate(request.date())) {
-            throw new DuplicateWeeklyAttendanceException(request.date());
+            throw new CustomException(ErrorCode.DUPLICATE_WEEKLY_ATTENDANCE,
+                    "해당 날짜에 이미 출석부가 존재합니다. date=" + request.date());
         }
 
         WeeklyAttendance weeklyAttendance = weeklyAttendanceRepository.save(WeeklyAttendance.builder()
@@ -88,20 +82,21 @@ public class AttendanceService {
         LocalDate today = LocalDate.now();
 
         WeeklyAttendance weeklyAttendance = weeklyAttendanceRepository.findByDate(today)
-                .orElseThrow(WeeklyAttendanceNotFoundException::new);
+                .orElseThrow(() -> new CustomException(ErrorCode.WEEKLY_ATTENDANCE_NOT_FOUND,
+                        "금일 출석부는 아직 생성되지 않았습니다."));
 
         if (!weeklyAttendance.getPassword().equals(request.password())) {
-            throw new InvalidAttendancePasswordException();
+            throw new CustomException(ErrorCode.INVALID_ATTENDANCE_PASSWORD);
         }
 
         LocalDateTime now = LocalDateTime.now();
         if (now.isAfter(today.atTime(checkCloseHour, 0))) {
-            throw new AttendanceCheckClosedException();
+            throw new CustomException(ErrorCode.ATTENDANCE_CHECK_CLOSED);
         }
 
         DetailAttendance detailAttendance = detailAttendanceRepository
                 .findByMember_IdAndWeeklyAttendance_Id(memberId, weeklyAttendance.getId())
-                .orElseThrow(AttendanceTargetNotFoundException::new);
+                .orElseThrow(() -> new CustomException(ErrorCode.DETAIL_ATTENDANCE_NOT_FOUND, "출석 대상이 아닙니다."));
 
         LocalDateTime lateStandard = today.atTime(sessionStartHour, 0).plusMinutes(lateGraceMinutes);
         AttendanceStatus status = now.isAfter(lateStandard) ? AttendanceStatus.LATE : AttendanceStatus.PRESENT;
@@ -162,15 +157,16 @@ public class AttendanceService {
     private AttendanceStatusResponse updateAttendanceStatus(Member requester, AttendanceStatusBatchUpdateRequest.Item item) {
         boolean requiresReason = item.status() == AttendanceStatus.ABSENT || item.status() == AttendanceStatus.EXCUSED;
         if (requiresReason && (item.reason() == null || item.reason().isBlank())) {
-            throw new AttendanceReasonRequiredException();
+            throw new CustomException(ErrorCode.ATTENDANCE_REASON_REQUIRED);
         }
 
         DetailAttendance detailAttendance = detailAttendanceRepository.findById(item.detailAttendanceId())
-                .orElseThrow(AttendanceTargetNotFoundException::new);
+                .orElseThrow(() -> new CustomException(ErrorCode.DETAIL_ATTENDANCE_NOT_FOUND,
+                        "존재하지 않는 출결 기록입니다. id=" + item.detailAttendanceId()));
 
         boolean isSamePart = detailAttendance.getMember().getPart().getId().equals(requester.getPart().getId());
         if (requester.getRole() == MemberRole.STAFF && !isSamePart) {
-            throw new AttendancePartAccessDeniedException();
+            throw new CustomException(ErrorCode.FORBIDDEN, "본인 파트의 아기사자만 수정할 수 있습니다.");
         }
 
         detailAttendance.updateStatusByStaff(item.status(), item.reason());

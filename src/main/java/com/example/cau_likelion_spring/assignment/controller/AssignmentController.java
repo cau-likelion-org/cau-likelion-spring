@@ -2,9 +2,11 @@ package com.example.cau_likelion_spring.assignment.controller;
 
 import com.example.cau_likelion_spring.assignment.dto.AssignmentCreateRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentResponse;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffDetailWeekGroupResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffWeekGroupResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentUpdateRequest;
 import com.example.cau_likelion_spring.assignment.service.AssignmentService;
+import com.example.cau_likelion_spring.assignment.service.AssignmentSubmitStaffService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -34,6 +36,7 @@ import java.util.List;
 public class AssignmentController {
 
     private final AssignmentService assignmentService;
+    private final AssignmentSubmitStaffService assignmentSubmitStaffService;
 
     @Operation(summary = "내 파트 생성된 과제 목록 조회 (주차별)",
             description = "로그인한 운영진이 본인 파트에 생성한 과제 목록을 주차별로 묶어서 조회합니다. "
@@ -64,6 +67,21 @@ public class AssignmentController {
     public ResponseEntity<List<AssignmentStaffWeekGroupResponse>> getAssignmentsForPresident(
             @Parameter(description = "조회할 파트 ID", required = true) @RequestParam Long partId) {
         return ResponseEntity.ok(assignmentService.getAssignmentsForPresident(partId));
+    }
+
+    @Operation(summary = "내 파트 아기사자 과제 현황 목록 조회 (주차별)",
+            description = "로그인한 운영진이 본인 파트의 과제 제출 현황을 주차 → 개별 과제 → 아기사자별 내역 순으로 조회합니다. "
+                    + "아기사자별 내역에는 이름/최종 제출 시각/제출물(링크·파일+코멘트)/상태/평가한 운영진 이름이 포함되고, "
+                    + "평가 버튼(승인/반려) 호출에 필요한 제출 ID(submitId)도 함께 내려줍니다. STAFF 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "409", description = "운영진에게 배정된 파트가 없음")
+    })
+    @GetMapping("/staff/submissions")
+    public ResponseEntity<List<AssignmentStaffDetailWeekGroupResponse>> getSubmissionStatusForStaff(
+            @AuthenticationPrincipal Long memberId) {
+        return ResponseEntity.ok(assignmentSubmitStaffService.getSubmissionStatusForStaff(memberId));
     }
 
     @Operation(summary = "과제 생성",

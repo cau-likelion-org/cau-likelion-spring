@@ -7,6 +7,8 @@ import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplay
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitStatus;
 import com.example.cau_likelion_spring.assignment.domain.SubmissionFile;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberSubmissionResponse;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffDetailResponse;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffDetailWeekGroupResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitEvaluateRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitResponse;
 import com.example.cau_likelion_spring.assignment.exception.AssignmentNotFoundException;
@@ -28,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -74,13 +77,74 @@ public class AssignmentSubmitStaffService {
                 .map(member -> {
                     List<AssignmentSubmit> submits = submitsByMemberId.getOrDefault(member.getId(), List.of());
                     AssignmentSubmit latest = submits.isEmpty() ? null : submits.get(0);
-                    AssignmentSubmitDisplayStatus displayStatus = AssignmentSubmitDisplayStatusCalculator.calculate(assignment, latest);
-                    AssignmentSubmitResponse latestResponse = latest == null ? null
-                            : AssignmentSubmitResponse.of(latest,
-                                    filesBySubmitId.getOrDefault(latest.getId(), List.of()), displayStatus);
-                    return AssignmentMemberSubmissionResponse.of(member, displayStatus, latestResponse);
+                    return toMemberSubmission(member, assignment, latest, filesBySubmitId);
                 })
                 .toList();
+    }
+
+    /**
+     * 운영진이 보는 본인 파트 과제별 파트원 전체 제출 현황(주차별로 묶임). 화면에서 주차 → 개별 과제 → 아기사자별
+     * 내역(이름/최종 제출 시각/제출물/상태/리뷰 운영진 이름) 순으로 펼쳐 보여주고, 평가 버튼에 필요한 submitId도 함께 내려준다.
+     */
+    @PreAuthorize("hasRole('STAFF')")
+    public List<AssignmentStaffDetailWeekGroupResponse> getSubmissionStatusForStaff(Long staffMemberId) {
+        Part part = getStaffPart(staffMemberId);
+
+        List<Assignment> assignments = assignmentRepository.findAllByPart_IdOrderByWeekAscEndDateAsc(part.getId());
+        if (assignments.isEmpty()) {
+            return List.of();
+        }
+
+        List<Member> babyLions = memberRepository.findByPart_IdAndRole(part.getId(), MemberRole.BABY_LION);
+
+        List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
+        List<AssignmentSubmit> allSubmits = assignmentSubmitRepository.findAllByAssignment_IdInOrderByCreatedAtDesc(assignmentIds);
+
+        Map<Long, Map<Long, AssignmentSubmit>> latestByAssignmentIdThenMemberId = allSubmits.stream()
+                .collect(Collectors.groupingBy(submit -> submit.getAssignment().getId(),
+                        Collectors.toMap(submit -> submit.getSubmitMember().getId(), submit -> submit,
+                                (firstByCreatedAtDesc, ignoredOlder) -> firstByCreatedAtDesc)));
+        Map<Long, List<SubmissionFile>> filesBySubmitId = groupFilesBySubmitId(latestByAssignmentIdThenMemberId.values().stream()
+                .flatMap(byMemberId -> byMemberId.values().stream())
+                .toList());
+
+        Map<Integer, List<Assignment>> assignmentsByWeek = assignments.stream()
+                .collect(Collectors.groupingBy(Assignment::getWeek, LinkedHashMap::new, Collectors.toList()));
+
+        return assignmentsByWeek.entrySet().stream()
+                .map(entry -> toStaffDetailWeekGroup(entry.getKey(), entry.getValue(), babyLions,
+                        latestByAssignmentIdThenMemberId, filesBySubmitId))
+                .toList();
+    }
+
+    private AssignmentStaffDetailWeekGroupResponse toStaffDetailWeekGroup(Integer week, List<Assignment> weekAssignments,
+                                                                            List<Member> babyLions,
+                                                                            Map<Long, Map<Long, AssignmentSubmit>> latestByAssignmentIdThenMemberId,
+                                                                            Map<Long, List<SubmissionFile>> filesBySubmitId) {
+        List<AssignmentStaffDetailResponse> assignmentDetails = weekAssignments.stream()
+                .map(assignment -> toStaffDetail(assignment, babyLions,
+                        latestByAssignmentIdThenMemberId.getOrDefault(assignment.getId(), Map.of()), filesBySubmitId))
+                .toList();
+
+        return new AssignmentStaffDetailWeekGroupResponse(week, assignmentDetails);
+    }
+
+    private AssignmentStaffDetailResponse toStaffDetail(Assignment assignment, List<Member> babyLions,
+                                                          Map<Long, AssignmentSubmit> latestByMemberId,
+                                                          Map<Long, List<SubmissionFile>> filesBySubmitId) {
+        List<AssignmentMemberSubmissionResponse> submissions = babyLions.stream()
+                .map(member -> toMemberSubmission(member, assignment, latestByMemberId.get(member.getId()), filesBySubmitId))
+                .toList();
+
+        return new AssignmentStaffDetailResponse(assignment.getId(), assignment.getTitle(), assignment.getEndDate(), submissions);
+    }
+
+    private AssignmentMemberSubmissionResponse toMemberSubmission(Member member, Assignment assignment, AssignmentSubmit latest,
+                                                                    Map<Long, List<SubmissionFile>> filesBySubmitId) {
+        AssignmentSubmitDisplayStatus displayStatus = AssignmentSubmitDisplayStatusCalculator.calculate(assignment, latest);
+        AssignmentSubmitResponse latestResponse = latest == null ? null
+                : AssignmentSubmitResponse.of(latest, filesBySubmitId.getOrDefault(latest.getId(), List.of()), displayStatus);
+        return AssignmentMemberSubmissionResponse.of(member, displayStatus, latestResponse);
     }
 
     /**

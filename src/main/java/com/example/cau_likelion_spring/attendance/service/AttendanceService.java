@@ -18,16 +18,16 @@ import com.example.cau_likelion_spring.attendance.exception.InvalidAttendancePas
 import com.example.cau_likelion_spring.attendance.exception.WeeklyAttendanceNotFoundException;
 import com.example.cau_likelion_spring.attendance.repository.DetailAttendanceRepository;
 import com.example.cau_likelion_spring.attendance.repository.WeeklyAttendanceRepository;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.member.domain.Member;
 import com.example.cau_likelion_spring.member.domain.MemberRole;
 import com.example.cau_likelion_spring.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -180,6 +180,6 @@ public class AttendanceService {
 
     private Member getMember(Long memberId) {
         return memberRepository.findById(memberId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 멤버입니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND, "존재하지 않는 멤버입니다. id=" + memberId));
     }
 }

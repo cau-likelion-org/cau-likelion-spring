@@ -1,8 +1,8 @@
 package com.example.cau_likelion_spring.blog.service;
 
 import com.example.cau_likelion_spring.blog.dto.BlogScrapingResponse;
-import com.example.cau_likelion_spring.blog.exception.BlogScrapingFetchException;
-import com.example.cau_likelion_spring.blog.exception.InvalidScrapingUrlException;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +38,7 @@ public class BlogScrapingService {
     private static final int MIN_IMAGE_SIZE = 100;
     private static final int MIN_PARAGRAPH_LENGTH = 10;
     private static final int DESCRIPTION_PARAGRAPH_LIMIT = 3;
+    private static final int DESCRIPTION_MAX_LENGTH = 150;
 
     private static final String[] CONTENT_CONTAINER_SELECTORS = {
             "article", "main", ".post-content", ".entry-content", "#content", ".article-body", "body"
@@ -77,7 +78,7 @@ public class BlogScrapingService {
                 url,
                 extractTitle(doc),
                 extractThumbnail(doc),
-                extractDescription(doc),
+                truncate(extractDescription(doc)),
                 extractPublishedDate(doc)
         );
     }
@@ -87,10 +88,10 @@ public class BlogScrapingService {
             URI uri = new URI(url);
             String scheme = uri.getScheme();
             if (uri.getHost() == null || !("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))) {
-                throw new InvalidScrapingUrlException(url);
+                throw new CustomException(ErrorCode.INVALID_SCRAPING_URL, "유효하지 않은 URL입니다. url=" + url);
             }
         } catch (URISyntaxException e) {
-            throw new InvalidScrapingUrlException(url);
+            throw new CustomException(ErrorCode.INVALID_SCRAPING_URL, "유효하지 않은 URL입니다. url=" + url);
         }
     }
 
@@ -103,7 +104,7 @@ public class BlogScrapingService {
                     .ignoreHttpErrors(true)
                     .get();
         } catch (IOException e) {
-            throw new BlogScrapingFetchException(url);
+            throw new CustomException(ErrorCode.BLOG_SCRAPING_FAILED, "블로그 페이지를 불러올 수 없습니다. url=" + url);
         }
     }
 
@@ -345,5 +346,12 @@ public class BlogScrapingService {
         } catch (Exception e) {
             return maybeRelative;
         }
+    }
+
+    private String truncate(String text) {
+        if (text == null || text.length() <= DESCRIPTION_MAX_LENGTH) {
+            return text;
+        }
+        return text.substring(0, DESCRIPTION_MAX_LENGTH) + "...";
     }
 }

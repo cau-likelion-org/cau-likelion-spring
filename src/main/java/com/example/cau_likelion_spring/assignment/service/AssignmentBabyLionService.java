@@ -5,12 +5,17 @@ import com.example.cau_likelion_spring.assignment.domain.AssignmentIndividualDea
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmit;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplayStatus;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplayStatusCalculator;
+import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitStatus;
+import com.example.cau_likelion_spring.assignment.domain.AssignmentType;
+import com.example.cau_likelion_spring.assignment.domain.SubmissionFile;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitRequest;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSummaryResponse;
-import com.example.cau_likelion_spring.assignment.dto.AssignmentWeekGroupResponse;
-import com.example.cau_likelion_spring.assignment.exception.BabyLionPartNotAssignedException;
+import com.example.cau_likelion_spring.assignment.exception.AssignmentException;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentIndividualDeadlineRepository;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentRepository;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentSubmitRepository;
+import com.example.cau_likelion_spring.assignment.repository.SubmissionFileRepository;
 import com.example.cau_likelion_spring.member.domain.Member;
 import com.example.cau_likelion_spring.member.exception.MemberNotFoundException;
 import com.example.cau_likelion_spring.member.repository.MemberRepository;
@@ -19,15 +24,17 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * 아기사자 본인의 과제 목록(주차별 그룹) 조회 서비스.
+ * 아기사자(BABY_LION) 본인의 과제 목록 조회 및 과제 제출 관련 서비스.
  */
 @Service
 @RequiredArgsConstructor
@@ -37,6 +44,7 @@ public class AssignmentBabyLionService {
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmitRepository assignmentSubmitRepository;
     private final AssignmentIndividualDeadlineRepository assignmentIndividualDeadlineRepository;
+    private final SubmissionFileRepository submissionFileRepository;
     private final MemberRepository memberRepository;
 
     /**
@@ -44,7 +52,7 @@ public class AssignmentBabyLionService {
      * 같은 주차라도 과제마다 마감기한이 다를 수 있어 각 과제 생성 시점의 마감기한을 그대로 보여준다.
      */
     @PreAuthorize("hasRole('BABY_LION')")
-    public List<AssignmentWeekGroupResponse> getMyAssignments(Long memberId, Integer week) {
+    public List<AssignmentSummaryResponse.WeekGroup> getMyAssignments(Long memberId, Integer week) {
         Member member = getMember(memberId);
         Part part = getMemberPart(member);
 
@@ -66,6 +74,153 @@ public class AssignmentBabyLionService {
                 .toList();
     }
 
+    /**
+     * 최근 제출이 PENDING(운영진이 아직 평가하지 않음)이면 '수정'으로 보고 기존 row를 그대로 고치고,
+     * 그 외(제출 이력 없음 / REJECTED)면 '제출' 또는 '재제출'로 보고 새 row를 만든다.
+     * APPROVED(이미 승인됨)면 더 이상 제출할 수 없다.
+     */
+    @PreAuthorize("hasRole('BABY_LION')")
+    @Transactional
+    public AssignmentSubmitResponse submit(Long memberId, Long assignmentId, AssignmentSubmitRequest request) {
+        Assignment assignment = getAssignment(assignmentId);
+        Member member = getMember(memberId);
+        validateSamePart(assignment, member);
+        validateContent(assignment, request);
+
+        LocalDateTime endDate = resolveEndDate(assignment, member);
+
+        AssignmentSubmit latest = assignmentSubmitRepository
+                .findFirstByAssignmentAndSubmitMemberOrderByCreatedAtDesc(assignment, member)
+                .orElse(null);
+        validateSubmittable(assignment, latest, endDate);
+
+        boolean isEdit = latest != null && latest.getStatus() == AssignmentSubmitStatus.PENDING;
+        AssignmentSubmit submit = isEdit
+                ? editSubmission(latest, request)
+                : createSubmission(assignment, member, request);
+
+        List<SubmissionFile> files = saveFiles(submit, request.files());
+
+        return AssignmentSubmitResponse.of(submit, files, AssignmentSubmitDisplayStatusCalculator.calculate(endDate, submit));
+    }
+
+    /**
+     * 아기사자 본인의 제출 이력 전체 (최신순). 수정/재제출할 때마다 쌓인 이력을 다 보여준다.
+     */
+    @PreAuthorize("hasRole('BABY_LION')")
+    public List<AssignmentSubmitResponse> getMySubmissionHistory(Long memberId, Long assignmentId) {
+        Assignment assignment = getAssignment(assignmentId);
+        Member member = getMember(memberId);
+        validateSamePart(assignment, member);
+
+        List<AssignmentSubmit> submits = assignmentSubmitRepository
+                .findAllByAssignmentAndSubmitMemberOrderByCreatedAtDesc(assignment, member);
+        if (submits.isEmpty()) {
+            return List.of();
+        }
+
+        LocalDateTime endDate = resolveEndDate(assignment, member);
+        Map<Long, List<SubmissionFile>> filesBySubmitId = groupFilesBySubmitId(submits);
+
+        return submits.stream()
+                .map(submit -> AssignmentSubmitResponse.of(submit,
+                        filesBySubmitId.getOrDefault(submit.getId(), List.of()),
+                        AssignmentSubmitDisplayStatusCalculator.calculate(endDate, submit)))
+                .toList();
+    }
+
+    private AssignmentSubmit editSubmission(AssignmentSubmit latest, AssignmentSubmitRequest request) {
+        latest.editSubmission(request.content(), request.url());
+        submissionFileRepository.deleteAllByAssignmentSubmit(latest);
+        return latest;
+    }
+
+    private AssignmentSubmit createSubmission(Assignment assignment, Member member, AssignmentSubmitRequest request) {
+        return assignmentSubmitRepository.save(AssignmentSubmit.builder()
+                .assignment(assignment)
+                .submitMember(member)
+                .content(request.content())
+                .url(request.url())
+                .build());
+    }
+
+    /** 개별 마감일이 있으면 그 값을, 없으면 과제 공통 마감일(Assignment.endDate)을 반환한다. */
+    private LocalDateTime resolveEndDate(Assignment assignment, Member member) {
+        return assignmentIndividualDeadlineRepository.findByAssignment_IdAndMember_Id(assignment.getId(), member.getId())
+                .map(AssignmentIndividualDeadline::getDeadline)
+                .orElse(assignment.getEndDate());
+    }
+
+    private void validateContent(Assignment assignment, AssignmentSubmitRequest request) {
+        boolean hasUrl = StringUtils.hasText(request.url());
+        boolean hasFiles = request.files() != null && !request.files().isEmpty();
+
+        if (assignment.getType() == AssignmentType.URL) {
+            if (!hasUrl) {
+                throw AssignmentException.invalidSubmission("URL 제출 형식인 과제입니다. url을 입력해주세요.");
+            }
+            if (hasFiles) {
+                throw AssignmentException.invalidSubmission("URL 제출 형식인 과제에는 파일을 첨부할 수 없습니다.");
+            }
+        } else {
+            if (!hasFiles) {
+                throw AssignmentException.invalidSubmission("파일 제출 형식인 과제입니다. 파일을 1개 이상 첨부해주세요.");
+            }
+            if (hasUrl) {
+                throw AssignmentException.invalidSubmission("파일 제출 형식인 과제에는 URL을 입력할 수 없습니다.");
+            }
+        }
+    }
+
+    private void validateSubmittable(Assignment assignment, AssignmentSubmit latest, LocalDateTime endDate) {
+        LocalDateTime now = LocalDateTime.now();
+
+        if (latest == null) {
+            if (now.isAfter(endDate.plusDays(AssignmentSubmitDisplayStatusCalculator.LATE_SUBMISSION_GRACE_DAYS))) {
+                throw AssignmentException.submissionClosed(assignment.getId());
+            }
+            return;
+        }
+
+        if (latest.getStatus() == AssignmentSubmitStatus.APPROVED) {
+            throw AssignmentException.alreadyApproved(assignment.getId());
+        }
+
+        boolean afterDeadline = now.isAfter(endDate);
+        boolean rejected = latest.getStatus() == AssignmentSubmitStatus.REJECTED;
+        if (afterDeadline && !rejected) {
+            throw AssignmentException.submissionClosed(assignment.getId());
+        }
+    }
+
+    private List<SubmissionFile> saveFiles(AssignmentSubmit submit, List<AssignmentSubmitRequest.FileInfo> fileInfos) {
+        if (fileInfos == null || fileInfos.isEmpty()) {
+            return List.of();
+        }
+
+        List<SubmissionFile> files = fileInfos.stream()
+                .map(fileInfo -> SubmissionFile.builder()
+                        .assignmentSubmit(submit)
+                        .fileUrl(fileInfo.fileUrl())
+                        .originalFilename(fileInfo.originalFilename())
+                        .build())
+                .toList();
+
+        return submissionFileRepository.saveAll(files);
+    }
+
+    private void validateSamePart(Assignment assignment, Member member) {
+        Optional.ofNullable(member.getPart())
+                .map(part -> part.getId().equals(assignment.getPart().getId()))
+                .filter(Boolean::booleanValue)
+                .orElseThrow(() -> AssignmentException.partMismatch(assignment.getId()));
+    }
+
+    private Map<Long, List<SubmissionFile>> groupFilesBySubmitId(List<AssignmentSubmit> submits) {
+        return submissionFileRepository.findAllByAssignmentSubmitIn(submits).stream()
+                .collect(Collectors.groupingBy(file -> file.getAssignmentSubmit().getId()));
+    }
+
     private Map<Long, AssignmentSubmit> findLatestSubmitsByAssignmentId(List<Assignment> assignments, Member member) {
         List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
 
@@ -83,21 +238,26 @@ public class AssignmentBabyLionService {
                 .collect(Collectors.toMap(deadline -> deadline.getAssignment().getId(), AssignmentIndividualDeadline::getDeadline));
     }
 
-    private AssignmentWeekGroupResponse toWeekGroup(Integer week, List<Assignment> weekAssignments,
-                                                      Map<Long, AssignmentSubmit> latestSubmitByAssignmentId,
-                                                      Map<Long, LocalDateTime> individualDeadlineByAssignmentId) {
+    private AssignmentSummaryResponse.WeekGroup toWeekGroup(Integer week, List<Assignment> weekAssignments,
+                                                              Map<Long, AssignmentSubmit> latestSubmitByAssignmentId,
+                                                              Map<Long, LocalDateTime> individualDeadlineByAssignmentId) {
         List<AssignmentSummaryResponse> assignmentSummaries = weekAssignments.stream()
                 .map(assignment -> toSummary(assignment, latestSubmitByAssignmentId.get(assignment.getId()),
                         individualDeadlineByAssignmentId.getOrDefault(assignment.getId(), assignment.getEndDate())))
                 .toList();
 
-        return new AssignmentWeekGroupResponse(week, assignmentSummaries);
+        return new AssignmentSummaryResponse.WeekGroup(week, assignmentSummaries);
     }
 
     private AssignmentSummaryResponse toSummary(Assignment assignment, AssignmentSubmit latest, LocalDateTime endDate) {
         AssignmentSubmitDisplayStatus status = AssignmentSubmitDisplayStatusCalculator.calculate(endDate, latest);
         LocalDateTime submittedAt = latest == null ? null : latest.getUpdatedAt();
         return new AssignmentSummaryResponse(assignment.getId(), assignment.getTitle(), endDate, status, submittedAt);
+    }
+
+    private Assignment getAssignment(Long id) {
+        return assignmentRepository.findById(id)
+                .orElseThrow(() -> AssignmentException.notFound(id));
     }
 
     private Member getMember(Long id) {
@@ -108,7 +268,7 @@ public class AssignmentBabyLionService {
     private Part getMemberPart(Member member) {
         Part part = member.getPart();
         if (part == null) {
-            throw new BabyLionPartNotAssignedException(member.getId());
+            throw AssignmentException.babyLionPartNotAssigned(member.getId());
         }
         return part;
     }

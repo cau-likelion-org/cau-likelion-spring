@@ -3,6 +3,7 @@ package com.example.cau_likelion_spring.assignment.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Schema(description = "주차 내 개별 과제 요약 및 파트원 제출 현황 집계 (운영진 본인 파트 기준)")
 public record AssignmentStaffSummaryResponse(
@@ -31,4 +32,15 @@ public record AssignmentStaffSummaryResponse(
         @Schema(description = "승인완료 인원 수 (마감 전 제출, 운영진 승인까지 완료)")
         int approvedCount
 ) {
+
+    @Schema(description = "주차별로 묶인 과제 목록 (운영진 본인 파트 기준)")
+    public record WeekGroup(
+
+            @Schema(description = "주차", example = "1")
+            Integer week,
+
+            @Schema(description = "해당 주차의 개별 과제 목록")
+            List<AssignmentStaffSummaryResponse> assignments
+    ) {
+    }
 }

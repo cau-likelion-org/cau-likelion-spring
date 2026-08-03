@@ -4,6 +4,7 @@ import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplay
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Schema(description = "주차 내 개별 과제 요약 (아기사자 본인 기준)")
 public record AssignmentSummaryResponse(
@@ -23,4 +24,15 @@ public record AssignmentSummaryResponse(
         @Schema(description = "제출 시각 (제출 이력이 없으면 null)")
         LocalDateTime submittedAt
 ) {
+
+    @Schema(description = "주차별로 묶인 과제 목록 (아기사자 본인 기준)")
+    public record WeekGroup(
+
+            @Schema(description = "주차", example = "1")
+            Integer week,
+
+            @Schema(description = "해당 주차의 개별 과제 목록")
+            List<AssignmentSummaryResponse> assignments
+    ) {
+    }
 }

@@ -4,7 +4,8 @@ import com.example.cau_likelion_spring.intro.domain.Faq;
 import com.example.cau_likelion_spring.intro.dto.FaqRequestDto;
 import com.example.cau_likelion_spring.intro.dto.FaqResponseDto;
 import com.example.cau_likelion_spring.intro.repository.FaqRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +49,6 @@ public class FaqService {
 
     private Faq findFaqById(Long id) {
         return faqRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 FAQ입니다. id=" + id));
+                .orElseThrow(() -> new CustomException(ErrorCode.FAQ_NOT_FOUND, "존재하지 않는 FAQ입니다. id=" + id));
     }
 }

@@ -5,10 +5,10 @@ import com.example.cau_likelion_spring.blog.domain.BlogCategory;
 import com.example.cau_likelion_spring.blog.dto.BlogRequest;
 import com.example.cau_likelion_spring.blog.dto.BlogResponse;
 import com.example.cau_likelion_spring.blog.dto.BlogScrapingResponse;
-import com.example.cau_likelion_spring.blog.exception.BlogNotFoundException;
 import com.example.cau_likelion_spring.blog.repository.BlogRepository;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.organization.domain.Generation;
-import com.example.cau_likelion_spring.organization.exception.GenerationNotFoundException;
 import com.example.cau_likelion_spring.organization.repository.GenerationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -86,11 +86,11 @@ public class BlogService {
 
     private Blog getBlog(Long id) {
         return blogRepository.findById(id)
-                .orElseThrow(() -> new BlogNotFoundException(id));
+                .orElseThrow(() -> new CustomException(ErrorCode.BLOG_NOT_FOUND, "존재하지 않는 블로그입니다. id=" + id));
     }
 
     private Generation getGeneration(Long id) {
         return generationRepository.findById(id)
-                .orElseThrow(() -> new GenerationNotFoundException(id));
+                .orElseThrow(() -> new CustomException(ErrorCode.GENERATION_NOT_FOUND, "존재하지 않는 기수입니다. id=" + id));
     }
 }

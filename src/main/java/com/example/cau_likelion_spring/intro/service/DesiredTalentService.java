@@ -4,7 +4,8 @@ import com.example.cau_likelion_spring.intro.domain.DesiredTalent;
 import com.example.cau_likelion_spring.intro.dto.DesiredTalentRequestDto;
 import com.example.cau_likelion_spring.intro.dto.DesiredTalentResponseDto;
 import com.example.cau_likelion_spring.intro.repository.DesiredTalentRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +49,6 @@ public class DesiredTalentService {
 
     private DesiredTalent findDesiredTalentById(Long id) {
         return desiredTalentRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 인재상입니다. id=" + id));
+                .orElseThrow(() -> new CustomException(ErrorCode.DESIRED_TALENT_NOT_FOUND, "존재하지 않는 인재상입니다. id=" + id));
     }
 }

@@ -1,0 +1,40 @@
+package com.example.cau_likelion_spring.global.exception;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    /** 우리가 직접 던지는 커스텀 예외 */
+    @ExceptionHandler(CustomException.class)
+    public ResponseEntity<ErrorResponse> handleCustomException(CustomException e) {
+        ErrorCode errorCode = e.getErrorCode();
+        log.warn("CustomException: code={}, message={}", errorCode.name(), e.getMessage());
+
+        return ResponseEntity.status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(errorCode, e.getMessage()));
+    }
+
+    /** @Valid 검증 실패 (요청 DTO의 @NotBlank, @NotNull 등) */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e) {
+        log.warn("Validation failed: {}", e.getMessage());
+
+        return ResponseEntity.status(ErrorCode.INVALID_INPUT.getHttpStatus())
+                .body(ErrorResponse.of(ErrorCode.INVALID_INPUT, e.getBindingResult()));
+    }
+
+    /** 위에서 잡지 못한 모든 예외 - 마지막 안전망. 스택트레이스는 로그로만 남기고 응답엔 노출 안 함 */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleException(Exception e) {
+        log.error("Unhandled exception occurred", e);
+
+        return ResponseEntity.status(ErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus())
+                .body(ErrorResponse.of(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+}

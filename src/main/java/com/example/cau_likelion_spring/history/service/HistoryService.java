@@ -8,14 +8,14 @@ import com.example.cau_likelion_spring.history.dto.HistoryListResponse;
 import com.example.cau_likelion_spring.history.dto.HistoryUpdateRequest;
 import com.example.cau_likelion_spring.history.repository.HistoryImageRepository;
 import com.example.cau_likelion_spring.history.repository.HistoryRepository;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.organization.domain.Generation;
 import com.example.cau_likelion_spring.organization.repository.GenerationRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -108,11 +108,11 @@ public class HistoryService {
 
     private History getHistory(Long id) {
         return historyRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 게시물입니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.HISTORY_NOT_FOUND, "존재하지 않는 게시물입니다. id=" + id));
     }
 
     private Generation getGeneration(Long generationId) {
         return generationRepository.findById(generationId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 기수입니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.GENERATION_NOT_FOUND, "존재하지 않는 기수입니다. id=" + generationId));
     }
 }

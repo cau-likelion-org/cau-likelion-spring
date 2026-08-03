@@ -103,6 +103,7 @@ public class AssignmentService {
         pushNotiLogRepository.deleteAllByAssignmentSubmit_Assignment(assignment);
         submissionFileRepository.deleteAllByAssignmentSubmit_Assignment(assignment);
         assignmentSubmitRepository.deleteAllByAssignment(assignment);
+        assignmentIndividualDeadlineRepository.deleteAllByAssignment(assignment);
         assignmentRepository.delete(assignment);
     }
 

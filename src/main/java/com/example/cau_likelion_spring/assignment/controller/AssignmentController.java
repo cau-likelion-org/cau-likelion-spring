@@ -1,6 +1,8 @@
 package com.example.cau_likelion_spring.assignment.controller;
 
 import com.example.cau_likelion_spring.assignment.dto.AssignmentCreateRequest;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadlineRequest;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadlineResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffDetailWeekGroupResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffWeekGroupResponse;
@@ -19,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -117,6 +120,25 @@ public class AssignmentController {
             @Parameter(description = "과제 ID", required = true) @PathVariable Long id,
             @Valid @RequestBody AssignmentUpdateRequest request) {
         return ResponseEntity.ok(assignmentService.update(memberId, id, request));
+    }
+
+    @Operation(summary = "개별 마감일 변경",
+            description = "로그인한 운영진이 선택한 아기사자(들)에게 이 과제의 개별 마감일을 부여/변경합니다 (다중 선택 가능, 선택된 전원에게 동일한 마감일 적용). "
+                    + "개별 마감일이 있는 아기사자는 이후 제출 가능 여부와 정시/지각 판정 모두 과제 공통 마감일 대신 이 개별 마감일 기준으로 계산됩니다. "
+                    + "이미 개별 마감일이 있는 아기사자면 값을 덮어씁니다. STAFF 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "변경 성공"),
+            @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
+            @ApiResponse(responseCode = "403", description = "권한 없음, 본인 파트의 과제가 아님, 또는 본인 파트 소속이 아닌 아기사자가 포함됨"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 과제 또는 존재하지 않는 멤버가 포함됨"),
+            @ApiResponse(responseCode = "409", description = "운영진에게 배정된 파트가 없음")
+    })
+    @PatchMapping("/{id}/deadline")
+    public ResponseEntity<List<AssignmentIndividualDeadlineResponse>> updateIndividualDeadlines(
+            @AuthenticationPrincipal Long memberId,
+            @Parameter(description = "과제 ID", required = true) @PathVariable Long id,
+            @Valid @RequestBody AssignmentIndividualDeadlineRequest request) {
+        return ResponseEntity.ok(assignmentService.updateIndividualDeadlines(memberId, id, request));
     }
 
     @Operation(summary = "과제 삭제",

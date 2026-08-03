@@ -1,6 +1,7 @@
 package com.example.cau_likelion_spring.assignment.service;
 
 import com.example.cau_likelion_spring.assignment.domain.Assignment;
+import com.example.cau_likelion_spring.assignment.domain.AssignmentIndividualDeadline;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmit;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplayStatus;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplayStatusCalculator;
@@ -16,6 +17,7 @@ import com.example.cau_likelion_spring.assignment.exception.AssignmentPartMismat
 import com.example.cau_likelion_spring.assignment.exception.AssignmentSubmitNotFoundException;
 import com.example.cau_likelion_spring.assignment.exception.InvalidSubmissionException;
 import com.example.cau_likelion_spring.assignment.exception.StaffPartNotAssignedException;
+import com.example.cau_likelion_spring.assignment.repository.AssignmentIndividualDeadlineRepository;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentRepository;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentSubmitRepository;
 import com.example.cau_likelion_spring.assignment.repository.SubmissionFileRepository;
@@ -30,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +48,7 @@ public class AssignmentSubmitStaffService {
 
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmitRepository assignmentSubmitRepository;
+    private final AssignmentIndividualDeadlineRepository assignmentIndividualDeadlineRepository;
     private final SubmissionFileRepository submissionFileRepository;
     private final MemberRepository memberRepository;
 
@@ -72,12 +76,16 @@ public class AssignmentSubmitStaffService {
         Map<Long, List<AssignmentSubmit>> submitsByMemberId = allSubmits.stream()
                 .collect(Collectors.groupingBy(submit -> submit.getSubmitMember().getId()));
         Map<Long, List<SubmissionFile>> filesBySubmitId = groupFilesBySubmitId(allSubmits);
+        Map<Long, LocalDateTime> individualDeadlineByMemberId = assignmentIndividualDeadlineRepository
+                .findAllByAssignment_IdAndMember_IdIn(assignmentId, memberIds).stream()
+                .collect(Collectors.toMap(deadline -> deadline.getMember().getId(), AssignmentIndividualDeadline::getDeadline));
 
         return babyLions.stream()
                 .map(member -> {
                     List<AssignmentSubmit> submits = submitsByMemberId.getOrDefault(member.getId(), List.of());
                     AssignmentSubmit latest = submits.isEmpty() ? null : submits.get(0);
-                    return toMemberSubmission(member, assignment, latest, filesBySubmitId);
+                    LocalDateTime endDate = individualDeadlineByMemberId.getOrDefault(member.getId(), assignment.getEndDate());
+                    return toMemberSubmission(member, endDate, latest, filesBySubmitId);
                 })
                 .toList();
     }
@@ -107,23 +115,29 @@ public class AssignmentSubmitStaffService {
         Map<Long, List<SubmissionFile>> filesBySubmitId = groupFilesBySubmitId(latestByAssignmentIdThenMemberId.values().stream()
                 .flatMap(byMemberId -> byMemberId.values().stream())
                 .toList());
+        Map<Long, Map<Long, LocalDateTime>> individualDeadlineByAssignmentIdThenMemberId = assignmentIndividualDeadlineRepository
+                .findAllByAssignment_IdIn(assignmentIds).stream()
+                .collect(Collectors.groupingBy(deadline -> deadline.getAssignment().getId(),
+                        Collectors.toMap(deadline -> deadline.getMember().getId(), AssignmentIndividualDeadline::getDeadline)));
 
         Map<Integer, List<Assignment>> assignmentsByWeek = assignments.stream()
                 .collect(Collectors.groupingBy(Assignment::getWeek, LinkedHashMap::new, Collectors.toList()));
 
         return assignmentsByWeek.entrySet().stream()
                 .map(entry -> toStaffDetailWeekGroup(entry.getKey(), entry.getValue(), babyLions,
-                        latestByAssignmentIdThenMemberId, filesBySubmitId))
+                        latestByAssignmentIdThenMemberId, filesBySubmitId, individualDeadlineByAssignmentIdThenMemberId))
                 .toList();
     }
 
     private AssignmentStaffDetailWeekGroupResponse toStaffDetailWeekGroup(Integer week, List<Assignment> weekAssignments,
                                                                             List<Member> babyLions,
                                                                             Map<Long, Map<Long, AssignmentSubmit>> latestByAssignmentIdThenMemberId,
-                                                                            Map<Long, List<SubmissionFile>> filesBySubmitId) {
+                                                                            Map<Long, List<SubmissionFile>> filesBySubmitId,
+                                                                            Map<Long, Map<Long, LocalDateTime>> individualDeadlineByAssignmentIdThenMemberId) {
         List<AssignmentStaffDetailResponse> assignmentDetails = weekAssignments.stream()
                 .map(assignment -> toStaffDetail(assignment, babyLions,
-                        latestByAssignmentIdThenMemberId.getOrDefault(assignment.getId(), Map.of()), filesBySubmitId))
+                        latestByAssignmentIdThenMemberId.getOrDefault(assignment.getId(), Map.of()), filesBySubmitId,
+                        individualDeadlineByAssignmentIdThenMemberId.getOrDefault(assignment.getId(), Map.of())))
                 .toList();
 
         return new AssignmentStaffDetailWeekGroupResponse(week, assignmentDetails);
@@ -131,17 +145,21 @@ public class AssignmentSubmitStaffService {
 
     private AssignmentStaffDetailResponse toStaffDetail(Assignment assignment, List<Member> babyLions,
                                                           Map<Long, AssignmentSubmit> latestByMemberId,
-                                                          Map<Long, List<SubmissionFile>> filesBySubmitId) {
+                                                          Map<Long, List<SubmissionFile>> filesBySubmitId,
+                                                          Map<Long, LocalDateTime> individualDeadlineByMemberId) {
         List<AssignmentMemberSubmissionResponse> submissions = babyLions.stream()
-                .map(member -> toMemberSubmission(member, assignment, latestByMemberId.get(member.getId()), filesBySubmitId))
+                .map(member -> {
+                    LocalDateTime endDate = individualDeadlineByMemberId.getOrDefault(member.getId(), assignment.getEndDate());
+                    return toMemberSubmission(member, endDate, latestByMemberId.get(member.getId()), filesBySubmitId);
+                })
                 .toList();
 
         return new AssignmentStaffDetailResponse(assignment.getId(), assignment.getTitle(), assignment.getEndDate(), submissions);
     }
 
-    private AssignmentMemberSubmissionResponse toMemberSubmission(Member member, Assignment assignment, AssignmentSubmit latest,
+    private AssignmentMemberSubmissionResponse toMemberSubmission(Member member, LocalDateTime endDate, AssignmentSubmit latest,
                                                                     Map<Long, List<SubmissionFile>> filesBySubmitId) {
-        AssignmentSubmitDisplayStatus displayStatus = AssignmentSubmitDisplayStatusCalculator.calculate(assignment, latest);
+        AssignmentSubmitDisplayStatus displayStatus = AssignmentSubmitDisplayStatusCalculator.calculate(endDate, latest);
         AssignmentSubmitResponse latestResponse = latest == null ? null
                 : AssignmentSubmitResponse.of(latest, filesBySubmitId.getOrDefault(latest.getId(), List.of()), displayStatus);
         return AssignmentMemberSubmissionResponse.of(member, displayStatus, latestResponse);
@@ -179,8 +197,13 @@ public class AssignmentSubmitStaffService {
             case PENDING -> throw new InvalidSubmissionException("평가 상태는 APPROVED 또는 REJECTED만 가능합니다.");
         }
 
+        LocalDateTime endDate = assignmentIndividualDeadlineRepository
+                .findByAssignment_IdAndMember_Id(assignmentId, submit.getSubmitMember().getId())
+                .map(AssignmentIndividualDeadline::getDeadline)
+                .orElse(assignment.getEndDate());
+
         List<SubmissionFile> files = submissionFileRepository.findAllByAssignmentSubmit(submit);
-        AssignmentSubmitDisplayStatus displayStatus = AssignmentSubmitDisplayStatusCalculator.calculate(assignment, submit);
+        AssignmentSubmitDisplayStatus displayStatus = AssignmentSubmitDisplayStatusCalculator.calculate(endDate, submit);
         return AssignmentSubmitResponse.of(submit, files, displayStatus);
     }
 

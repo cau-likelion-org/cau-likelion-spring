@@ -1,17 +1,22 @@
 package com.example.cau_likelion_spring.assignment.service;
 
 import com.example.cau_likelion_spring.assignment.domain.Assignment;
+import com.example.cau_likelion_spring.assignment.domain.AssignmentIndividualDeadline;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmit;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplayStatus;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplayStatusCalculator;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentCreateRequest;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadlineRequest;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadlineResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffSummaryResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffWeekGroupResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentUpdateRequest;
+import com.example.cau_likelion_spring.assignment.exception.AssignmentMemberPartMismatchException;
 import com.example.cau_likelion_spring.assignment.exception.AssignmentNotFoundException;
 import com.example.cau_likelion_spring.assignment.exception.AssignmentPartMismatchException;
 import com.example.cau_likelion_spring.assignment.exception.StaffPartNotAssignedException;
+import com.example.cau_likelion_spring.assignment.repository.AssignmentIndividualDeadlineRepository;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentRepository;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentSubmitRepository;
 import com.example.cau_likelion_spring.assignment.repository.PushNotiLogRepository;
@@ -19,15 +24,16 @@ import com.example.cau_likelion_spring.assignment.repository.SubmissionFileRepos
 import com.example.cau_likelion_spring.member.domain.Member;
 import com.example.cau_likelion_spring.member.domain.MemberRole;
 import com.example.cau_likelion_spring.member.exception.MemberNotFoundException;
+import com.example.cau_likelion_spring.member.exception.PartNotFoundException;
 import com.example.cau_likelion_spring.member.repository.MemberRepository;
 import com.example.cau_likelion_spring.organization.domain.Part;
-import com.example.cau_likelion_spring.organization.exception.PartNotFoundException;
 import com.example.cau_likelion_spring.organization.repository.PartRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +46,7 @@ public class AssignmentService {
 
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmitRepository assignmentSubmitRepository;
+    private final AssignmentIndividualDeadlineRepository assignmentIndividualDeadlineRepository;
     private final SubmissionFileRepository submissionFileRepository;
     private final PushNotiLogRepository pushNotiLogRepository;
     private final MemberRepository memberRepository;
@@ -95,6 +102,50 @@ public class AssignmentService {
     }
 
     /**
+     * 선택한 아기사자(들)에게 이 과제의 개별 마감일을 부여/변경한다. 이후 이 아기사자들은 제출 가능 여부와
+     * 정시/지각 판정 모두 Assignment.endDate 대신 이 개별 마감일 기준으로 계산된다. 이미 개별 마감일이
+     * 있으면 값을 덮어쓰고, 없으면 새로 생성한다 (아기사자 1명당 과제 1개에 최대 1건).
+     */
+    @PreAuthorize("hasRole('STAFF')")
+    @Transactional
+    public List<AssignmentIndividualDeadlineResponse> updateIndividualDeadlines(Long staffMemberId, Long assignmentId,
+                                                                                  AssignmentIndividualDeadlineRequest request) {
+        Assignment assignment = getOwnedAssignment(staffMemberId, assignmentId);
+
+        List<Member> members = memberRepository.findAllById(request.memberIds());
+        if (members.size() != request.memberIds().size()) {
+            List<Long> foundIds = members.stream().map(Member::getId).toList();
+            Long missingId = request.memberIds().stream().filter(id -> !foundIds.contains(id)).findFirst().orElseThrow();
+            throw new MemberNotFoundException(missingId);
+        }
+        for (Member member : members) {
+            if (member.getPart() == null || !member.getPart().getId().equals(assignment.getPart().getId())) {
+                throw new AssignmentMemberPartMismatchException(member.getId());
+            }
+        }
+
+        Map<Long, AssignmentIndividualDeadline> existingByMemberId = assignmentIndividualDeadlineRepository
+                .findAllByAssignment_IdAndMember_IdIn(assignmentId, request.memberIds()).stream()
+                .collect(Collectors.toMap(deadline -> deadline.getMember().getId(), deadline -> deadline));
+
+        return members.stream()
+                .map(member -> {
+                    AssignmentIndividualDeadline deadline = existingByMemberId.get(member.getId());
+                    if (deadline == null) {
+                        deadline = assignmentIndividualDeadlineRepository.save(AssignmentIndividualDeadline.builder()
+                                .assignment(assignment)
+                                .member(member)
+                                .deadline(request.deadline())
+                                .build());
+                    } else {
+                        deadline.updateDeadline(request.deadline());
+                    }
+                    return AssignmentIndividualDeadlineResponse.of(deadline);
+                })
+                .toList();
+    }
+
+    /**
      * 운영진이 보는 본인 파트 과제 목록(주차별). 과제마다 파트원 전체를 대상으로 최신 제출 기준
      * 제출전/미제출/승인대기/지각제출/승인완료 인원 수를 함께 집계해서 보여준다.
      */
@@ -123,12 +174,15 @@ public class AssignmentService {
         List<Member> babyLions = memberRepository.findByPart_IdAndRole(part.getId(), MemberRole.BABY_LION);
         Map<Long, Map<Long, AssignmentSubmit>> latestSubmitByAssignmentIdThenMemberId =
                 findLatestSubmitsByAssignmentIdThenMemberId(assignments);
+        Map<Long, Map<Long, LocalDateTime>> individualDeadlineByAssignmentIdThenMemberId =
+                findIndividualDeadlinesByAssignmentIdThenMemberId(assignments);
 
         Map<Integer, List<Assignment>> assignmentsByWeek = assignments.stream()
                 .collect(Collectors.groupingBy(Assignment::getWeek, LinkedHashMap::new, Collectors.toList()));
 
         return assignmentsByWeek.entrySet().stream()
-                .map(entry -> toStaffWeekGroup(entry.getKey(), entry.getValue(), babyLions, latestSubmitByAssignmentIdThenMemberId))
+                .map(entry -> toStaffWeekGroup(entry.getKey(), entry.getValue(), babyLions,
+                        latestSubmitByAssignmentIdThenMemberId, individualDeadlineByAssignmentIdThenMemberId))
                 .toList();
     }
 
@@ -141,18 +195,29 @@ public class AssignmentService {
                                 (firstByCreatedAtDesc, ignoredOlder) -> firstByCreatedAtDesc)));
     }
 
+    private Map<Long, Map<Long, LocalDateTime>> findIndividualDeadlinesByAssignmentIdThenMemberId(List<Assignment> assignments) {
+        List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
+
+        return assignmentIndividualDeadlineRepository.findAllByAssignment_IdIn(assignmentIds).stream()
+                .collect(Collectors.groupingBy(deadline -> deadline.getAssignment().getId(),
+                        Collectors.toMap(deadline -> deadline.getMember().getId(), AssignmentIndividualDeadline::getDeadline)));
+    }
+
     private AssignmentStaffWeekGroupResponse toStaffWeekGroup(Integer week, List<Assignment> weekAssignments, List<Member> babyLions,
-                                                                Map<Long, Map<Long, AssignmentSubmit>> latestSubmitByAssignmentIdThenMemberId) {
+                                                                Map<Long, Map<Long, AssignmentSubmit>> latestSubmitByAssignmentIdThenMemberId,
+                                                                Map<Long, Map<Long, LocalDateTime>> individualDeadlineByAssignmentIdThenMemberId) {
         List<AssignmentStaffSummaryResponse> assignmentSummaries = weekAssignments.stream()
                 .map(assignment -> toStaffSummary(assignment, babyLions,
-                        latestSubmitByAssignmentIdThenMemberId.getOrDefault(assignment.getId(), Map.of())))
+                        latestSubmitByAssignmentIdThenMemberId.getOrDefault(assignment.getId(), Map.of()),
+                        individualDeadlineByAssignmentIdThenMemberId.getOrDefault(assignment.getId(), Map.of())))
                 .toList();
 
         return new AssignmentStaffWeekGroupResponse(week, assignmentSummaries);
     }
 
     private AssignmentStaffSummaryResponse toStaffSummary(Assignment assignment, List<Member> babyLions,
-                                                            Map<Long, AssignmentSubmit> latestSubmitByMemberId) {
+                                                            Map<Long, AssignmentSubmit> latestSubmitByMemberId,
+                                                            Map<Long, LocalDateTime> individualDeadlineByMemberId) {
         int beforeSubmissionCount = 0;
         int missedCount = 0;
         int pendingReviewCount = 0;
@@ -161,7 +226,8 @@ public class AssignmentService {
 
         for (Member babyLion : babyLions) {
             AssignmentSubmit latest = latestSubmitByMemberId.get(babyLion.getId());
-            AssignmentSubmitDisplayStatus status = AssignmentSubmitDisplayStatusCalculator.calculate(assignment, latest);
+            LocalDateTime endDate = individualDeadlineByMemberId.getOrDefault(babyLion.getId(), assignment.getEndDate());
+            AssignmentSubmitDisplayStatus status = AssignmentSubmitDisplayStatusCalculator.calculate(endDate, latest);
             switch (status) {
                 case BEFORE_SUBMISSION -> beforeSubmissionCount++;
                 case MISSED -> missedCount++;

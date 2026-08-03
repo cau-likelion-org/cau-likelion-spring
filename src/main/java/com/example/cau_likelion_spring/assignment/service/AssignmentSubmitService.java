@@ -1,6 +1,7 @@
 package com.example.cau_likelion_spring.assignment.service;
 
 import com.example.cau_likelion_spring.assignment.domain.Assignment;
+import com.example.cau_likelion_spring.assignment.domain.AssignmentIndividualDeadline;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmit;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplayStatusCalculator;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitStatus;
@@ -13,6 +14,7 @@ import com.example.cau_likelion_spring.assignment.exception.AssignmentNotFoundEx
 import com.example.cau_likelion_spring.assignment.exception.AssignmentPartMismatchException;
 import com.example.cau_likelion_spring.assignment.exception.AssignmentSubmissionClosedException;
 import com.example.cau_likelion_spring.assignment.exception.InvalidSubmissionException;
+import com.example.cau_likelion_spring.assignment.repository.AssignmentIndividualDeadlineRepository;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentRepository;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentSubmitRepository;
 import com.example.cau_likelion_spring.assignment.repository.SubmissionFileRepository;
@@ -41,6 +43,7 @@ public class AssignmentSubmitService {
 
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmitRepository assignmentSubmitRepository;
+    private final AssignmentIndividualDeadlineRepository assignmentIndividualDeadlineRepository;
     private final SubmissionFileRepository submissionFileRepository;
     private final MemberRepository memberRepository;
 
@@ -57,10 +60,12 @@ public class AssignmentSubmitService {
         validateSamePart(assignment, member);
         validateContent(assignment, request);
 
+        LocalDateTime endDate = resolveEndDate(assignment, member);
+
         AssignmentSubmit latest = assignmentSubmitRepository
                 .findFirstByAssignmentAndSubmitMemberOrderByCreatedAtDesc(assignment, member)
                 .orElse(null);
-        validateSubmittable(assignment, latest);
+        validateSubmittable(assignment, latest, endDate);
 
         boolean isEdit = latest != null && latest.getStatus() == AssignmentSubmitStatus.PENDING;
         AssignmentSubmit submit = isEdit
@@ -69,7 +74,7 @@ public class AssignmentSubmitService {
 
         List<SubmissionFile> files = saveFiles(submit, request.files());
 
-        return AssignmentSubmitResponse.of(submit, files, AssignmentSubmitDisplayStatusCalculator.calculate(assignment, submit));
+        return AssignmentSubmitResponse.of(submit, files, AssignmentSubmitDisplayStatusCalculator.calculate(endDate, submit));
     }
 
     private AssignmentSubmit editSubmission(AssignmentSubmit latest, AssignmentSubmitRequest request) {
@@ -102,13 +107,21 @@ public class AssignmentSubmitService {
             return List.of();
         }
 
+        LocalDateTime endDate = resolveEndDate(assignment, member);
         Map<Long, List<SubmissionFile>> filesBySubmitId = groupFilesBySubmitId(submits);
 
         return submits.stream()
                 .map(submit -> AssignmentSubmitResponse.of(submit,
                         filesBySubmitId.getOrDefault(submit.getId(), List.of()),
-                        AssignmentSubmitDisplayStatusCalculator.calculate(assignment, submit)))
+                        AssignmentSubmitDisplayStatusCalculator.calculate(endDate, submit)))
                 .toList();
+    }
+
+    /** 개별 마감일이 있으면 그 값을, 없으면 과제 공통 마감일(Assignment.endDate)을 반환한다. */
+    private LocalDateTime resolveEndDate(Assignment assignment, Member member) {
+        return assignmentIndividualDeadlineRepository.findByAssignment_IdAndMember_Id(assignment.getId(), member.getId())
+                .map(AssignmentIndividualDeadline::getDeadline)
+                .orElse(assignment.getEndDate());
     }
 
     private Map<Long, List<SubmissionFile>> groupFilesBySubmitId(List<AssignmentSubmit> submits) {
@@ -137,9 +150,8 @@ public class AssignmentSubmitService {
         }
     }
 
-    private void validateSubmittable(Assignment assignment, AssignmentSubmit latest) {
+    private void validateSubmittable(Assignment assignment, AssignmentSubmit latest, LocalDateTime endDate) {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime endDate = assignment.getEndDate();
 
         if (latest == null) {
             if (now.isAfter(endDate.plusDays(AssignmentSubmitDisplayStatusCalculator.LATE_SUBMISSION_GRACE_DAYS))) {

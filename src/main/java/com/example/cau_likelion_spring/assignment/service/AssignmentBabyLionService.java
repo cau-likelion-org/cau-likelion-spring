@@ -1,12 +1,14 @@
 package com.example.cau_likelion_spring.assignment.service;
 
 import com.example.cau_likelion_spring.assignment.domain.Assignment;
+import com.example.cau_likelion_spring.assignment.domain.AssignmentIndividualDeadline;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmit;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplayStatus;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplayStatusCalculator;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSummaryResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentWeekGroupResponse;
 import com.example.cau_likelion_spring.assignment.exception.BabyLionPartNotAssignedException;
+import com.example.cau_likelion_spring.assignment.repository.AssignmentIndividualDeadlineRepository;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentRepository;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentSubmitRepository;
 import com.example.cau_likelion_spring.member.domain.Member;
@@ -34,6 +36,7 @@ public class AssignmentBabyLionService {
 
     private final AssignmentRepository assignmentRepository;
     private final AssignmentSubmitRepository assignmentSubmitRepository;
+    private final AssignmentIndividualDeadlineRepository assignmentIndividualDeadlineRepository;
     private final MemberRepository memberRepository;
 
     /**
@@ -53,12 +56,13 @@ public class AssignmentBabyLionService {
         }
 
         Map<Long, AssignmentSubmit> latestSubmitByAssignmentId = findLatestSubmitsByAssignmentId(assignments, member);
+        Map<Long, LocalDateTime> individualDeadlineByAssignmentId = findIndividualDeadlinesByAssignmentId(assignments, member);
 
         Map<Integer, List<Assignment>> assignmentsByWeek = assignments.stream()
                 .collect(Collectors.groupingBy(Assignment::getWeek, LinkedHashMap::new, Collectors.toList()));
 
         return assignmentsByWeek.entrySet().stream()
-                .map(entry -> toWeekGroup(entry.getKey(), entry.getValue(), latestSubmitByAssignmentId))
+                .map(entry -> toWeekGroup(entry.getKey(), entry.getValue(), latestSubmitByAssignmentId, individualDeadlineByAssignmentId))
                 .toList();
     }
 
@@ -71,19 +75,29 @@ public class AssignmentBabyLionService {
                         (firstByCreatedAtDesc, ignoredOlder) -> firstByCreatedAtDesc));
     }
 
+    private Map<Long, LocalDateTime> findIndividualDeadlinesByAssignmentId(List<Assignment> assignments, Member member) {
+        List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
+
+        return assignmentIndividualDeadlineRepository
+                .findAllByAssignment_IdInAndMember_Id(assignmentIds, member.getId()).stream()
+                .collect(Collectors.toMap(deadline -> deadline.getAssignment().getId(), AssignmentIndividualDeadline::getDeadline));
+    }
+
     private AssignmentWeekGroupResponse toWeekGroup(Integer week, List<Assignment> weekAssignments,
-                                                      Map<Long, AssignmentSubmit> latestSubmitByAssignmentId) {
+                                                      Map<Long, AssignmentSubmit> latestSubmitByAssignmentId,
+                                                      Map<Long, LocalDateTime> individualDeadlineByAssignmentId) {
         List<AssignmentSummaryResponse> assignmentSummaries = weekAssignments.stream()
-                .map(assignment -> toSummary(assignment, latestSubmitByAssignmentId.get(assignment.getId())))
+                .map(assignment -> toSummary(assignment, latestSubmitByAssignmentId.get(assignment.getId()),
+                        individualDeadlineByAssignmentId.getOrDefault(assignment.getId(), assignment.getEndDate())))
                 .toList();
 
         return new AssignmentWeekGroupResponse(week, assignmentSummaries);
     }
 
-    private AssignmentSummaryResponse toSummary(Assignment assignment, AssignmentSubmit latest) {
-        AssignmentSubmitDisplayStatus status = AssignmentSubmitDisplayStatusCalculator.calculate(assignment, latest);
+    private AssignmentSummaryResponse toSummary(Assignment assignment, AssignmentSubmit latest, LocalDateTime endDate) {
+        AssignmentSubmitDisplayStatus status = AssignmentSubmitDisplayStatusCalculator.calculate(endDate, latest);
         LocalDateTime submittedAt = latest == null ? null : latest.getUpdatedAt();
-        return new AssignmentSummaryResponse(assignment.getId(), assignment.getTitle(), assignment.getEndDate(), status, submittedAt);
+        return new AssignmentSummaryResponse(assignment.getId(), assignment.getTitle(), endDate, status, submittedAt);
     }
 
     private Member getMember(Long id) {

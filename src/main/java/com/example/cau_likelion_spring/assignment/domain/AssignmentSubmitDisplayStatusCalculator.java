@@ -15,9 +15,15 @@ public final class AssignmentSubmitDisplayStatusCalculator {
     private AssignmentSubmitDisplayStatusCalculator() {
     }
 
+    /**
+     * assignment.endDate를 그대로 마감일로 쓴다. 아기사자 개별로 마감일이 연장된 경우
+     * {@link #calculate(LocalDateTime, AssignmentSubmit)}에 그 개별 마감일을 넘겨서 써야 한다.
+     */
     public static AssignmentSubmitDisplayStatus calculate(Assignment assignment, AssignmentSubmit latest) {
-        LocalDateTime endDate = assignment.getEndDate();
+        return calculate(assignment.getEndDate(), latest);
+    }
 
+    public static AssignmentSubmitDisplayStatus calculate(LocalDateTime endDate, AssignmentSubmit latest) {
         if (latest == null) {
             boolean missed = LocalDateTime.now().isAfter(endDate.plusDays(LATE_SUBMISSION_GRACE_DAYS));
             return missed ? AssignmentSubmitDisplayStatus.MISSED : AssignmentSubmitDisplayStatus.BEFORE_SUBMISSION;

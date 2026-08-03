@@ -11,13 +11,13 @@ import com.example.cau_likelion_spring.assignment.domain.SubmissionFile;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSummaryResponse;
-import com.example.cau_likelion_spring.assignment.exception.AssignmentException;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentIndividualDeadlineRepository;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentRepository;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentSubmitRepository;
 import com.example.cau_likelion_spring.assignment.repository.SubmissionFileRepository;
 import com.example.cau_likelion_spring.member.domain.Member;
-import com.example.cau_likelion_spring.member.exception.MemberNotFoundException;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.member.repository.MemberRepository;
 import com.example.cau_likelion_spring.organization.domain.Part;
 import lombok.RequiredArgsConstructor;
@@ -157,17 +157,17 @@ public class AssignmentBabyLionService {
 
         if (assignment.getType() == AssignmentType.URL) {
             if (!hasUrl) {
-                throw AssignmentException.invalidSubmission("URL 제출 형식인 과제입니다. url을 입력해주세요.");
+                throw new CustomException(ErrorCode.INVALID_INPUT, "URL 제출 형식인 과제입니다. url을 입력해주세요.");
             }
             if (hasFiles) {
-                throw AssignmentException.invalidSubmission("URL 제출 형식인 과제에는 파일을 첨부할 수 없습니다.");
+                throw new CustomException(ErrorCode.INVALID_INPUT, "URL 제출 형식인 과제에는 파일을 첨부할 수 없습니다.");
             }
         } else {
             if (!hasFiles) {
-                throw AssignmentException.invalidSubmission("파일 제출 형식인 과제입니다. 파일을 1개 이상 첨부해주세요.");
+                throw new CustomException(ErrorCode.INVALID_INPUT, "파일 제출 형식인 과제입니다. 파일을 1개 이상 첨부해주세요.");
             }
             if (hasUrl) {
-                throw AssignmentException.invalidSubmission("파일 제출 형식인 과제에는 URL을 입력할 수 없습니다.");
+                throw new CustomException(ErrorCode.INVALID_INPUT, "파일 제출 형식인 과제에는 URL을 입력할 수 없습니다.");
             }
         }
     }
@@ -177,19 +177,19 @@ public class AssignmentBabyLionService {
 
         if (latest == null) {
             if (now.isAfter(endDate.plusDays(AssignmentSubmitDisplayStatusCalculator.LATE_SUBMISSION_GRACE_DAYS))) {
-                throw AssignmentException.submissionClosed(assignment.getId());
+                throw new CustomException(ErrorCode.ASSIGNMENT_DEADLINE_PASSED, "제출 가능 기한이 지나 더 이상 제출할 수 없습니다. assignmentId=" + assignment.getId());
             }
             return;
         }
 
         if (latest.getStatus() == AssignmentSubmitStatus.APPROVED) {
-            throw AssignmentException.alreadyApproved(assignment.getId());
+            throw new CustomException(ErrorCode.ASSIGNMENT_ALREADY_SUBMITTED, "이미 승인된 과제는 다시 제출할 수 없습니다. assignmentId=" + assignment.getId());
         }
 
         boolean afterDeadline = now.isAfter(endDate);
         boolean rejected = latest.getStatus() == AssignmentSubmitStatus.REJECTED;
         if (afterDeadline && !rejected) {
-            throw AssignmentException.submissionClosed(assignment.getId());
+            throw new CustomException(ErrorCode.ASSIGNMENT_DEADLINE_PASSED, "제출 가능 기한이 지나 더 이상 제출할 수 없습니다. assignmentId=" + assignment.getId());
         }
     }
 
@@ -213,7 +213,7 @@ public class AssignmentBabyLionService {
         Optional.ofNullable(member.getPart())
                 .map(part -> part.getId().equals(assignment.getPart().getId()))
                 .filter(Boolean::booleanValue)
-                .orElseThrow(() -> AssignmentException.partMismatch(assignment.getId()));
+                .orElseThrow(() -> new CustomException(ErrorCode.ASSIGNMENT_PART_MISMATCH, "본인 파트의 과제만 관리할 수 있습니다. assignmentId=" + assignment.getId()));
     }
 
     private Map<Long, List<SubmissionFile>> groupFilesBySubmitId(List<AssignmentSubmit> submits) {
@@ -257,18 +257,18 @@ public class AssignmentBabyLionService {
 
     private Assignment getAssignment(Long id) {
         return assignmentRepository.findById(id)
-                .orElseThrow(() -> AssignmentException.notFound(id));
+                .orElseThrow(() -> new CustomException(ErrorCode.ASSIGNMENT_NOT_FOUND, "존재하지 않는 과제입니다. id=" + id));
     }
 
     private Member getMember(Long id) {
         return memberRepository.findById(id)
-                .orElseThrow(() -> new MemberNotFoundException(id));
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND, "존재하지 않는 구성원입니다. id=" + id));
     }
 
     private Part getMemberPart(Member member) {
         Part part = member.getPart();
         if (part == null) {
-            throw AssignmentException.babyLionPartNotAssigned(member.getId());
+            throw new CustomException(ErrorCode.ASSIGNMENT_BABY_LION_PART_NOT_ASSIGNED, "아기사자에게 배정된 파트가 없습니다. memberId=" + member.getId());
         }
         return part;
     }

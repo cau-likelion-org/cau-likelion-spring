@@ -16,7 +16,6 @@ import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffSummaryResp
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitEvaluateRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentUpdateRequest;
-import com.example.cau_likelion_spring.assignment.exception.AssignmentException;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentIndividualDeadlineRepository;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentRepository;
 import com.example.cau_likelion_spring.assignment.repository.AssignmentSubmitRepository;
@@ -24,8 +23,8 @@ import com.example.cau_likelion_spring.assignment.repository.PushNotiLogReposito
 import com.example.cau_likelion_spring.assignment.repository.SubmissionFileRepository;
 import com.example.cau_likelion_spring.member.domain.Member;
 import com.example.cau_likelion_spring.member.domain.MemberRole;
-import com.example.cau_likelion_spring.member.exception.MemberNotFoundException;
-import com.example.cau_likelion_spring.member.exception.PartNotFoundException;
+import com.example.cau_likelion_spring.global.exception.CustomException;
+import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.member.repository.MemberRepository;
 import com.example.cau_likelion_spring.organization.domain.Part;
 import com.example.cau_likelion_spring.organization.repository.PartRepository;
@@ -122,11 +121,12 @@ public class AssignmentService {
         if (members.size() != request.memberIds().size()) {
             List<Long> foundIds = members.stream().map(Member::getId).toList();
             Long missingId = request.memberIds().stream().filter(id -> !foundIds.contains(id)).findFirst().orElseThrow();
-            throw new MemberNotFoundException(missingId);
+            throw new CustomException(ErrorCode.MEMBER_NOT_FOUND, "존재하지 않는 구성원입니다. id=" + missingId);
         }
         for (Member member : members) {
             if (member.getPart() == null || !member.getPart().getId().equals(assignment.getPart().getId())) {
-                throw AssignmentException.memberPartMismatch(member.getId());
+                throw new CustomException(ErrorCode.ASSIGNMENT_MEMBER_PART_MISMATCH,
+                        "과제 파트에 속하지 않은 아기사자입니다. memberId=" + member.getId());
             }
         }
 
@@ -180,7 +180,7 @@ public class AssignmentService {
         Assignment assignment = getAssignment(assignmentId);
         Part staffPart = getStaffPart(staffMemberId);
         if (!assignment.getPart().getId().equals(staffPart.getId())) {
-            throw AssignmentException.partMismatch(assignmentId);
+            throw new CustomException(ErrorCode.ASSIGNMENT_PART_MISMATCH, "본인 파트의 과제만 관리할 수 있습니다. assignmentId=" + assignmentId);
         }
 
         List<Member> babyLions = memberRepository.findByPart_IdAndRole(assignment.getPart().getId(), MemberRole.BABY_LION);
@@ -261,23 +261,23 @@ public class AssignmentService {
         Part staffPart = getStaffPart(staffMemberId);
         Member staff = getMember(staffMemberId);
         if (!assignment.getPart().getId().equals(staffPart.getId())) {
-            throw AssignmentException.partMismatch(assignmentId);
+            throw new CustomException(ErrorCode.ASSIGNMENT_PART_MISMATCH, "본인 파트의 과제만 관리할 수 있습니다. assignmentId=" + assignmentId);
         }
 
         AssignmentSubmit submit = getSubmit(submitId);
         if (!submit.getAssignment().getId().equals(assignmentId)) {
-            throw AssignmentException.submitNotFound(submitId);
+            throw new CustomException(ErrorCode.ASSIGNMENT_SUBMIT_NOT_FOUND, "존재하지 않는 제출입니다. submitId=" + submitId);
         }
 
         switch (request.status()) {
             case APPROVED -> submit.approve(staff);
             case REJECTED -> {
                 if (!StringUtils.hasText(request.rejectionReason())) {
-                    throw AssignmentException.invalidSubmission("반려 사유를 입력해주세요.");
+                    throw new CustomException(ErrorCode.INVALID_INPUT, "반려 사유를 입력해주세요.");
                 }
                 submit.reject(staff, request.rejectionReason());
             }
-            case PENDING -> throw AssignmentException.invalidSubmission("평가 상태는 APPROVED 또는 REJECTED만 가능합니다.");
+            case PENDING -> throw new CustomException(ErrorCode.INVALID_INPUT, "평가 상태는 APPROVED 또는 REJECTED만 가능합니다.");
         }
 
         LocalDateTime endDate = assignmentIndividualDeadlineRepository
@@ -411,7 +411,7 @@ public class AssignmentService {
 
     private AssignmentSubmit getSubmit(Long submitId) {
         return assignmentSubmitRepository.findById(submitId)
-                .orElseThrow(() -> AssignmentException.submitNotFound(submitId));
+                .orElseThrow(() -> new CustomException(ErrorCode.ASSIGNMENT_SUBMIT_NOT_FOUND, "존재하지 않는 제출입니다. submitId=" + submitId));
     }
 
     private Assignment getOwnedAssignment(Long staffMemberId, Long assignmentId) {
@@ -419,7 +419,7 @@ public class AssignmentService {
         Assignment assignment = getAssignment(assignmentId);
 
         if (!assignment.getPart().getId().equals(staffPart.getId())) {
-            throw AssignmentException.partMismatch(assignmentId);
+            throw new CustomException(ErrorCode.ASSIGNMENT_PART_MISMATCH, "본인 파트의 과제만 관리할 수 있습니다. assignmentId=" + assignmentId);
         }
 
         return assignment;
@@ -427,12 +427,12 @@ public class AssignmentService {
 
     private Assignment getAssignment(Long id) {
         return assignmentRepository.findById(id)
-                .orElseThrow(() -> AssignmentException.notFound(id));
+                .orElseThrow(() -> new CustomException(ErrorCode.ASSIGNMENT_NOT_FOUND, "존재하지 않는 과제입니다. id=" + id));
     }
 
     private Part getPart(Long partId) {
         return partRepository.findById(partId)
-                .orElseThrow(() -> new PartNotFoundException(partId));
+                .orElseThrow(() -> new CustomException(ErrorCode.PART_NOT_FOUND, "존재하지 않는 파트입니다. id=" + partId));
     }
 
     private Part getStaffPart(Long staffMemberId) {
@@ -440,7 +440,7 @@ public class AssignmentService {
 
         Part part = staff.getPart();
         if (part == null) {
-            throw AssignmentException.staffPartNotAssigned(staffMemberId);
+            throw new CustomException(ErrorCode.ASSIGNMENT_STAFF_PART_NOT_ASSIGNED, "운영진에게 배정된 파트가 없습니다. memberId=" + staffMemberId);
         }
 
         return part;
@@ -448,6 +448,6 @@ public class AssignmentService {
 
     private Member getMember(Long id) {
         return memberRepository.findById(id)
-                .orElseThrow(() -> new MemberNotFoundException(id));
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND, "존재하지 않는 구성원입니다. id=" + id));
     }
 }

@@ -47,4 +47,18 @@ public class DetailAttendance extends BaseTimeEntity {
         this.detailReason = detailReason;
         this.checkedAt = checkedAt;
     }
+
+    public void checkIn(AttendanceStatus status, LocalDateTime checkedAt) {
+        this.status = status;
+        this.checkedAt = checkedAt;
+    }
+
+    public void markAsUnauthorizedAbsent() {
+        this.status = AttendanceStatus.UNAUTHORIZED_ABSENT;
+    }
+
+    public void updateStatusByStaff(AttendanceStatus status, String reason) {
+        this.status = status;
+        this.detailReason = reason;
+    }
 }

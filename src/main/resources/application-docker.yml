@@ -34,3 +34,7 @@ jwt:
   secret: ${JWT_SECRET}
   access-token-expiration: ${JWT_ACCESS_EXPIRATION:1h}
   refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:14d}
+
+firebase:
+  # Firebase 서비스 계정 JSON을 base64로 인코딩한 값. 비어있으면 FCM 푸시 알림 기능만 비활성화됨
+  credentials-base64: ${FIREBASE_CREDENTIALS_BASE64:}

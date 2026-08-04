@@ -1,5 +1,6 @@
 package com.example.cau_likelion_spring.member.controller;
 
+import com.example.cau_likelion_spring.member.dto.FcmTokenRequest;
 import com.example.cau_likelion_spring.member.dto.MemberResponse;
 import com.example.cau_likelion_spring.member.dto.MemberUpdateRequest;
 import com.example.cau_likelion_spring.member.service.MemberService;
@@ -35,6 +36,22 @@ public class MemberController {
     @GetMapping("/me")
     public ResponseEntity<MemberResponse> getMyInfo(@AuthenticationPrincipal Long memberId) {
         return ResponseEntity.ok(memberService.getMyInfo(memberId));
+    }
+
+    @Operation(summary = "FCM 토큰 등록/갱신",
+            description = "요청자 본인의 PWA 푸시 알림 수신용 FCM 토큰을 등록/갱신합니다. 기기 1개만 지원하며, 재등록 시 이전 값을 덮어씁니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "등록/갱신 성공"),
+            @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 요청"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 구성원")
+    })
+    @PatchMapping("/me/fcm-token")
+    public ResponseEntity<Void> updateFcmToken(
+            @AuthenticationPrincipal Long memberId,
+            @Valid @RequestBody FcmTokenRequest request) {
+        memberService.updateFcmToken(memberId, request);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "전체 구성원 조회", description = "전체 구성원 목록을 조회합니다.")

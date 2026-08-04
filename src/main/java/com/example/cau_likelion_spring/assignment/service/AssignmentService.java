@@ -56,6 +56,7 @@ public class AssignmentService {
     private final PushNotiLogRepository pushNotiLogRepository;
     private final MemberRepository memberRepository;
     private final PartRepository partRepository;
+    private final AssignmentPushNotificationService assignmentPushNotificationService;
 
     /**
      * 한 주차에 개별 과제 1개 이상을 한 번에 생성한다 (생성 페이지에서 +로 여러 개를 모아 한 번에 저장하는 흐름).
@@ -280,6 +281,8 @@ public class AssignmentService {
             }
             case PENDING -> throw new CustomException(ErrorCode.INVALID_INPUT, "평가 상태는 APPROVED 또는 REJECTED만 가능합니다.");
         }
+
+        assignmentPushNotificationService.sendEvaluationNotification(submit);
 
         LocalDateTime endDate = assignmentIndividualDeadlineRepository
                 .findByAssignment_IdAndMember_Id(assignmentId, submit.getSubmitMember().getId())

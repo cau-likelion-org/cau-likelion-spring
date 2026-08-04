@@ -56,6 +56,9 @@ public enum ErrorCode {
     DETAIL_ATTENDANCE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 출석 기록입니다."),
     INVALID_ATTENDANCE_PASSWORD(HttpStatus.BAD_REQUEST, "출석 비밀번호가 올바르지 않습니다."),
     ALREADY_CHECKED_ATTENDANCE(HttpStatus.CONFLICT, "이미 출석 체크가 완료되었습니다."),
+    DUPLICATE_WEEKLY_ATTENDANCE(HttpStatus.CONFLICT, "해당 날짜에 이미 출석부가 존재합니다."),
+    ATTENDANCE_CHECK_CLOSED(HttpStatus.BAD_REQUEST, "출석 가능한 시간이 아닙니다."),
+    ATTENDANCE_REASON_REQUIRED(HttpStatus.BAD_REQUEST, "결석 또는 공결로 변경할 때는 사유를 입력해야 합니다."),
 
     // ===== Assignment =====
     ASSIGNMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 과제입니다."),

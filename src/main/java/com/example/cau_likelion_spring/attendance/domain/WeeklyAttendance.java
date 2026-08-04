@@ -23,14 +23,15 @@ public class WeeklyAttendance extends BaseTimeEntity {
 
     private LocalDate date;
 
-    /** 출석 체크용 비밀번호 */
-    private Integer password;
+    /** 출석 체크용 비밀번호 (4자리 숫자, 앞자리 0 보존을 위해 문자열로 저장) */
+    @Column(length = 4, nullable = false)
+    private String password;
 
     /** 주차 */
     private Integer weekNumber;
 
     @Builder
-    public WeeklyAttendance(LocalDate date, Integer password, Integer weekNumber) {
+    public WeeklyAttendance(LocalDate date, String password, Integer weekNumber) {
         this.date = date;
         this.password = password;
         this.weekNumber = weekNumber;

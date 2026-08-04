@@ -9,6 +9,9 @@ import java.time.LocalDateTime;
 
 public record AttendanceStatusResponse(
 
+        @Schema(description = "출결 상세 기록 ID (상태 수정 API에 사용)")
+        Long detailAttendanceId,
+
         @Schema(description = "출석부(주차) ID")
         Long weeklyAttendanceId,
 
@@ -33,6 +36,7 @@ public record AttendanceStatusResponse(
 
     public static AttendanceStatusResponse from(DetailAttendance detailAttendance) {
         return new AttendanceStatusResponse(
+                detailAttendance.getId(),
                 detailAttendance.getWeeklyAttendance().getId(),
                 detailAttendance.getWeeklyAttendance().getWeekNumber(),
                 detailAttendance.getWeeklyAttendance().getDate(),

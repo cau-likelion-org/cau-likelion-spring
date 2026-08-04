@@ -48,6 +48,8 @@ public class AssignmentPushNotificationService {
                         .setTitle(buildTitle(submit))
                         .setBody(buildBody(submit))
                         .build())
+                .putData("assignmentId", String.valueOf(submit.getAssignment().getId()))
+                .putData("submitId", String.valueOf(submit.getId()))
                 .build();
 
         try {

@@ -49,6 +49,9 @@ dependencies {
 
 	// 모집 알림 이메일 발송
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+	// 과제 평가 결과 푸시 알림 (FCM)
+	implementation 'com.google.firebase:firebase-admin:9.4.1'
 }
 
 tasks.named('test') {

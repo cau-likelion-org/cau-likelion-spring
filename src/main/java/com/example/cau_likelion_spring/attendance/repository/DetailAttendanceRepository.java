@@ -16,5 +16,5 @@ public interface DetailAttendanceRepository extends JpaRepository<DetailAttendan
 
     Optional<DetailAttendance> findByMember_IdAndWeeklyAttendance_Id(Long memberId, Long weeklyAttendanceId);
 
-    List<DetailAttendance> findByStatusAndWeeklyAttendance_DateLessThanEqual(AttendanceStatus status, LocalDate date);
+    List<DetailAttendance> findByStatusAndWeeklyAttendance_DateLessThanEqual(AttendanceStatus status, LocalDate date
 }

@@ -41,6 +41,11 @@ public class AllowedUserEmailService {
         Generation generation = generationRepository.findById(generationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.GENERATION_NOT_FOUND, "존재하지 않는 기수입니다. id=" + generationId));
 
+        long distinctEmailCount = request.items().stream().map(AllowedUserEmailSyncRequest.Item::email).distinct().count();
+        if (distinctEmailCount != request.items().size()) {
+            throw new CustomException(ErrorCode.DUPLICATE_EMAIL, "동일한 이메일이 목록에 중복으로 들어있습니다.");
+        }
+
         Map<Long, AllowedUserEmail> remaining = allowedUserEmailRepository.findAllByGeneration_Id(generationId).stream()
                 .collect(Collectors.toMap(AllowedUserEmail::getId, Function.identity()));
 
@@ -63,8 +68,8 @@ public class AllowedUserEmailService {
             result.add(entity);
         }
 
-        // 요청 목록에 없는(=화면에서 삭제된) 기존 항목 제거
-        allowedUserEmailRepository.deleteAll(remaining.values());
+        // 요청 목록에 없는(=화면에서 삭제된) 기존 항목 제거 - 한 번의 DELETE 문으로 처리
+        allowedUserEmailRepository.deleteAllInBatch(remaining.values());
 
         return result.stream().map(AllowedUserEmailResponse::from).toList();
     }

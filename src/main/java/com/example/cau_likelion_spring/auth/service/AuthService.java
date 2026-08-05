@@ -1,7 +1,7 @@
 package com.example.cau_likelion_spring.auth.service;
 
 import com.example.cau_likelion_spring.auth.domain.RefreshToken;
-import com.example.cau_likelion_spring.auth.dto.OAuthLoginResult;
+import com.example.cau_likelion_spring.auth.dto.GoogleLoginResponse;
 import com.example.cau_likelion_spring.auth.dto.RefreshTokenRequest;
 import com.example.cau_likelion_spring.auth.dto.JoinRequest;
 import com.example.cau_likelion_spring.auth.dto.TokenResponse;
@@ -56,7 +56,6 @@ public class AuthService {
                 .part(part)
                 .build());
 
-        // 가입 완료됐으니 예비 회원 등록 레코드는 정리한다
         allowedUserEmailRepository.delete(allowedUserEmail);
 
         return issueTokens(member);
@@ -67,14 +66,14 @@ public class AuthService {
      * 기존 회원이면 바로 로그인 처리, 처음이면 사전등록 여부에 따라 가입 폼으로 보낼지 에러를 낼지 판단한다.
      */
     @Transactional
-    public OAuthLoginResult processOAuthLogin(String email) {
+    public GoogleLoginResponse processOAuthLogin(String email) {
         return memberRepository.findByEmail(email)
-                .map(member -> (OAuthLoginResult) new OAuthLoginResult.LoginSuccess(issueTokens(member)))
+                .map(member -> GoogleLoginResponse.loginSuccess(issueTokens(member)))
                 .orElseGet(() -> {
                     if (!allowedUserEmailRepository.existsByAllowedEmail(email)) {
                         throw new CustomException(ErrorCode.EMAIL_NOT_ALLOWED, "가입하실 이메일 주소를 다시 확인해주세요.");
                     }
-                    return new OAuthLoginResult.SignupRequired(jwtTokenProvider.createSignupToken(email));
+                    return GoogleLoginResponse.signupRequired(jwtTokenProvider.createSignupToken(email));
                 });
     }
 

@@ -3,7 +3,6 @@ package com.example.cau_likelion_spring.auth.controller;
 import com.example.cau_likelion_spring.auth.GoogleTokenVerifier;
 import com.example.cau_likelion_spring.auth.dto.GoogleLoginRequest;
 import com.example.cau_likelion_spring.auth.dto.GoogleLoginResponse;
-import com.example.cau_likelion_spring.auth.dto.OAuthLoginResult;
 import com.example.cau_likelion_spring.auth.dto.RefreshTokenRequest;
 import com.example.cau_likelion_spring.auth.dto.JoinRequest;
 import com.example.cau_likelion_spring.auth.dto.TokenResponse;
@@ -35,16 +34,7 @@ public class AuthController {
     @PostMapping("/google-login")
     public ResponseEntity<GoogleLoginResponse> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
         String email = googleTokenVerifier.verifyAndGetEmail(request.idToken());
-        OAuthLoginResult result = authService.processOAuthLogin(email);
-        return ResponseEntity.ok(toResponse(result));
-    }
-
-    private GoogleLoginResponse toResponse(OAuthLoginResult result) {
-        if (result instanceof OAuthLoginResult.LoginSuccess success) {
-            return GoogleLoginResponse.loginSuccess(success.tokens());
-        }
-        OAuthLoginResult.SignupRequired signupRequired = (OAuthLoginResult.SignupRequired) result;
-        return GoogleLoginResponse.signupRequired(signupRequired.signupToken());
+        return ResponseEntity.ok(authService.processOAuthLogin(email));
     }
 
     @Operation(summary = "회원가입", description = "구글 로그인 성공 시 발급된 signupToken(가입용 임시 토큰)에서 이메일을 꺼내, "

@@ -20,19 +20,24 @@ import java.util.Date;
 public class JwtTokenProvider {
 
     private static final String ROLE_CLAIM = "role";
+    private static final String TYPE_CLAIM = "type";
+    private static final String SIGNUP_TOKEN_TYPE = "SIGNUP";
 
     private final SecretKey key;
     private final Duration accessTokenExpiration;
     private final Duration refreshTokenExpiration;
+    private final Duration signupTokenExpiration;
 
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.access-token-expiration}") Duration accessTokenExpiration,
-            @Value("${jwt.refresh-token-expiration}") Duration refreshTokenExpiration
+            @Value("${jwt.refresh-token-expiration}") Duration refreshTokenExpiration,
+            @Value("${jwt.signup-token-expiration}") Duration signupTokenExpiration
     ) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessTokenExpiration = accessTokenExpiration;
         this.refreshTokenExpiration = refreshTokenExpiration;
+        this.signupTokenExpiration = signupTokenExpiration;
     }
 
     public String createAccessToken(Long memberId, MemberRole role) {
@@ -56,6 +61,21 @@ public class JwtTokenProvider {
                 .compact();
     }
 
+    /**
+     * 구글 로그인 성공~회원가입 폼 제출 사이에만 쓰는 단명 토큰.
+     * subject는 구글이 검증해 준 이메일이고, join() 시점에 이 이메일을 다시 꺼내 쓴다.
+     */
+    public String createSignupToken(String email) {
+        Date now = new Date();
+        return Jwts.builder()
+                .subject(email)
+                .claim(TYPE_CLAIM, SIGNUP_TOKEN_TYPE)
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + signupTokenExpiration.toMillis()))
+                .signWith(key)
+                .compact();
+    }
+
     public Duration getRefreshTokenExpiration() {
         return refreshTokenExpiration;
     }
@@ -67,6 +87,15 @@ public class JwtTokenProvider {
     public MemberRole getRole(String token) {
         String role = parseClaims(token).get(ROLE_CLAIM, String.class);
         return role == null ? null : MemberRole.valueOf(role);
+    }
+
+    public String getEmail(String token) {
+        return parseClaims(token).getSubject();
+    }
+
+    /** signupToken 자리에 access/refresh 토큰이 잘못 들어온 경우를 걸러내기 위한 타입 체크 */
+    public boolean isSignupToken(String token) {
+        return SIGNUP_TOKEN_TYPE.equals(parseClaims(token).get(TYPE_CLAIM, String.class));
     }
 
     public JwtValidationType validateToken(String token) {

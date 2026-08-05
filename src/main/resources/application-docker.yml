@@ -34,6 +34,14 @@ jwt:
   secret: ${JWT_SECRET}
   access-token-expiration: ${JWT_ACCESS_EXPIRATION:1h}
   refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:14d}
+  signup-token-expiration: ${JWT_SIGNUP_EXPIRATION:10m}
+
+google:
+  client-id: ${GOOGLE_CLIENT_ID}
+
+# 프론트가 fetch로 API를 직접 호출하니 CORS 허용 출처로 사용
+app:
+  frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
 
 attendance:
   session-start-hour: 19

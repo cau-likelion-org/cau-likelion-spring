@@ -43,13 +43,11 @@ public class AuthService {
         String email = jwtTokenProvider.getEmail(request.signupToken());
 
         AllowedUserEmail allowedUserEmail = allowedUserEmailRepository
-                .findByAllowedEmailAndGeneration_IdAndIsJoinedFalse(email, request.generationId())
+                .findByAllowedEmailAndGeneration_Id(email, request.generationId())
                 .orElseThrow(() -> new CustomException(ErrorCode.EMAIL_NOT_ALLOWED, "가입하실 이메일 주소를 다시 확인해주세요."));
 
         Part part = partRepository.findById(request.partId())
                 .orElseThrow(() -> new CustomException(ErrorCode.PART_NOT_FOUND, "존재하지 않는 파트입니다. id=" + request.partId()));
-
-        allowedUserEmail.markAsJoined();
 
         Member member = memberRepository.save(Member.builder()
                 .name(request.name())
@@ -57,6 +55,9 @@ public class AuthService {
                 .role(MemberRole.BABY_LION)
                 .part(part)
                 .build());
+
+        // 가입 완료됐으니 예비 회원 등록 레코드는 정리한다
+        allowedUserEmailRepository.delete(allowedUserEmail);
 
         return issueTokens(member);
     }
@@ -70,7 +71,7 @@ public class AuthService {
         return memberRepository.findByEmail(email)
                 .map(member -> (OAuthLoginResult) new OAuthLoginResult.LoginSuccess(issueTokens(member)))
                 .orElseGet(() -> {
-                    if (!allowedUserEmailRepository.existsByAllowedEmailAndIsJoinedFalse(email)) {
+                    if (!allowedUserEmailRepository.existsByAllowedEmail(email)) {
                         throw new CustomException(ErrorCode.EMAIL_NOT_ALLOWED, "가입하실 이메일 주소를 다시 확인해주세요.");
                     }
                     return new OAuthLoginResult.SignupRequired(jwtTokenProvider.createSignupToken(email));

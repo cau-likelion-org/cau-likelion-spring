@@ -26,6 +26,7 @@ public enum ErrorCode {
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."),
     EMAIL_NOT_ALLOWED(HttpStatus.FORBIDDEN, "회원가입이 허용되지 않은 이메일입니다."),
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 가입된 이메일입니다."),
+    ALLOWED_USER_EMAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 예비 회원입니다."),
 
     // ===== Organization (Generation / Part) =====
     GENERATION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 기수입니다."),

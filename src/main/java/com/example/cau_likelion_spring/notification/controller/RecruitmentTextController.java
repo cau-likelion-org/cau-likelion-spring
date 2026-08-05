@@ -1,5 +1,8 @@
 package com.example.cau_likelion_spring.notification.controller;
 
+import com.example.cau_likelion_spring.notification.domain.EmailSentStatus;
+import com.example.cau_likelion_spring.notification.dto.EmailResendRequest;
+import com.example.cau_likelion_spring.notification.dto.EmailSentLogResponse;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentTextRequest;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentTextResponse;
 import com.example.cau_likelion_spring.notification.service.RecruitmentTextService;
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -84,6 +88,38 @@ public class RecruitmentTextController {
             @Parameter(description = "공고 ID", required = true) @PathVariable Long id,
             @Valid @RequestBody RecruitmentTextRequest request) {
         return ResponseEntity.ok(recruitmentTextService.update(id, request));
+    }
+
+    @Operation(summary = "발송 이력 조회",
+            description = "공고의 이메일 발송 이력을 조회합니다. status 파라미터로 FAILED 등 특정 상태만 필터링할 수 있고, "
+                    + "생략하면 재전송 시도까지 포함한 전체 이력을 조회합니다. ADMIN 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 공고")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{id}/logs")
+    public ResponseEntity<List<EmailSentLogResponse>> getLogs(
+            @Parameter(description = "공고 ID", required = true) @PathVariable Long id,
+            @Parameter(description = "필터링할 발송 상태") @RequestParam(required = false) EmailSentStatus status) {
+        return ResponseEntity.ok(recruitmentTextService.getLogs(id, status));
+    }
+
+    @Operation(summary = "실패 건 재전송",
+            description = "FAILED 상태인 발송 대상들에게 이메일을 즉시 재전송합니다. 기존 실패 이력은 유지되며, "
+                    + "재전송 시도마다 새로운 발송 이력이 추가됩니다. 요청 본문으로 제목/본문을 지정하면 원본 공고 대신 "
+                    + "그 내용으로 재전송하며(원본 공고는 변경되지 않음), 생략하면 원본 공고 그대로 재전송합니다. "
+                    + "구독자가 이미 삭제된 로그는 재전송 대상에서 제외됩니다. ADMIN 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "재전송 처리 완료"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 공고")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{id}/resend")
+    public ResponseEntity<List<EmailSentLogResponse>> resend(
+            @Parameter(description = "공고 ID", required = true) @PathVariable Long id,
+            @RequestBody(required = false) EmailResendRequest request) {
+        return ResponseEntity.ok(recruitmentTextService.resendFailed(id, request));
     }
 
     @Operation(summary = "모집 공고 삭제",

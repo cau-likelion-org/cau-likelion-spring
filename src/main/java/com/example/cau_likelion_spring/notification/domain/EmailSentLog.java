@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -48,15 +49,32 @@ public class EmailSentLog {
 
     private LocalDateTime sentAt;
 
+    /** 재전송 시 원본 공고와 다른 제목/본문으로 보낼 때만 채워짐. null이면 recruitmentText의 제목/본문을 그대로 사용한다. */
+    private String overrideTitle;
+
+    @Lob
+    private String overrideContent;
+
     @Builder
-    public EmailSentLog(RecruitmentSubscriber subscriber, RecruitmentText recruitmentText) {
+    public EmailSentLog(RecruitmentSubscriber subscriber, RecruitmentText recruitmentText,
+                         String overrideTitle, String overrideContent) {
         this.subscriber = subscriber;
         this.recruitmentText = recruitmentText;
+        this.overrideTitle = overrideTitle;
+        this.overrideContent = overrideContent;
         this.status = EmailSentStatus.PENDING;
     }
 
     public void markSent(EmailSentStatus status) {
         this.status = status;
         this.sentAt = LocalDateTime.now();
+    }
+
+    public String getEffectiveTitle() {
+        return overrideTitle != null ? overrideTitle : recruitmentText.getTitle();
+    }
+
+    public String getEffectiveContent() {
+        return overrideContent != null ? overrideContent : recruitmentText.getContent();
     }
 }

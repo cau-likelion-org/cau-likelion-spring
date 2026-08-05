@@ -15,6 +15,8 @@ public interface EmailSentLogRepository extends JpaRepository<EmailSentLog, Long
 
     List<EmailSentLog> findAllByRecruitmentText(RecruitmentText recruitmentText);
 
+    List<EmailSentLog> findAllByRecruitmentTextAndStatus(RecruitmentText recruitmentText, EmailSentStatus status);
+
     long countByRecruitmentText(RecruitmentText recruitmentText);
 
     boolean existsByRecruitmentTextAndStatusNot(RecruitmentText recruitmentText, EmailSentStatus status);

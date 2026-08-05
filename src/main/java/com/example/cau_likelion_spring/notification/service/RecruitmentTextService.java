@@ -4,6 +4,8 @@ import com.example.cau_likelion_spring.notification.domain.EmailSentLog;
 import com.example.cau_likelion_spring.notification.domain.EmailSentStatus;
 import com.example.cau_likelion_spring.notification.domain.RecruitmentSubscriber;
 import com.example.cau_likelion_spring.notification.domain.RecruitmentText;
+import com.example.cau_likelion_spring.notification.dto.EmailResendRequest;
+import com.example.cau_likelion_spring.notification.dto.EmailSentLogResponse;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentTextRequest;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentTextResponse;
 import com.example.cau_likelion_spring.global.exception.CustomException;
@@ -29,6 +31,7 @@ public class RecruitmentTextService {
     private final RecruitmentTextRepository recruitmentTextRepository;
     private final RecruitmentSubscriberRepository recruitmentSubscriberRepository;
     private final EmailSentLogRepository emailSentLogRepository;
+    private final RecruitmentEmailSenderService recruitmentEmailSenderService;
 
     @Transactional
     public RecruitmentTextResponse create(RecruitmentTextRequest request) {
@@ -81,6 +84,44 @@ public class RecruitmentTextService {
         emailSentLogRepository.saveAll(logs);
 
         return RecruitmentTextResponse.of(text, logs.size());
+    }
+
+    public List<EmailSentLogResponse> getLogs(Long id, EmailSentStatus status) {
+        RecruitmentText text = getText(id);
+        List<EmailSentLog> logs = (status != null)
+                ? emailSentLogRepository.findAllByRecruitmentTextAndStatus(text, status)
+                : emailSentLogRepository.findAllByRecruitmentText(text);
+        return logs.stream().map(EmailSentLogResponse::of).toList();
+    }
+
+    /**
+     * FAILED 상태인 발송 대상들에게 재전송한다. 기존 실패 로그는 그대로 두고
+     * 재전송 시도마다 새로운 EmailSentLog를 남겨 전체 발송 이력이 누적되도록 한다.
+     * request로 제목/본문을 지정하면 원본 공고 대신 그 내용으로 발송하며(재전송 시점에만 적용),
+     * 원본 공고 자체는 변경하지 않는다. 구독자가 이미 삭제된 로그는 보낼 대상이 없으므로 재전송에서 제외한다.
+     */
+    @Transactional
+    public List<EmailSentLogResponse> resendFailed(Long id, EmailResendRequest request) {
+        RecruitmentText text = getText(id);
+        List<EmailSentLog> failedLogs = emailSentLogRepository
+                .findAllByRecruitmentTextAndStatus(text, EmailSentStatus.FAILED);
+
+        String overrideTitle = request != null ? request.title() : null;
+        String overrideContent = request != null ? request.content() : null;
+
+        List<EmailSentLog> resentLogs = failedLogs.stream()
+                .filter(log -> log.getSubscriber() != null)
+                .map(log -> EmailSentLog.builder()
+                        .subscriber(log.getSubscriber())
+                        .recruitmentText(text)
+                        .overrideTitle(overrideTitle)
+                        .overrideContent(overrideContent)
+                        .build())
+                .toList();
+        emailSentLogRepository.saveAll(resentLogs);
+        resentLogs.forEach(recruitmentEmailSenderService::send);
+
+        return resentLogs.stream().map(EmailSentLogResponse::of).toList();
     }
 
     @Transactional

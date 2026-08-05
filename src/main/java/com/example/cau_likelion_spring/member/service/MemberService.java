@@ -1,6 +1,7 @@
 package com.example.cau_likelion_spring.member.service;
 
 import com.example.cau_likelion_spring.member.domain.Member;
+import com.example.cau_likelion_spring.member.dto.FcmTokenRequest;
 import com.example.cau_likelion_spring.member.dto.MemberResponse;
 import com.example.cau_likelion_spring.member.dto.MemberUpdateRequest;
 import com.example.cau_likelion_spring.global.exception.CustomException;
@@ -40,6 +41,13 @@ public class MemberService {
         member.update(request.name(), request.role(), part);
 
         return MemberResponse.from(member);
+    }
+
+    /** 본인의 FCM 토큰을 등록/갱신한다. 기기 1개만 지원하며 재등록 시 이전 값을 덮어쓴다. */
+    @Transactional
+    public void updateFcmToken(Long memberId, FcmTokenRequest request) {
+        Member member = getMember(memberId);
+        member.updateFcmToken(request.fcmToken());
     }
 
     private Member getMember(Long id) {

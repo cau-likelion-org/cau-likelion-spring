@@ -31,6 +31,10 @@ public class Member extends BaseTimeEntity {
     @JoinColumn(name = "part_id")
     private Part part;
 
+    /** 과제 평가 결과 등 푸시 알림을 받을 FCM 토큰. 기기 1개만 지원하며 재등록 시 이전 값을 덮어쓴다. */
+    @Column(length = 255)
+    private String fcmToken;
+
     @Builder
     public Member(String name, String email, MemberRole role, Part part) {
         this.name = name;
@@ -43,5 +47,9 @@ public class Member extends BaseTimeEntity {
         this.name = name;
         this.role = role;
         this.part = part;
+    }
+
+    public void updateFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
     }
 }

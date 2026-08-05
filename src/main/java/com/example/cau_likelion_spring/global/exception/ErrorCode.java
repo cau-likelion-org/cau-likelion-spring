@@ -65,6 +65,10 @@ public enum ErrorCode {
     ASSIGNMENT_SUBMIT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 과제 제출 내역입니다."),
     ASSIGNMENT_ALREADY_SUBMITTED(HttpStatus.CONFLICT, "이미 제출한 과제입니다."),
     ASSIGNMENT_DEADLINE_PASSED(HttpStatus.BAD_REQUEST, "과제 제출 기한이 지났습니다."),
+    ASSIGNMENT_PART_MISMATCH(HttpStatus.FORBIDDEN, "본인 파트의 과제만 관리할 수 있습니다."),
+    ASSIGNMENT_MEMBER_PART_MISMATCH(HttpStatus.FORBIDDEN, "과제 파트에 속하지 않은 아기사자입니다."),
+    ASSIGNMENT_STAFF_PART_NOT_ASSIGNED(HttpStatus.CONFLICT, "운영진에게 배정된 파트가 없습니다."),
+    ASSIGNMENT_BABY_LION_PART_NOT_ASSIGNED(HttpStatus.CONFLICT, "아기사자에게 배정된 파트가 없습니다."),
 
     // ===== Gallery =====
     GALLERY_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 갤러리입니다."),

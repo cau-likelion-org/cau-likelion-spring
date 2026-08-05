@@ -34,12 +34,27 @@ public class Assignment extends BaseTimeEntity {
 
     private LocalDateTime endDate;
 
+    /** 제출 형식 (URL 링크 / 파일 업로드) */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(20)")
+    private AssignmentType type;
+
     @Builder
-    public Assignment(Part part, Integer week, String title, String detail, LocalDateTime endDate) {
+    public Assignment(Part part, Integer week, String title, String detail, LocalDateTime endDate,
+                       AssignmentType type) {
         this.part = part;
         this.week = week;
         this.title = title;
         this.detail = detail;
         this.endDate = endDate;
+        this.type = type;
+    }
+
+    /** 파트/주차는 수정 대상이 아님 - 제목/설명/마감기한/제출형식만 변경 */
+    public void update(String title, String detail, LocalDateTime endDate, AssignmentType type) {
+        this.title = title;
+        this.detail = detail;
+        this.endDate = endDate;
+        this.type = type;
     }
 }

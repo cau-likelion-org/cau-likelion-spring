@@ -49,6 +49,7 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
+      FIREBASE_CREDENTIALS_BASE64: ${FIREBASE_CREDENTIALS_BASE64}
     depends_on:
       db:
         condition: service_healthy

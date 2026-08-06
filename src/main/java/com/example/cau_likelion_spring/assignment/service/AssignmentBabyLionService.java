@@ -246,7 +246,10 @@ public class AssignmentBabyLionService {
                         individualDeadlineByAssignmentId.getOrDefault(assignment.getId(), assignment.getEndDate())))
                 .toList();
 
-        return new AssignmentSummaryResponse.WeekGroup(week, assignmentSummaries);
+        AssignmentSubmitDisplayStatus weeklyStatus = AssignmentSubmitDisplayStatusCalculator.aggregateWeekly(
+                assignmentSummaries.stream().map(AssignmentSummaryResponse::status).toList());
+
+        return new AssignmentSummaryResponse.WeekGroup(week, weeklyStatus, assignmentSummaries);
     }
 
     private AssignmentSummaryResponse toSummary(Assignment assignment, AssignmentSubmit latest, LocalDateTime endDate) {

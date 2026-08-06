@@ -1,5 +1,6 @@
 package com.example.cau_likelion_spring.notification.dto;
 
+import com.example.cau_likelion_spring.notification.domain.RecruitmentSendStatus;
 import com.example.cau_likelion_spring.notification.domain.RecruitmentText;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -17,14 +18,17 @@ public record RecruitmentTextResponse(
         @Schema(description = "본문 내용")
         String content,
 
-        @Schema(description = "예정 전송일시")
+        @Schema(description = "발송일 (예약 중이면 예정일시, 발송 완료면 발송된 일시)")
         LocalDateTime scheduledSendAt,
 
         @Schema(description = "작성일시")
         LocalDateTime createdAt,
 
         @Schema(description = "발송 대상자 수", example = "42")
-        int targetCount
+        int targetCount,
+
+        @Schema(description = "공고 발송 상태 (수신자별 성공/실패가 아닌, 공고 자체의 발송 진행 상태)")
+        RecruitmentSendStatus status
 ) {
 
     public static RecruitmentTextResponse of(RecruitmentText text, int targetCount) {
@@ -34,7 +38,8 @@ public record RecruitmentTextResponse(
                 text.getContent(),
                 text.getScheduledSendAt(),
                 text.getCreatedAt(),
-                targetCount
+                targetCount,
+                text.getStatus()
         );
     }
 }

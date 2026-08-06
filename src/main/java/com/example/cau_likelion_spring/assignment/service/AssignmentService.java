@@ -10,6 +10,7 @@ import com.example.cau_likelion_spring.assignment.dto.AssignmentCreateRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadlineRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadlineResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberSubmissionResponse;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberWeeklyStatusResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffDetailResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffSummaryResponse;
@@ -174,6 +175,33 @@ public class AssignmentService {
     }
 
     /**
+     * 운영진이 보는 본인 파트 아기사자 1명의 특정 주차 종합 상태. 그 주차에 개별 과제가 여러 개면 상태들을
+     * 우선순위(제출전 > 승인반려 > 승인대기 > 미제출 > 지각제출 > 승인완료)로 판단해 상태 하나로 합친다.
+     */
+    @PreAuthorize("hasRole('STAFF')")
+    public AssignmentMemberWeeklyStatusResponse getWeeklyStatusForStaff(Long staffMemberId, Long targetMemberId, Integer week) {
+        Part staffPart = getStaffPart(staffMemberId);
+        Member babyLion = getMember(targetMemberId);
+        if (babyLion.getPart() == null || !babyLion.getPart().getId().equals(staffPart.getId())) {
+            throw new CustomException(ErrorCode.ASSIGNMENT_MEMBER_PART_MISMATCH,
+                    "과제 파트에 속하지 않은 아기사자입니다. memberId=" + targetMemberId);
+        }
+
+        List<Assignment> assignments = assignmentRepository.findAllByPart_IdAndWeekOrderByEndDateAsc(staffPart.getId(), week);
+        if (assignments.isEmpty()) {
+            throw new CustomException(ErrorCode.ASSIGNMENT_NOT_FOUND, "해당 주차에 생성된 과제가 없습니다. week=" + week);
+        }
+
+        StatusLookup statusLookup = buildStatusLookup(assignments);
+        List<AssignmentSubmitDisplayStatus> statuses = assignments.stream()
+                .map(assignment -> statusLookup.statusOf(assignment, babyLion.getId()))
+                .toList();
+
+        AssignmentSubmitDisplayStatus weeklyStatus = AssignmentSubmitDisplayStatusCalculator.aggregateWeekly(statuses);
+        return new AssignmentMemberWeeklyStatusResponse(babyLion.getId(), babyLion.getName(), week, weeklyStatus);
+    }
+
+    /**
      * 운영진이 보는 파트원 전체의 제출 현황. 제출했다면 최종본만 보여주고,
      * 한 번도 제출하지 않은 파트원도 "제출전"/"미제출" 상태로 함께 노출된다.
      */
@@ -226,27 +254,17 @@ public class AssignmentService {
 
         List<Member> babyLions = memberRepository.findByPart_IdAndRole(part.getId(), MemberRole.BABY_LION);
 
-        List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
-        List<AssignmentSubmit> allSubmits = assignmentSubmitRepository.findAllByAssignment_IdInOrderByCreatedAtDesc(assignmentIds);
-
-        Map<Long, Map<Long, AssignmentSubmit>> latestByAssignmentIdThenMemberId = allSubmits.stream()
-                .collect(Collectors.groupingBy(submit -> submit.getAssignment().getId(),
-                        Collectors.toMap(submit -> submit.getSubmitMember().getId(), submit -> submit,
-                                (firstByCreatedAtDesc, ignoredOlder) -> firstByCreatedAtDesc)));
-        Map<Long, List<SubmissionFile>> filesBySubmitId = groupFilesBySubmitId(latestByAssignmentIdThenMemberId.values().stream()
-                .flatMap(byMemberId -> byMemberId.values().stream())
-                .toList());
-        Map<Long, Map<Long, LocalDateTime>> individualDeadlineByAssignmentIdThenMemberId = assignmentIndividualDeadlineRepository
-                .findAllByAssignment_IdIn(assignmentIds).stream()
-                .collect(Collectors.groupingBy(deadline -> deadline.getAssignment().getId(),
-                        Collectors.toMap(deadline -> deadline.getMember().getId(), AssignmentIndividualDeadline::getDeadline)));
+        StatusLookup statusLookup = buildStatusLookup(assignments);
+        Map<Long, List<SubmissionFile>> filesBySubmitId = groupFilesBySubmitId(
+                statusLookup.latestByAssignmentIdThenMemberId().values().stream()
+                        .flatMap(byMemberId -> byMemberId.values().stream())
+                        .toList());
 
         Map<Integer, List<Assignment>> assignmentsByWeek = assignments.stream()
                 .collect(Collectors.groupingBy(Assignment::getWeek, LinkedHashMap::new, Collectors.toList()));
 
         return assignmentsByWeek.entrySet().stream()
-                .map(entry -> toStaffDetailWeekGroup(entry.getKey(), entry.getValue(), babyLions,
-                        latestByAssignmentIdThenMemberId, filesBySubmitId, individualDeadlineByAssignmentIdThenMemberId))
+                .map(entry -> toStaffDetailWeekGroup(entry.getKey(), entry.getValue(), babyLions, statusLookup, filesBySubmitId))
                 .toList();
     }
 
@@ -301,52 +319,47 @@ public class AssignmentService {
         }
 
         List<Member> babyLions = memberRepository.findByPart_IdAndRole(part.getId(), MemberRole.BABY_LION);
-        Map<Long, Map<Long, AssignmentSubmit>> latestSubmitByAssignmentIdThenMemberId =
-                findLatestSubmitsByAssignmentIdThenMemberId(assignments);
-        Map<Long, Map<Long, LocalDateTime>> individualDeadlineByAssignmentIdThenMemberId =
-                findIndividualDeadlinesByAssignmentIdThenMemberId(assignments);
+        StatusLookup statusLookup = buildStatusLookup(assignments);
 
         Map<Integer, List<Assignment>> assignmentsByWeek = assignments.stream()
                 .collect(Collectors.groupingBy(Assignment::getWeek, LinkedHashMap::new, Collectors.toList()));
 
         return assignmentsByWeek.entrySet().stream()
-                .map(entry -> toStaffWeekGroup(entry.getKey(), entry.getValue(), babyLions,
-                        latestSubmitByAssignmentIdThenMemberId, individualDeadlineByAssignmentIdThenMemberId))
+                .map(entry -> toStaffWeekGroup(entry.getKey(), entry.getValue(), babyLions, statusLookup))
                 .toList();
     }
 
-    private Map<Long, Map<Long, AssignmentSubmit>> findLatestSubmitsByAssignmentIdThenMemberId(List<Assignment> assignments) {
+    /**
+     * 과제×멤버별 최신 제출과 유효 마감일(개별 마감일 우선, 없으면 과제 공통 마감일)을 한 번에 조회해서 묶는다.
+     * staff 요약/상세/주차별 종합 상태 조회가 모두 이 헬퍼를 공유해서 상태를 계산한다.
+     */
+    private StatusLookup buildStatusLookup(List<Assignment> assignments) {
         List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
 
-        return assignmentSubmitRepository.findAllByAssignment_IdInOrderByCreatedAtDesc(assignmentIds).stream()
-                .collect(Collectors.groupingBy(submit -> submit.getAssignment().getId(),
-                        Collectors.toMap(submit -> submit.getSubmitMember().getId(), submit -> submit,
-                                (firstByCreatedAtDesc, ignoredOlder) -> firstByCreatedAtDesc)));
+        Map<Long, Map<Long, AssignmentSubmit>> latestByAssignmentIdThenMemberId =
+                assignmentSubmitRepository.findAllByAssignment_IdInOrderByCreatedAtDesc(assignmentIds).stream()
+                        .collect(Collectors.groupingBy(submit -> submit.getAssignment().getId(),
+                                Collectors.toMap(submit -> submit.getSubmitMember().getId(), submit -> submit,
+                                        (firstByCreatedAtDesc, ignoredOlder) -> firstByCreatedAtDesc)));
+
+        Map<Long, Map<Long, LocalDateTime>> deadlineByAssignmentIdThenMemberId =
+                assignmentIndividualDeadlineRepository.findAllByAssignment_IdIn(assignmentIds).stream()
+                        .collect(Collectors.groupingBy(deadline -> deadline.getAssignment().getId(),
+                                Collectors.toMap(deadline -> deadline.getMember().getId(), AssignmentIndividualDeadline::getDeadline)));
+
+        return new StatusLookup(latestByAssignmentIdThenMemberId, deadlineByAssignmentIdThenMemberId);
     }
 
-    private Map<Long, Map<Long, LocalDateTime>> findIndividualDeadlinesByAssignmentIdThenMemberId(List<Assignment> assignments) {
-        List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
-
-        return assignmentIndividualDeadlineRepository.findAllByAssignment_IdIn(assignmentIds).stream()
-                .collect(Collectors.groupingBy(deadline -> deadline.getAssignment().getId(),
-                        Collectors.toMap(deadline -> deadline.getMember().getId(), AssignmentIndividualDeadline::getDeadline)));
-    }
-
-    private AssignmentStaffSummaryResponse.WeekGroup toStaffWeekGroup(Integer week, List<Assignment> weekAssignments, List<Member> babyLions,
-                                                                Map<Long, Map<Long, AssignmentSubmit>> latestSubmitByAssignmentIdThenMemberId,
-                                                                Map<Long, Map<Long, LocalDateTime>> individualDeadlineByAssignmentIdThenMemberId) {
+    private AssignmentStaffSummaryResponse.WeekGroup toStaffWeekGroup(Integer week, List<Assignment> weekAssignments,
+                                                                       List<Member> babyLions, StatusLookup statusLookup) {
         List<AssignmentStaffSummaryResponse> assignmentSummaries = weekAssignments.stream()
-                .map(assignment -> toStaffSummary(assignment, babyLions,
-                        latestSubmitByAssignmentIdThenMemberId.getOrDefault(assignment.getId(), Map.of()),
-                        individualDeadlineByAssignmentIdThenMemberId.getOrDefault(assignment.getId(), Map.of())))
+                .map(assignment -> toStaffSummary(assignment, babyLions, statusLookup))
                 .toList();
 
         return new AssignmentStaffSummaryResponse.WeekGroup(week, assignmentSummaries);
     }
 
-    private AssignmentStaffSummaryResponse toStaffSummary(Assignment assignment, List<Member> babyLions,
-                                                            Map<Long, AssignmentSubmit> latestSubmitByMemberId,
-                                                            Map<Long, LocalDateTime> individualDeadlineByMemberId) {
+    private AssignmentStaffSummaryResponse toStaffSummary(Assignment assignment, List<Member> babyLions, StatusLookup statusLookup) {
         int beforeSubmissionCount = 0;
         int missedCount = 0;
         int pendingReviewCount = 0;
@@ -354,9 +367,7 @@ public class AssignmentService {
         int approvedCount = 0;
 
         for (Member babyLion : babyLions) {
-            AssignmentSubmit latest = latestSubmitByMemberId.get(babyLion.getId());
-            LocalDateTime endDate = individualDeadlineByMemberId.getOrDefault(babyLion.getId(), assignment.getEndDate());
-            AssignmentSubmitDisplayStatus status = AssignmentSubmitDisplayStatusCalculator.calculate(endDate, latest);
+            AssignmentSubmitDisplayStatus status = statusLookup.statusOf(assignment, babyLion.getId());
             switch (status) {
                 case BEFORE_SUBMISSION -> beforeSubmissionCount++;
                 case MISSED -> missedCount++;
@@ -373,27 +384,22 @@ public class AssignmentService {
     }
 
     private AssignmentStaffDetailResponse.WeekGroup toStaffDetailWeekGroup(Integer week, List<Assignment> weekAssignments,
-                                                                            List<Member> babyLions,
-                                                                            Map<Long, Map<Long, AssignmentSubmit>> latestByAssignmentIdThenMemberId,
-                                                                            Map<Long, List<SubmissionFile>> filesBySubmitId,
-                                                                            Map<Long, Map<Long, LocalDateTime>> individualDeadlineByAssignmentIdThenMemberId) {
+                                                                            List<Member> babyLions, StatusLookup statusLookup,
+                                                                            Map<Long, List<SubmissionFile>> filesBySubmitId) {
         List<AssignmentStaffDetailResponse> assignmentDetails = weekAssignments.stream()
-                .map(assignment -> toStaffDetail(assignment, babyLions,
-                        latestByAssignmentIdThenMemberId.getOrDefault(assignment.getId(), Map.of()), filesBySubmitId,
-                        individualDeadlineByAssignmentIdThenMemberId.getOrDefault(assignment.getId(), Map.of())))
+                .map(assignment -> toStaffDetail(assignment, babyLions, statusLookup, filesBySubmitId))
                 .toList();
 
         return new AssignmentStaffDetailResponse.WeekGroup(week, assignmentDetails);
     }
 
     private AssignmentStaffDetailResponse toStaffDetail(Assignment assignment, List<Member> babyLions,
-                                                          Map<Long, AssignmentSubmit> latestByMemberId,
-                                                          Map<Long, List<SubmissionFile>> filesBySubmitId,
-                                                          Map<Long, LocalDateTime> individualDeadlineByMemberId) {
+                                                          StatusLookup statusLookup, Map<Long, List<SubmissionFile>> filesBySubmitId) {
         List<AssignmentMemberSubmissionResponse> submissions = babyLions.stream()
                 .map(member -> {
-                    LocalDateTime endDate = individualDeadlineByMemberId.getOrDefault(member.getId(), assignment.getEndDate());
-                    return toMemberSubmission(member, endDate, latestByMemberId.get(member.getId()), filesBySubmitId);
+                    AssignmentSubmit latest = statusLookup.latestSubmitOf(assignment, member.getId());
+                    LocalDateTime endDate = statusLookup.effectiveDeadlineOf(assignment, member.getId());
+                    return toMemberSubmission(member, endDate, latest, filesBySubmitId);
                 })
                 .toList();
 
@@ -453,5 +459,28 @@ public class AssignmentService {
     private Member getMember(Long id) {
         return memberRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND, "존재하지 않는 구성원입니다. id=" + id));
+    }
+
+    /**
+     * 과제×멤버별 최신 제출/유효 마감일 조회 결과를 묶어, 호출부는 assignment와 memberId만으로
+     * 화면 표시 상태를 바로 얻을 수 있게 해준다. {@link #buildStatusLookup}으로 생성한다.
+     */
+    private record StatusLookup(
+            Map<Long, Map<Long, AssignmentSubmit>> latestByAssignmentIdThenMemberId,
+            Map<Long, Map<Long, LocalDateTime>> deadlineByAssignmentIdThenMemberId
+    ) {
+        AssignmentSubmit latestSubmitOf(Assignment assignment, Long memberId) {
+            return latestByAssignmentIdThenMemberId.getOrDefault(assignment.getId(), Map.of()).get(memberId);
+        }
+
+        LocalDateTime effectiveDeadlineOf(Assignment assignment, Long memberId) {
+            return deadlineByAssignmentIdThenMemberId.getOrDefault(assignment.getId(), Map.of())
+                    .getOrDefault(memberId, assignment.getEndDate());
+        }
+
+        AssignmentSubmitDisplayStatus statusOf(Assignment assignment, Long memberId) {
+            return AssignmentSubmitDisplayStatusCalculator.calculate(
+                    effectiveDeadlineOf(assignment, memberId), latestSubmitOf(assignment, memberId));
+        }
     }
 }

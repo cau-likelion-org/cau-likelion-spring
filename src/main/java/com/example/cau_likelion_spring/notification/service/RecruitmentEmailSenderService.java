@@ -2,6 +2,7 @@ package com.example.cau_likelion_spring.notification.service;
 
 import com.example.cau_likelion_spring.notification.domain.EmailSentLog;
 import com.example.cau_likelion_spring.notification.domain.EmailSentStatus;
+import com.example.cau_likelion_spring.notification.domain.RecruitmentSendStatus;
 import com.example.cau_likelion_spring.notification.domain.RecruitmentSubscriber;
 import com.example.cau_likelion_spring.notification.domain.RecruitmentText;
 import com.example.cau_likelion_spring.notification.repository.EmailSentLogRepository;
@@ -38,7 +39,8 @@ public class RecruitmentEmailSenderService {
     @Transactional
     public void sendDueEmails() {
         List<EmailSentLog> dueLogs = emailSentLogRepository
-                .findAllByStatusAndRecruitmentText_ScheduledSendAtBefore(EmailSentStatus.PENDING, LocalDateTime.now());
+                .findAllByStatusAndRecruitmentText_StatusAndRecruitmentText_ScheduledSendAtBefore(
+                        EmailSentStatus.PENDING, RecruitmentSendStatus.SCHEDULED, LocalDateTime.now());
 
         if (dueLogs.isEmpty()) {
             return;
@@ -46,9 +48,24 @@ public class RecruitmentEmailSenderService {
 
         log.info("발송 대상 모집 알림 이메일 {}건 처리 시작", dueLogs.size());
         dueLogs.forEach(this::send);
+
+        dueLogs.stream()
+                .map(EmailSentLog::getRecruitmentText)
+                .distinct()
+                .forEach(this::markSentIfComplete);
     }
 
-    private void send(EmailSentLog emailSentLog) {
+    private void markSentIfComplete(RecruitmentText text) {
+        boolean stillPending = emailSentLogRepository.existsByRecruitmentTextAndStatus(text, EmailSentStatus.PENDING);
+        if (!stillPending) {
+            text.markSent();
+        }
+    }
+
+    /**
+     * 스케줄러의 자동 발송뿐 아니라 실패 건 재전송(RecruitmentTextService)에서도 재사용된다.
+     */
+    public void send(EmailSentLog emailSentLog) {
         RecruitmentSubscriber subscriber = emailSentLog.getSubscriber();
         if (subscriber == null) {
             log.warn("구독자가 삭제되어 발송할 수 없는 로그입니다. emailSentLogId={}", emailSentLog.getId());
@@ -56,9 +73,8 @@ public class RecruitmentEmailSenderService {
             return;
         }
 
-        RecruitmentText text = emailSentLog.getRecruitmentText();
         try {
-            javaMailSender.send(buildMessage(subscriber.getEmail(), text));
+            javaMailSender.send(buildMessage(subscriber.getEmail(), emailSentLog));
             emailSentLog.markSent(EmailSentStatus.SUCCESS);
         } catch (MailException e) {
             log.error("모집 알림 이메일 발송 실패. emailSentLogId={}, subscriberEmail={}",
@@ -67,7 +83,8 @@ public class RecruitmentEmailSenderService {
         }
     }
 
-    private SimpleMailMessage buildMessage(String to, RecruitmentText text) {
+    private SimpleMailMessage buildMessage(String to, EmailSentLog emailSentLog) {
+        RecruitmentText text = emailSentLog.getRecruitmentText();
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
         message.setTo(to);

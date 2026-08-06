@@ -3,6 +3,8 @@ package com.example.cau_likelion_spring.notification.domain;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -41,16 +43,29 @@ public class RecruitmentText {
     @CreatedDate
     private LocalDateTime createdAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(20)")
+    private RecruitmentSendStatus status;
+
     @Builder
     public RecruitmentText(String title, String content, LocalDateTime scheduledSendAt) {
         this.title = title;
         this.content = content;
         this.scheduledSendAt = scheduledSendAt;
+        this.status = RecruitmentSendStatus.SCHEDULED;
     }
 
     public void update(String title, String content, LocalDateTime scheduledSendAt) {
         this.title = title;
         this.content = content;
         this.scheduledSendAt = scheduledSendAt;
+    }
+
+    public void markSent() {
+        this.status = RecruitmentSendStatus.SENT;
+    }
+
+    public void cancel() {
+        this.status = RecruitmentSendStatus.CANCELLED;
     }
 }

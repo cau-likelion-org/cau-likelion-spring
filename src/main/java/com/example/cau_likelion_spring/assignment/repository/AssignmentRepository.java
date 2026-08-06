@@ -11,4 +11,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     List<Assignment> findAllByPart_IdOrderByWeekAscEndDateAsc(Long partId);
 
     List<Assignment> findAllByPart_IdAndWeekOrderByEndDateAsc(Long partId, Integer week);
+
+    /** 벌점표 계산용 - 여러 파트에 걸친 과제를 한 번에 조회할 때 사용 (마이페이지) */
+    List<Assignment> findAllByPart_IdIn(List<Long> partIds);
 }

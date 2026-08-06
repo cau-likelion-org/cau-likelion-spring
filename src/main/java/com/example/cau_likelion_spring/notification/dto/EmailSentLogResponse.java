@@ -19,10 +19,10 @@ public record EmailSentLogResponse(
         @Schema(description = "구독자 이메일 (구독자가 삭제된 경우 null)")
         String subscriberEmail,
 
-        @Schema(description = "실제 발송(예정)된 제목. 재전송 시 원본과 다른 제목을 지정했다면 그 값")
+        @Schema(description = "발송(예정)된 제목 (공고 원본 제목)")
         String title,
 
-        @Schema(description = "실제 발송(예정)된 본문. 재전송 시 원본과 다른 본문을 지정했다면 그 값")
+        @Schema(description = "발송(예정)된 본문 (공고 원본 본문)")
         String content,
 
         @Schema(description = "발송 상태")
@@ -38,8 +38,8 @@ public record EmailSentLogResponse(
                 log.getId(),
                 subscriber != null ? subscriber.getId() : null,
                 subscriber != null ? subscriber.getEmail() : null,
-                log.getEffectiveTitle(),
-                log.getEffectiveContent(),
+                log.getRecruitmentText().getTitle(),
+                log.getRecruitmentText().getContent(),
                 log.getStatus(),
                 log.getSentAt()
         );

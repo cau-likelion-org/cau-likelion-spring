@@ -1,7 +1,6 @@
 package com.example.cau_likelion_spring.notification.controller;
 
 import com.example.cau_likelion_spring.notification.domain.EmailSentStatus;
-import com.example.cau_likelion_spring.notification.dto.EmailResendRequest;
 import com.example.cau_likelion_spring.notification.dto.EmailSentLogResponse;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentTextRequest;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentTextResponse;
@@ -106,9 +105,8 @@ public class RecruitmentTextController {
     }
 
     @Operation(summary = "실패 건 재전송",
-            description = "FAILED 상태인 발송 대상들에게 이메일을 즉시 재전송합니다. 기존 실패 이력은 유지되며, "
-                    + "재전송 시도마다 새로운 발송 이력이 추가됩니다. 요청 본문으로 제목/본문을 지정하면 원본 공고 대신 "
-                    + "그 내용으로 재전송하며(원본 공고는 변경되지 않음), 생략하면 원본 공고 그대로 재전송합니다. "
+            description = "FAILED 상태인 발송 대상들에게 원본 공고와 동일한 제목/본문으로 이메일을 즉시 재전송합니다. "
+                    + "기존 실패 이력은 유지되며, 재전송 시도마다 새로운 발송 이력이 추가됩니다. "
                     + "구독자가 이미 삭제된 로그는 재전송 대상에서 제외됩니다. ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "재전송 처리 완료"),
@@ -117,9 +115,25 @@ public class RecruitmentTextController {
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/resend")
     public ResponseEntity<List<EmailSentLogResponse>> resend(
-            @Parameter(description = "공고 ID", required = true) @PathVariable Long id,
-            @RequestBody(required = false) EmailResendRequest request) {
-        return ResponseEntity.ok(recruitmentTextService.resendFailed(id, request));
+            @Parameter(description = "공고 ID", required = true) @PathVariable Long id) {
+        return ResponseEntity.ok(recruitmentTextService.resendFailed(id));
+    }
+
+    @Operation(summary = "모집 공고 발송 취소",
+            description = "아직 발송이 시작되지 않은 공고를 취소 상태(CANCELLED)로 전환합니다. "
+                    + "취소된 공고는 스케줄러가 더 이상 발송을 시도하지 않습니다. ADMIN 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "취소 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 공고"),
+            @ApiResponse(responseCode = "409", description = "이미 발송이 시작되어 취소 불가")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<Void> cancel(
+            @Parameter(description = "공고 ID", required = true) @PathVariable Long id) {
+        recruitmentTextService.cancel(id);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "모집 공고 삭제",

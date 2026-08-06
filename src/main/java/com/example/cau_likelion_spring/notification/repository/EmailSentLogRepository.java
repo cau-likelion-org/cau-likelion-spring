@@ -2,6 +2,7 @@ package com.example.cau_likelion_spring.notification.repository;
 
 import com.example.cau_likelion_spring.notification.domain.EmailSentLog;
 import com.example.cau_likelion_spring.notification.domain.EmailSentStatus;
+import com.example.cau_likelion_spring.notification.domain.RecruitmentSendStatus;
 import com.example.cau_likelion_spring.notification.domain.RecruitmentText;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -10,8 +11,8 @@ import java.util.List;
 
 public interface EmailSentLogRepository extends JpaRepository<EmailSentLog, Long> {
 
-    List<EmailSentLog> findAllByStatusAndRecruitmentText_ScheduledSendAtBefore(
-            EmailSentStatus status, LocalDateTime dateTime);
+    List<EmailSentLog> findAllByStatusAndRecruitmentText_StatusAndRecruitmentText_ScheduledSendAtBefore(
+            EmailSentStatus status, RecruitmentSendStatus recruitmentTextStatus, LocalDateTime dateTime);
 
     List<EmailSentLog> findAllByRecruitmentText(RecruitmentText recruitmentText);
 
@@ -20,4 +21,6 @@ public interface EmailSentLogRepository extends JpaRepository<EmailSentLog, Long
     long countByRecruitmentText(RecruitmentText recruitmentText);
 
     boolean existsByRecruitmentTextAndStatusNot(RecruitmentText recruitmentText, EmailSentStatus status);
+
+    boolean existsByRecruitmentTextAndStatus(RecruitmentText recruitmentText, EmailSentStatus status);
 }

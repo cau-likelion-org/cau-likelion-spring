@@ -2,7 +2,9 @@ package com.example.cau_likelion_spring.notification.service;
 
 import com.example.cau_likelion_spring.notification.domain.EmailSentLog;
 import com.example.cau_likelion_spring.notification.domain.EmailSentStatus;
+import com.example.cau_likelion_spring.notification.domain.RecruitmentSendStatus;
 import com.example.cau_likelion_spring.notification.domain.RecruitmentSubscriber;
+import com.example.cau_likelion_spring.notification.domain.RecruitmentText;
 import com.example.cau_likelion_spring.notification.repository.EmailSentLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +39,8 @@ public class RecruitmentEmailSenderService {
     @Transactional
     public void sendDueEmails() {
         List<EmailSentLog> dueLogs = emailSentLogRepository
-                .findAllByStatusAndRecruitmentText_ScheduledSendAtBefore(EmailSentStatus.PENDING, LocalDateTime.now());
+                .findAllByStatusAndRecruitmentText_StatusAndRecruitmentText_ScheduledSendAtBefore(
+                        EmailSentStatus.PENDING, RecruitmentSendStatus.SCHEDULED, LocalDateTime.now());
 
         if (dueLogs.isEmpty()) {
             return;
@@ -45,6 +48,18 @@ public class RecruitmentEmailSenderService {
 
         log.info("발송 대상 모집 알림 이메일 {}건 처리 시작", dueLogs.size());
         dueLogs.forEach(this::send);
+
+        dueLogs.stream()
+                .map(EmailSentLog::getRecruitmentText)
+                .distinct()
+                .forEach(this::markSentIfComplete);
+    }
+
+    private void markSentIfComplete(RecruitmentText text) {
+        boolean stillPending = emailSentLogRepository.existsByRecruitmentTextAndStatus(text, EmailSentStatus.PENDING);
+        if (!stillPending) {
+            text.markSent();
+        }
     }
 
     /**
@@ -69,11 +84,12 @@ public class RecruitmentEmailSenderService {
     }
 
     private SimpleMailMessage buildMessage(String to, EmailSentLog emailSentLog) {
+        RecruitmentText text = emailSentLog.getRecruitmentText();
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
         message.setTo(to);
-        message.setSubject(emailSentLog.getEffectiveTitle());
-        message.setText(emailSentLog.getEffectiveContent());
+        message.setSubject(text.getTitle());
+        message.setText(text.getContent());
         return message;
     }
 }

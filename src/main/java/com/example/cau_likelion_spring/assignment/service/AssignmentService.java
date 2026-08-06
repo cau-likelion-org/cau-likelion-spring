@@ -10,6 +10,7 @@ import com.example.cau_likelion_spring.assignment.dto.AssignmentCreateRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadlineRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadlineResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberSubmissionResponse;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberWeeklyStatusResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffDetailResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffSummaryResponse;
@@ -171,6 +172,45 @@ public class AssignmentService {
     public List<AssignmentStaffSummaryResponse.WeekGroup> getAssignmentsForPresident(Long partId) {
         Part part = getPart(partId);
         return getAssignmentsByPart(part);
+    }
+
+    /**
+     * 운영진이 보는 본인 파트 아기사자 1명의 특정 주차 종합 상태. 그 주차에 개별 과제가 여러 개면 상태들을
+     * 우선순위(제출전 > 승인반려 > 승인대기 > 미제출 > 지각제출 > 승인완료)로 판단해 상태 하나로 합친다.
+     */
+    @PreAuthorize("hasRole('STAFF')")
+    public AssignmentMemberWeeklyStatusResponse getWeeklyStatusForStaff(Long staffMemberId, Long targetMemberId, Integer week) {
+        Part staffPart = getStaffPart(staffMemberId);
+        Member babyLion = getMember(targetMemberId);
+        if (babyLion.getPart() == null || !babyLion.getPart().getId().equals(staffPart.getId())) {
+            throw new CustomException(ErrorCode.ASSIGNMENT_MEMBER_PART_MISMATCH,
+                    "과제 파트에 속하지 않은 아기사자입니다. memberId=" + targetMemberId);
+        }
+
+        List<Assignment> assignments = assignmentRepository.findAllByPart_IdAndWeekOrderByEndDateAsc(staffPart.getId(), week);
+        if (assignments.isEmpty()) {
+            throw new CustomException(ErrorCode.ASSIGNMENT_NOT_FOUND, "해당 주차에 생성된 과제가 없습니다. week=" + week);
+        }
+
+        List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
+        Map<Long, AssignmentSubmit> latestSubmitByAssignmentId = assignmentSubmitRepository
+                .findAllByAssignment_IdInAndSubmitMemberOrderByCreatedAtDesc(assignmentIds, babyLion).stream()
+                .collect(Collectors.toMap(submit -> submit.getAssignment().getId(), submit -> submit,
+                        (firstByCreatedAtDesc, ignoredOlder) -> firstByCreatedAtDesc));
+        Map<Long, LocalDateTime> individualDeadlineByAssignmentId = assignmentIndividualDeadlineRepository
+                .findAllByAssignment_IdInAndMember_Id(assignmentIds, babyLion.getId()).stream()
+                .collect(Collectors.toMap(deadline -> deadline.getAssignment().getId(), AssignmentIndividualDeadline::getDeadline));
+
+        List<AssignmentSubmitDisplayStatus> statuses = assignments.stream()
+                .map(assignment -> {
+                    AssignmentSubmit latest = latestSubmitByAssignmentId.get(assignment.getId());
+                    LocalDateTime endDate = individualDeadlineByAssignmentId.getOrDefault(assignment.getId(), assignment.getEndDate());
+                    return AssignmentSubmitDisplayStatusCalculator.calculate(endDate, latest);
+                })
+                .toList();
+
+        AssignmentSubmitDisplayStatus weeklyStatus = AssignmentSubmitDisplayStatusCalculator.aggregateWeekly(statuses);
+        return new AssignmentMemberWeeklyStatusResponse(babyLion.getId(), babyLion.getName(), week, weeklyStatus);
     }
 
     /**

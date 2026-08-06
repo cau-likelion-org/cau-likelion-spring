@@ -36,7 +36,8 @@ public class AssignmentBabyLionController {
     @Operation(summary = "내 과제 목록 조회 (주차별)",
             description = "로그인한 아기사자 본인 파트의 과제 목록을 주차별로 묶어서 조회합니다. "
                     + "week 파라미터를 주면 해당 주차만, 주지 않으면 전체 주차를 반환합니다. "
-                    + "개별 과제마다 과제명/마감기한/제출 상태/제출 시각을 포함합니다. "
+                    + "개별 과제마다 과제명/마감기한/제출 상태/제출 시각을 포함하고, 각 주차 그룹에는 그 주차 개별 과제 상태들을 "
+                    + "우선순위(제출전 > 승인반려 > 승인대기 > 미제출 > 지각제출 > 승인완료)로 판단해 합친 주차 종합 상태(weeklyStatus)도 함께 내려줍니다. "
                     + "BABY_LION 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),

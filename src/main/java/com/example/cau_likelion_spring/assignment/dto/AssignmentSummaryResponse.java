@@ -31,6 +31,9 @@ public record AssignmentSummaryResponse(
             @Schema(description = "주차", example = "1")
             Integer week,
 
+            @Schema(description = "이 주차 종합 상태. 개별 과제 상태들을 우선순위(제출전 > 승인반려 > 승인대기 > 미제출 > 지각제출 > 승인완료)로 판단해 하나로 합친 값")
+            AssignmentSubmitDisplayStatus weeklyStatus,
+
             @Schema(description = "해당 주차의 개별 과제 목록")
             List<AssignmentSummaryResponse> assignments
     ) {

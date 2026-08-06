@@ -4,6 +4,7 @@ import com.example.cau_likelion_spring.assignment.dto.AssignmentCreateRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadlineRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadlineResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberSubmissionResponse;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberWeeklyStatusResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffDetailResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffSummaryResponse;
@@ -72,6 +73,24 @@ public class AssignmentController {
     public ResponseEntity<List<AssignmentStaffSummaryResponse.WeekGroup>> getAssignmentsForPresident(
             @Parameter(description = "조회할 파트 ID", required = true) @RequestParam Long partId) {
         return ResponseEntity.ok(assignmentService.getAssignmentsForPresident(partId));
+    }
+
+    @Operation(summary = "(개발용) 아기사자 1명의 특정 주차 종합 상태 조회",
+            description = "로그인한 운영진이 본인 파트 아기사자 1명을 memberId로 지정해, 특정 주차(week)의 종합 상태 하나를 조회합니다. "
+                    + "한 주차에 과제가 여러 개면 그 개별 과제 상태들을 우선순위(제출전 > 승인반려 > 승인대기 > 미제출 > 지각제출 > 승인완료)로 판단해 하나로 합칩니다. "
+                    + "STAFF 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음 또는 본인 파트 소속이 아닌 아기사자"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 멤버 또는 해당 주차에 생성된 과제가 없음"),
+            @ApiResponse(responseCode = "409", description = "운영진에게 배정된 파트가 없음")
+    })
+    @GetMapping("/staff/weekly-status")
+    public ResponseEntity<AssignmentMemberWeeklyStatusResponse> getWeeklyStatusForStaff(
+            @AuthenticationPrincipal Long memberId,
+            @Parameter(description = "조회할 아기사자 멤버 ID", required = true) @RequestParam Long targetMemberId,
+            @Parameter(description = "조회할 주차", required = true) @RequestParam Integer week) {
+        return ResponseEntity.ok(assignmentService.getWeeklyStatusForStaff(memberId, targetMemberId, week));
     }
 
     @Operation(summary = "내 파트 아기사자 과제 현황 목록 조회 (주차별)",

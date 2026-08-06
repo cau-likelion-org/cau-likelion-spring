@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -149,8 +150,22 @@ public class RecruitmentTextService {
         }
     }
 
+    /**
+     * 재전송으로 같은 구독자에게 로그가 여러 건 쌓일 수 있어, 로그 개수가 아닌 서로 다른 구독자 수로 센다.
+     * 구독자가 삭제된 로그(subscriber null)는 재전송 대상에서 제외되므로 중복 없이 항상 로그 1건 = 대상 1명이다.
+     */
     private int targetCount(RecruitmentText text) {
-        return (int) emailSentLogRepository.countByRecruitmentText(text);
+        List<EmailSentLog> logs = emailSentLogRepository.findAllByRecruitmentText(text);
+        long distinctSubscriberCount = logs.stream()
+                .map(EmailSentLog::getSubscriber)
+                .filter(Objects::nonNull)
+                .map(RecruitmentSubscriber::getId)
+                .distinct()
+                .count();
+        long deletedSubscriberLogCount = logs.stream()
+                .filter(log -> log.getSubscriber() == null)
+                .count();
+        return (int) (distinctSubscriberCount + deletedSubscriberLogCount);
     }
 
     private List<RecruitmentSubscriber> getSubscribers(List<Long> subscriberIds) {

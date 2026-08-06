@@ -16,7 +16,6 @@ public enum ErrorCode {
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다."),
 
     // ===== Auth =====
-    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "만료된 토큰입니다."),
     REFRESH_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 리프레시 토큰입니다."),
@@ -27,6 +26,7 @@ public enum ErrorCode {
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."),
     EMAIL_NOT_ALLOWED(HttpStatus.FORBIDDEN, "회원가입이 허용되지 않은 이메일입니다."),
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 가입된 이메일입니다."),
+    ALLOWED_USER_EMAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 예비 회원입니다."),
 
     // ===== Organization (Generation / Part) =====
     GENERATION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 기수입니다."),

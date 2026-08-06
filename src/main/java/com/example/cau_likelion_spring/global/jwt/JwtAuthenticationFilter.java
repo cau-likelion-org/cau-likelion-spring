@@ -36,7 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null) {
             try {
                 JwtValidationType validationType = jwtTokenProvider.validateToken(token);
-                if (validationType == JwtValidationType.VALID_JWT) {
+                if (validationType == JwtValidationType.VALID_JWT && jwtTokenProvider.isAccessToken(token)) {
                     setAuthentication(token);
                 } else {
                     log.info("유효하지 않은 토큰: {}", validationType);

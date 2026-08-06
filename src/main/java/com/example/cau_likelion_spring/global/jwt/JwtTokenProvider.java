@@ -15,43 +15,58 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Date;
+import java.util.Map;
 
 @Component
 public class JwtTokenProvider {
 
     private static final String ROLE_CLAIM = "role";
+    private static final String TYPE_CLAIM = "type";
+
+    private enum TokenType {
+        ACCESS, REFRESH, SIGNUP
+    }
 
     private final SecretKey key;
     private final Duration accessTokenExpiration;
     private final Duration refreshTokenExpiration;
+    private final Duration signupTokenExpiration;
 
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.access-token-expiration}") Duration accessTokenExpiration,
-            @Value("${jwt.refresh-token-expiration}") Duration refreshTokenExpiration
+            @Value("${jwt.refresh-token-expiration}") Duration refreshTokenExpiration,
+            @Value("${jwt.signup-token-expiration}") Duration signupTokenExpiration
     ) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessTokenExpiration = accessTokenExpiration;
         this.refreshTokenExpiration = refreshTokenExpiration;
+        this.signupTokenExpiration = signupTokenExpiration;
     }
 
     public String createAccessToken(Long memberId, MemberRole role) {
-        Date now = new Date();
-        return Jwts.builder()
-                .subject(String.valueOf(memberId))
-                .claim(ROLE_CLAIM, role.name())
-                .issuedAt(now)
-                .expiration(new Date(now.getTime() + accessTokenExpiration.toMillis()))
-                .signWith(key)
-                .compact();
+        return buildToken(String.valueOf(memberId), Map.of(ROLE_CLAIM, role.name(), TYPE_CLAIM, TokenType.ACCESS.name()), accessTokenExpiration);
     }
 
     public String createRefreshToken(Long memberId) {
+        return buildToken(String.valueOf(memberId), Map.of(TYPE_CLAIM, TokenType.REFRESH.name()), refreshTokenExpiration);
+    }
+
+    /**
+     * 구글 로그인 성공~회원가입 폼 제출 사이에만 쓰는 단명 토큰.
+     * subject는 구글이 검증해 준 이메일이고, join() 시점에 이 이메일을 다시 꺼내 쓴다.
+     */
+    public String createSignupToken(String email) {
+        return buildToken(email, Map.of(TYPE_CLAIM, TokenType.SIGNUP.name()), signupTokenExpiration);
+    }
+
+    private String buildToken(String subject, Map<String, ?> claims, Duration expiration) {
         Date now = new Date();
         return Jwts.builder()
-                .subject(String.valueOf(memberId))
+                .subject(subject)
+                .claims(claims)
                 .issuedAt(now)
-                .expiration(new Date(now.getTime() + refreshTokenExpiration.toMillis()))
+                .expiration(new Date(now.getTime() + expiration.toMillis()))
                 .signWith(key)
                 .compact();
     }
@@ -67,6 +82,24 @@ public class JwtTokenProvider {
     public MemberRole getRole(String token) {
         String role = parseClaims(token).get(ROLE_CLAIM, String.class);
         return role == null ? null : MemberRole.valueOf(role);
+    }
+
+    public String getEmail(String token) {
+        return parseClaims(token).getSubject();
+    }
+
+    /** signupToken 자리에 access/refresh 토큰이 잘못 들어온 경우를 걸러내기 위한 타입 체크 */
+    public boolean isSignupToken(String token) {
+        return isTokenType(token, TokenType.SIGNUP);
+    }
+
+    /** API 인증(Authorization 헤더) 자리에 signup/refresh 토큰이 잘못 들어온 경우를 걸러내기 위한 타입 체크 */
+    public boolean isAccessToken(String token) {
+        return isTokenType(token, TokenType.ACCESS);
+    }
+
+    private boolean isTokenType(String token, TokenType type) {
+        return type.name().equals(parseClaims(token).get(TYPE_CLAIM, String.class));
     }
 
     public JwtValidationType validateToken(String token) {

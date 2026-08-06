@@ -1,6 +1,8 @@
 package com.example.cau_likelion_spring.auth.controller;
 
-import com.example.cau_likelion_spring.auth.dto.LoginRequest;
+import com.example.cau_likelion_spring.auth.GoogleTokenVerifier;
+import com.example.cau_likelion_spring.auth.dto.GoogleLoginRequest;
+import com.example.cau_likelion_spring.auth.dto.GoogleLoginResponse;
 import com.example.cau_likelion_spring.auth.dto.RefreshTokenRequest;
 import com.example.cau_likelion_spring.auth.dto.JoinRequest;
 import com.example.cau_likelion_spring.auth.dto.TokenResponse;
@@ -23,17 +25,23 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final GoogleTokenVerifier googleTokenVerifier;
 
-    @Operation(summary = "회원가입", description = "사전 등록된 이메일(AllowedUserEmail)과 기수가 일치하는 경우에만 가입할 수 있습니다. 가입 시 role은 무조건 BABY_LION으로 생성됩니다.")
+    @Operation(summary = "구글 로그인", description = "프론트에서 Google Identity Services로 받은 ID Token을 검증합니다. "
+            + "이미 가입된 이메일이면 바로 로그인 토큰을 발급하고(status=LOGIN_SUCCESS), "
+            + "사전 등록된 신규 이메일이면 가입 폼으로 넘길 signupToken을 발급합니다(status=SIGNUP_REQUIRED). "
+            + "사전 등록되지 않은 이메일이면 403(EMAIL_NOT_ALLOWED)이 반환됩니다.")
+    @PostMapping("/google-login")
+    public ResponseEntity<GoogleLoginResponse> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
+        String email = googleTokenVerifier.verifyAndGetEmail(request.idToken());
+        return ResponseEntity.ok(authService.processOAuthLogin(email));
+    }
+
+    @Operation(summary = "회원가입", description = "구글 로그인 성공 시 발급된 signupToken(가입용 임시 토큰)에서 이메일을 꺼내, "
+            + "사전 등록된 이메일(AllowedUserEmail)과 기수가 일치하는 경우에만 가입할 수 있습니다. 가입 시 role은 무조건 BABY_LION으로 생성됩니다.")
     @PostMapping("/join")
     public ResponseEntity<TokenResponse> join(@Valid @RequestBody JoinRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.join(request));
-    }
-
-    @Operation(summary = "로그인", description = "이미 가입된 이메일로 로그인합니다. (현재는 구글 OAuth 연동 전이라 이메일만으로 로그인됩니다.)")
-    @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
     }
 
     @Operation(summary = "Access Token 재발급", description = "유효한 Refresh Token으로 Access Token을 재발급합니다. Refresh Token은 로테이션되지 않습니다.")

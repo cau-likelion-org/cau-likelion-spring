@@ -9,7 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 회원가입 허용 유저 이메일
+ * 회원가입 허용 유저 이메일.
  */
 @Entity
 @Getter
@@ -25,20 +25,20 @@ public class AllowedUserEmail extends BaseTimeEntity {
     private Generation generation;
 
     @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
     private String allowedEmail;
 
-    /** 해당 이메일이 실제로 가입 완료했는지 */
-    @Column(nullable = false)
-    private Boolean isJoined;
-
     @Builder
-    public AllowedUserEmail(Generation generation, String allowedEmail, Boolean isJoined) {
+    public AllowedUserEmail(Generation generation, String name, String allowedEmail) {
         this.generation = generation;
+        this.name = name;
         this.allowedEmail = allowedEmail;
-        this.isJoined = isJoined;
     }
 
-    public void markAsJoined() {
-        this.isJoined = true;
+    public void update(String name, String allowedEmail) {
+        this.name = name;
+        this.allowedEmail = allowedEmail;
     }
 }

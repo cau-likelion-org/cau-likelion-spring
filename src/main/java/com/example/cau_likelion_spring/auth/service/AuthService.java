@@ -1,7 +1,7 @@
 package com.example.cau_likelion_spring.auth.service;
 
 import com.example.cau_likelion_spring.auth.domain.RefreshToken;
-import com.example.cau_likelion_spring.auth.dto.LoginRequest;
+import com.example.cau_likelion_spring.auth.dto.GoogleLoginResponse;
 import com.example.cau_likelion_spring.auth.dto.RefreshTokenRequest;
 import com.example.cau_likelion_spring.auth.dto.JoinRequest;
 import com.example.cau_likelion_spring.auth.dto.TokenResponse;
@@ -36,31 +36,45 @@ public class AuthService {
 
     @Transactional
     public TokenResponse join(JoinRequest request) {
+        if (jwtTokenProvider.validateToken(request.signupToken()) != JwtValidationType.VALID_JWT
+                || !jwtTokenProvider.isSignupToken(request.signupToken())) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN, "유효하지 않거나 만료된 가입 토큰입니다. 구글 로그인부터 다시 진행해주세요.");
+        }
+        String email = jwtTokenProvider.getEmail(request.signupToken());
+
         AllowedUserEmail allowedUserEmail = allowedUserEmailRepository
-                .findByAllowedEmailAndGeneration_IdAndIsJoinedFalse(request.email(), request.generationId())
+                .findByAllowedEmailAndGeneration_Id(email, request.generationId())
                 .orElseThrow(() -> new CustomException(ErrorCode.EMAIL_NOT_ALLOWED, "가입하실 이메일 주소를 다시 확인해주세요."));
 
         Part part = partRepository.findById(request.partId())
                 .orElseThrow(() -> new CustomException(ErrorCode.PART_NOT_FOUND, "존재하지 않는 파트입니다. id=" + request.partId()));
 
-        allowedUserEmail.markAsJoined();
-
         Member member = memberRepository.save(Member.builder()
                 .name(request.name())
-                .email(request.email())
+                .email(email)
                 .role(MemberRole.BABY_LION)
                 .part(part)
                 .build());
 
+        allowedUserEmailRepository.delete(allowedUserEmail);
+
         return issueTokens(member);
     }
 
+    /**
+     * 구글 로그인 콜백에서 호출된다. email은 구글이 검증해 준 값이라 그대로 신뢰한다.
+     * 기존 회원이면 바로 로그인 처리, 처음이면 사전등록 여부에 따라 가입 폼으로 보낼지 에러를 낼지 판단한다.
+     */
     @Transactional
-    public TokenResponse login(LoginRequest request) {
-        Member member = memberRepository.findByEmail(request.email())
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_CREDENTIALS, "회원가입한 이메일로만 로그인이 가능합니다."));
-
-        return issueTokens(member);
+    public GoogleLoginResponse processOAuthLogin(String email) {
+        return memberRepository.findByEmail(email)
+                .map(member -> GoogleLoginResponse.loginSuccess(issueTokens(member)))
+                .orElseGet(() -> {
+                    if (!allowedUserEmailRepository.existsByAllowedEmail(email)) {
+                        throw new CustomException(ErrorCode.EMAIL_NOT_ALLOWED, "가입하실 이메일 주소를 다시 확인해주세요.");
+                    }
+                    return GoogleLoginResponse.signupRequired(jwtTokenProvider.createSignupToken(email));
+                });
     }
 
     @Transactional

@@ -1,0 +1,57 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 백엔드는 IDE에서 직접 실행, DB는 도커 컨테이너(3307)로 접근
+    # (로컬 Homebrew MySQL이 3306을 이미 점유하고 있어서 도커 DB는 3307로 포트를 옮겨둔 상태)
+    url: jdbc:mysql://localhost:3307/${MYSQL_DATABASE:chunghaha}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:puang@likelion.org}
+    # 앱 비밀번호 발급 전이라 비워둠 - 없으면 메일 발송 기능만 동작 안 함
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION:1h}
+  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:14d}
+  signup-token-expiration: ${JWT_SIGNUP_EXPIRATION:10m}
+
+google:
+  client-id: ${GOOGLE_CLIENT_ID}
+
+# 프론트가 fetch로 API를 직접 호출하니 CORS 허용 출처로 사용
+app:
+  frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
+
+firebase:
+  # Firebase 서비스 계정 JSON을 base64로 인코딩한 값. 비어있으면 FCM 푸시 알림 기능만 비활성화됨
+  credentials-base64: ${FIREBASE_CREDENTIALS_BASE64:}
+  
+attendance:
+  session-start-hour: 19
+  check-close-hour: 22
+  late-grace-minutes: 5
+  # session-start-hour/late-grace-minutes를 바꾸면 이 cron도 같이 맞춰서 바꿔야 함 (분 시 * * 요일)
+  absence-check-cron: "0 5 19 * * WED"

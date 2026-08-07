@@ -1,0 +1,20 @@
+package com.example.cau_likelion_spring.member.dto;
+
+import com.example.cau_likelion_spring.member.domain.MemberRole;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+@Schema(description = "구성원 정보 수정 요청")
+public record MemberUpdateRequest(
+
+        @Schema(description = "이름", example = "홍길동")
+        @NotBlank String name,
+
+        @Schema(description = "역할")
+        @NotNull MemberRole role,
+
+        @Schema(description = "파트 ID (소속 파트가 없으면 null)", example = "1")
+        Long partId
+) {
+}

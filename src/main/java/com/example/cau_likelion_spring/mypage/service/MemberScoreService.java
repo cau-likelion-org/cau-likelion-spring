@@ -100,20 +100,25 @@ public class MemberScoreService {
         long absentCount = attendanceCounts.getOrDefault(AttendanceStatus.ABSENT, 0L);
         long unauthorizedAbsentCount = attendanceCounts.getOrDefault(AttendanceStatus.UNAUTHORIZED_ABSENT, 0L);
 
+        Map<Integer, List<AssignmentSubmitDisplayStatus>> statusesByWeek = partAssignments.stream()
+                .collect(Collectors.groupingBy(Assignment::getWeek, Collectors.mapping(assignment -> {
+                    AssignmentSubmit latest = latestSubmitByAssignmentIdThenMemberId
+                            .getOrDefault(assignment.getId(), Map.of())
+                            .get(member.getId());
+                    LocalDateTime endDate = individualDeadlineByAssignmentIdThenMemberId
+                            .getOrDefault(assignment.getId(), Map.of())
+                            .getOrDefault(member.getId(), assignment.getEndDate());
+
+                    return AssignmentSubmitDisplayStatusCalculator.calculate(endDate, latest);
+                }, Collectors.toList())));
+
         long lateSubmitCount = 0;
         long missedCount = 0;
-        for (Assignment assignment : partAssignments) {
-            AssignmentSubmit latest = latestSubmitByAssignmentIdThenMemberId
-                    .getOrDefault(assignment.getId(), Map.of())
-                    .get(member.getId());
-            LocalDateTime endDate = individualDeadlineByAssignmentIdThenMemberId
-                    .getOrDefault(assignment.getId(), Map.of())
-                    .getOrDefault(member.getId(), assignment.getEndDate());
-
-            AssignmentSubmitDisplayStatus status = AssignmentSubmitDisplayStatusCalculator.calculate(endDate, latest);
-            if (status == AssignmentSubmitDisplayStatus.MISSED) {
+        for (List<AssignmentSubmitDisplayStatus> weekStatuses : statusesByWeek.values()) {
+            AssignmentSubmitDisplayStatus weeklyStatus = AssignmentSubmitDisplayStatusCalculator.aggregateWeekly(weekStatuses);
+            if (weeklyStatus == AssignmentSubmitDisplayStatus.MISSED) {
                 missedCount++;
-            } else if (status == AssignmentSubmitDisplayStatus.LATE_SUBMITTED) {
+            } else if (weeklyStatus == AssignmentSubmitDisplayStatus.LATE_SUBMITTED) {
                 lateSubmitCount++;
             }
         }

@@ -29,4 +29,9 @@ public final class MemberScoreCalculator {
 
         return Math.max(total, 0);
     }
+
+    /** 출결관리 화면(8.3.4)의 "감점" 컬럼용 - 과제 감점은 제외하고 출결로 인한 감점 크기만(양수로) 반환한다. */
+    public static double calculateAttendancePenalty(long lateCount, long absentCount, long unauthorizedAbsentCount) {
+        return -(lateCount * LATE_PENALTY + absentCount * ABSENT_PENALTY + unauthorizedAbsentCount * UNAUTHORIZED_ABSENT_PENALTY);
+    }
 }

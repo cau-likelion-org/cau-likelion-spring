@@ -1,0 +1,31 @@
+services:
+  backend:
+    # GitHub Actions가 빌드해서 GHCR(GitHub Container Registry)에 올린 이미지를 그대로 받아서 씀
+    # EC2에서 직접 빌드하지 않음 (프리티어 EC2는 메모리가 부족해서 빌드 도중 죽을 수 있음)
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/cau-likelion-spring:latest
+    container_name: chunghaha-backend
+    restart: unless-stopped
+    ports:
+      # 외부(0.0.0.0)에는 안 열림 - 보안그룹에서도 8080은 막혀있고,
+      # nginx가 localhost:8080으로만 접근해서 내부용으로 충분함
+      - "127.0.0.1:8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      RDS_HOST: ${RDS_HOST}
+      RDS_PORT: ${RDS_PORT:-3306}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_EXPIRATION: ${JWT_ACCESS_EXPIRATION:-1h}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-14d}
+      JWT_SIGNUP_EXPIRATION: ${JWT_SIGNUP_EXPIRATION:-10m}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      FIREBASE_CREDENTIALS_BASE64: ${FIREBASE_CREDENTIALS_BASE64:-}
+      AWS_ACCESS_KEY: ${AWS_ACCESS_KEY:-}
+      AWS_SECRET_KEY: ${AWS_SECRET_KEY:-}
+      AWS_REGION: ${AWS_REGION:-ap-northeast-2}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}

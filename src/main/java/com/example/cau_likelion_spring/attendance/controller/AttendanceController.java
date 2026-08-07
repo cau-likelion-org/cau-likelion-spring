@@ -67,7 +67,8 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.getMyAttendances(memberId));
     }
 
-    @Operation(summary = "본인 파트 아기사자 출결 현황 조회", description = "로그인한 운영진이 본인 파트 아기사자들의 주차별 출결 현황을 조회합니다.")
+    @Operation(summary = "본인 파트 아기사자 출결 현황 조회", description = "로그인한 운영진이 본인 파트 아기사자들의 주차별 출결 현황을 조회합니다. "
+            + "각 아기사자의 출결로 인한 감점(attendancePenalty)도 함께 반환합니다 (과제 감점은 제외).")
     @GetMapping("/part")
     public ResponseEntity<List<MemberAttendanceResponse>> getPartAttendances(@AuthenticationPrincipal Long memberId) {
         return ResponseEntity.ok(attendanceService.getPartAttendances(memberId));

@@ -1,0 +1,66 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # RDS 엔드포인트로 접속. EC2 컨테이너 안에서 실행되므로 localhost가 아니라 RDS 엔드포인트를 그대로 씀
+    url: jdbc:mysql://${RDS_HOST}:${RDS_PORT:3306}/${MYSQL_DATABASE}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+  jpa:
+    hibernate:
+      # 운영에서는 update 대신 validate 추천 (스키마는 로컬/스테이징에서 먼저 검증 후 반영)
+      # 지금 단계에서는 update로 두되, 안정화되면 validate + Flyway로 전환할 것
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: false
+    open-in-view: false
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:puang@likelion.org}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION:1h}
+  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:14d}
+  signup-token-expiration: ${JWT_SIGNUP_EXPIRATION:10m}
+
+google:
+  client-id: ${GOOGLE_CLIENT_ID}
+
+app:
+  # 실제 배포된 프론트 도메인으로 교체 필요 (CORS 허용 출처)
+  frontend-base-url: ${FRONTEND_BASE_URL}
+
+firebase:
+  credentials-base64: ${FIREBASE_CREDENTIALS_BASE64:}
+
+attendance:
+  session-start-hour: 19
+  check-close-hour: 22
+  late-grace-minutes: 5
+  absence-check-cron: "0 5 19 * * WED"
+
+# S3 (global/util 업로드 모듈 구현 후 실제로 쓰일 설정 - 미리 준비만 해둠)
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
+    region:
+      static: ${AWS_REGION:ap-northeast-2}
+    s3:
+      bucket: ${AWS_S3_BUCKET}

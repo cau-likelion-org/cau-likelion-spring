@@ -22,9 +22,10 @@ public class ActivityController {
 
     private final ActivityService activityService;
 
-    @Operation(summary = "활동 소개 생성")
+    @Operation(summary = "활동 소개 생성", description = "imageUrl은 POST /api/files/ACTIVITY로 미리 업로드해 받은 URL을 담아 보냅니다.")
     @PostMapping
-    public ResponseEntity<ActivityResponseDto> createActivity(@Valid @RequestBody ActivityRequestDto request) {
+    public ResponseEntity<ActivityResponseDto> createActivity(
+            @RequestBody @Valid ActivityRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(activityService.createActivity(request));
     }
 
@@ -34,11 +35,12 @@ public class ActivityController {
         return ResponseEntity.ok(activityService.getActivityList());
     }
 
-    @Operation(summary = "활동 소개 수정", description = "요청 바디로 전체 필드를 덮어씁니다 (부분 수정 아님). pageNavigation은 선택 항목입니다.")
+    @Operation(summary = "활동 소개 수정", description = "요청 바디로 전체 필드를 덮어씁니다 (부분 수정 아님). pageNavigation은 선택 항목입니다. "
+            + "imageUrl은 항상 필수이며, 기존과 동일한 URL을 그대로 보내면 이미지를 유지하는 효과입니다.")
     @PutMapping("/{id}")
     public ResponseEntity<ActivityResponseDto> updateActivity(
             @Parameter(description = "활동 id") @PathVariable Long id,
-            @Valid @RequestBody ActivityRequestDto request) {
+            @RequestBody @Valid ActivityRequestDto request) {
         return ResponseEntity.ok(activityService.updateActivity(id, request));
     }
 

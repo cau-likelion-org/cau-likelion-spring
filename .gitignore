@@ -42,7 +42,7 @@ out/
 
 ### Environment variables ###
 .env
-
+.env.prod
 ### Local-only docs ###
 FEATURE_SPEC.md
 IMPLEMENTATION_LOG.md

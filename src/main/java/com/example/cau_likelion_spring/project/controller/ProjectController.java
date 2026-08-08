@@ -26,7 +26,8 @@ public class ProjectController {
 
     private final ProjectService projectService;
 
-    @Operation(summary = "프로젝트 생성", description = "새로운 프로젝트를 이미지/링크/멤버 정보와 함께 생성합니다. ADMIN, STAFF 권한이 필요합니다.")
+    @Operation(summary = "프로젝트 생성", description = "새로운 프로젝트를 이미지/링크/멤버 정보와 함께 생성합니다. ADMIN, STAFF 권한이 필요합니다. "
+            + "banner/images는 POST /api/files/PROJECT로 미리 업로드해 받은 URL을 담아 보냅니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "생성 성공"),
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
@@ -35,7 +36,7 @@ public class ProjectController {
     })
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @PostMapping
-    public ResponseEntity<ProjectResponse> create(@Valid @RequestBody ProjectRequest request) {
+    public ResponseEntity<ProjectResponse> create(@RequestBody @Valid ProjectRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(projectService.create(request));
     }
 
@@ -60,7 +61,9 @@ public class ProjectController {
         return ResponseEntity.ok(projectService.getById(id));
     }
 
-    @Operation(summary = "프로젝트 수정", description = "프로젝트 정보를 수정합니다. 이미지/링크/멤버는 요청 내용으로 전체 대체됩니다. ADMIN, STAFF 권한이 필요합니다.")
+    @Operation(summary = "프로젝트 수정", description = "프로젝트 정보를 수정합니다. 링크/멤버/이미지는 요청 내용으로 전체 대체됩니다. "
+            + "banner를 생략하면 기존 배너를 유지합니다. images에 기존에 유지할 이미지의 URL과 새로 추가한 이미지의 URL(POST /api/files/PROJECT로 미리 업로드)을 함께 담아 보내면 그 목록으로 전체 교체됩니다. "
+            + "ADMIN, STAFF 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "수정 성공"),
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
@@ -71,7 +74,7 @@ public class ProjectController {
     @PutMapping("/{id}")
     public ResponseEntity<ProjectResponse> update(
             @Parameter(description = "프로젝트 ID", required = true) @PathVariable Long id,
-            @Valid @RequestBody ProjectRequest request) {
+            @RequestBody @Valid ProjectRequest request) {
         return ResponseEntity.ok(projectService.update(id, request));
     }
 

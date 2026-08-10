@@ -26,7 +26,6 @@ import com.example.cau_likelion_spring.member.domain.Member;
 import com.example.cau_likelion_spring.member.domain.MemberRole;
 import com.example.cau_likelion_spring.global.exception.CustomException;
 import com.example.cau_likelion_spring.global.exception.ErrorCode;
-import com.example.cau_likelion_spring.global.util.S3Uploader;
 import com.example.cau_likelion_spring.member.repository.MemberRepository;
 import com.example.cau_likelion_spring.organization.domain.Part;
 import com.example.cau_likelion_spring.organization.repository.PartRepository;
@@ -59,7 +58,6 @@ public class AssignmentService {
     private final MemberRepository memberRepository;
     private final PartRepository partRepository;
     private final AssignmentPushNotificationService assignmentPushNotificationService;
-    private final S3Uploader s3Uploader;
 
     /**
      * 한 주차에 개별 과제 1개 이상을 한 번에 생성한다 (생성 페이지에서 +로 여러 개를 모아 한 번에 저장하는 흐름).
@@ -104,8 +102,6 @@ public class AssignmentService {
     public void delete(Long staffMemberId, Long assignmentId) {
         Assignment assignment = getOwnedAssignment(staffMemberId, assignmentId);
 
-        submissionFileRepository.findAllByAssignmentSubmit_Assignment(assignment)
-                .forEach(file -> s3Uploader.deleteByUrl(file.getFileUrl()));
         pushNotiLogRepository.deleteAllByAssignmentSubmit_Assignment(assignment);
         submissionFileRepository.deleteAllByAssignmentSubmit_Assignment(assignment);
         assignmentSubmitRepository.deleteAllByAssignment(assignment);

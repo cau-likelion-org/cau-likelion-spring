@@ -18,7 +18,6 @@ import com.example.cau_likelion_spring.assignment.repository.SubmissionFileRepos
 import com.example.cau_likelion_spring.member.domain.Member;
 import com.example.cau_likelion_spring.global.exception.CustomException;
 import com.example.cau_likelion_spring.global.exception.ErrorCode;
-import com.example.cau_likelion_spring.global.util.S3Uploader;
 import com.example.cau_likelion_spring.member.repository.MemberRepository;
 import com.example.cau_likelion_spring.organization.domain.Part;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +46,6 @@ public class AssignmentBabyLionService {
     private final AssignmentIndividualDeadlineRepository assignmentIndividualDeadlineRepository;
     private final SubmissionFileRepository submissionFileRepository;
     private final MemberRepository memberRepository;
-    private final S3Uploader s3Uploader;
 
     /**
      * week를 지정하면 해당 주차만, 지정하지 않으면 전체 주차를 주차 오름차순으로 묶어서 반환한다.
@@ -133,8 +131,6 @@ public class AssignmentBabyLionService {
 
     private AssignmentSubmit editSubmission(AssignmentSubmit latest, AssignmentSubmitRequest request) {
         latest.editSubmission(request.content(), request.url());
-        submissionFileRepository.findAllByAssignmentSubmit(latest)
-                .forEach(file -> s3Uploader.deleteByUrl(file.getFileUrl()));
         submissionFileRepository.deleteAllByAssignmentSubmit(latest);
         return latest;
     }

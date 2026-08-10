@@ -11,9 +11,6 @@ public interface SubmissionFileRepository extends JpaRepository<SubmissionFile, 
 
     void deleteAllByAssignmentSubmit_Assignment(Assignment assignment);
 
-    /** 과제 삭제 시 S3에 올라간 첨부파일을 함께 정리하기 위해, DB에서 지우기 전에 URL 목록을 먼저 조회 */
-    List<SubmissionFile> findAllByAssignmentSubmit_Assignment(Assignment assignment);
-
     /** PENDING 상태의 제출을 '수정'할 때 기존 첨부파일을 지우고 새로 넣기 위해 사용 */
     void deleteAllByAssignmentSubmit(AssignmentSubmit assignmentSubmit);
 

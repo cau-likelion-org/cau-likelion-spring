@@ -15,7 +15,6 @@ import com.example.cau_likelion_spring.project.repository.ProjectImageRepository
 import com.example.cau_likelion_spring.project.repository.ProjectLinkRepository;
 import com.example.cau_likelion_spring.project.repository.ProjectMemberRepository;
 import com.example.cau_likelion_spring.project.repository.ProjectRepository;
-import com.example.cau_likelion_spring.global.util.S3Uploader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -23,8 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,7 +33,6 @@ public class ProjectService {
     private final ProjectLinkRepository projectLinkRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final GenerationRepository generationRepository;
-    private final S3Uploader s3Uploader;
 
     @Transactional
     public ProjectResponse create(ProjectRequest request) {
@@ -91,14 +87,6 @@ public class ProjectService {
         project.update(generation, request.title(), request.category(), request.stack(), request.tagline(),
                 request.summary(), request.teamName(), request.startDate(), request.endDate(), request.banner());
 
-        // 새 목록에 없는(=제거된) 이미지의 S3 파일만 삭제 - 그대로 유지되는 이미지의 URL을 지우면 안 되므로 차집합만 계산
-        Set<String> newImageUrls = nullToEmpty(request.images()).stream()
-                .map(ProjectRequest.ImageRequest::imageUrl)
-                .collect(Collectors.toSet());
-        projectImageRepository.findAllByProject(project).stream()
-                .map(ProjectImage::getImageUrl)
-                .filter(url -> !newImageUrls.contains(url))
-                .forEach(s3Uploader::deleteByUrl);
         projectImageRepository.deleteAllByProject(project);
         projectLinkRepository.deleteAllByProject(project);
         projectMemberRepository.deleteAllByProject(project);
@@ -112,7 +100,6 @@ public class ProjectService {
     public void delete(Long id) {
         Project project = getProject(id);
 
-        projectImageRepository.findAllByProject(project).forEach(image -> s3Uploader.deleteByUrl(image.getImageUrl()));
         projectImageRepository.deleteAllByProject(project);
         projectLinkRepository.deleteAllByProject(project);
         projectMemberRepository.deleteAllByProject(project);

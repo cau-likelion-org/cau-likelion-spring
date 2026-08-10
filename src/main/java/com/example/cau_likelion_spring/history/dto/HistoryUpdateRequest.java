@@ -8,7 +8,6 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.List;
 
-/** thumbnailUrl/imageUrls는 POST /api/files/HISTORY로 미리 업로드해 받은 URL을 담는다. 각각 생략하면 기존 값을 유지한다. */
 public record HistoryUpdateRequest(
 
         @Schema(description = "기수 ID", example = "1")
@@ -29,10 +28,10 @@ public record HistoryUpdateRequest(
         @Schema(description = "종료일 (하루짜리 일정이면 생략)", example = "2026-08-02")
         LocalDate endDate,
 
-        @Schema(description = "대표 이미지 URL (POST /api/files/HISTORY로 미리 업로드한 URL). 생략하면 기존 값 유지")
+        @Schema(description = "대표 이미지 URL. 생략하면 기존 값 유지")
         String thumbnailUrl,
 
-        @Schema(description = "이미지 URL 목록 (POST /api/files/HISTORY로 미리 업로드한 URL, 최대 10장). 생략하면 기존 이미지 유지, 값을 보내면 전체 교체")
+        @Schema(description = "이미지 URL 목록 (최대 10장). 생략하면 기존 이미지 유지, 값을 보내면 전체 교체")
         @Size(max = 10, message = "사진은 최대 10장까지 등록 가능합니다.")
         List<String> imageUrls
 ) {

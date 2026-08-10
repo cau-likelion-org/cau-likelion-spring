@@ -24,10 +24,9 @@ public class SessionController {
 
     private final SessionService sessionService;
 
-    @Operation(summary = "세션 생성", description = "파트명과 기수 번호로 파트를 찾아 세션을 생성합니다. "
-            + "thumbnailUrl/imageUrls는 POST /api/files/SESSION으로 미리 업로드한 URL을 담아 보냅니다.")
+    @Operation(summary = "세션 생성", description = "파트명과 기수 번호로 파트를 찾아 세션을 생성합니다. 사진 여러 장을 함께 등록할 수 있습니다.")
     @PostMapping
-    public ResponseEntity<SessionResponseDto> createSession(@RequestBody @Valid SessionCreateRequestDto request) {
+    public ResponseEntity<SessionResponseDto> createSession(@Valid @RequestBody SessionCreateRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(sessionService.createSession(request));
     }
 
@@ -46,7 +45,7 @@ public class SessionController {
         return ResponseEntity.ok(sessionService.getSessionList(partName, generationNumber));
     }
 
-    @Operation(summary = "세션 수정", description = "생략된 필드는 변경하지 않습니다. imageUrls를 보내면(기존에 유지할 URL + POST /api/files/SESSION으로 새로 업로드한 URL) 사진 목록 전체가 교체됩니다.")
+    @Operation(summary = "세션 수정", description = "null로 넘어온 필드는 변경하지 않습니다. imageUrls를 보내면 사진 목록 전체가 교체됩니다.")
     @PatchMapping("/{id}")
     public ResponseEntity<SessionResponseDto> updateSession(
             @Parameter(description = "세션 id") @PathVariable Long id,

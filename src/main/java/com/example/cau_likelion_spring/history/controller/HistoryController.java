@@ -38,20 +38,17 @@ public class HistoryController {
         return ResponseEntity.ok(historyService.getDetail(id));
     }
 
-    @Operation(summary = "추억 게시물 등록", description = "새 추억 게시물을 등록합니다. 운영진/admin만 가능합니다. "
-            + "thumbnailUrl/imageUrls는 POST /api/files/HISTORY로 미리 업로드한 URL을 담아 보냅니다(imageUrls는 최소 1장, 최대 10장).")
+    @Operation(summary = "추억 게시물 등록", description = "새 추억 게시물을 등록합니다. 운영진/admin만 가능합니다.")
     @PostMapping
-    public ResponseEntity<HistoryDetailResponse> create(@RequestBody @Valid HistoryCreateRequest request) {
+    public ResponseEntity<HistoryDetailResponse> create(@Valid @RequestBody HistoryCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(historyService.create(request));
     }
 
-    @Operation(summary = "추억 게시물 수정", description = "등록된 추억 게시물을 수정합니다. 운영진/admin만 가능합니다. "
-            + "thumbnailUrl을 생략하면 기존 값을 유지합니다. imageUrls를 생략하면 기존 이미지를 유지하고, "
-            + "값을 보내면(기존에 유지할 URL + POST /api/files/HISTORY로 새로 업로드한 URL) 그 목록으로 전체 교체합니다.")
+    @Operation(summary = "추억 게시물 수정", description = "등록된 추억 게시물을 수정합니다. 운영진/admin만 가능합니다.")
     @PutMapping("/{id}")
     public ResponseEntity<HistoryDetailResponse> update(
             @Parameter(description = "추억 게시물 ID") @PathVariable Long id,
-            @RequestBody @Valid HistoryUpdateRequest request
+            @Valid @RequestBody HistoryUpdateRequest request
     ) {
         return ResponseEntity.ok(historyService.update(id, request));
     }

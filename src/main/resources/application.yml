@@ -3,8 +3,3 @@ spring:
     name: cau-likelion-spring
   profiles:
     default: local
-  servlet:
-    multipart:
-      # 도메인별 제일 큰 제한(ASSIGNMENT 10MB)보다 살짝 여유를 둠(멀티파트 인코딩 오버헤드) - 실제 용량 제한은 UploadDomain이 담당
-      max-file-size: 12MB
-      max-request-size: 12MB

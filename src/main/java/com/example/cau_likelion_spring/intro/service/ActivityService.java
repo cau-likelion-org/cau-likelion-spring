@@ -6,6 +6,7 @@ import com.example.cau_likelion_spring.intro.dto.ActivityResponseDto;
 import com.example.cau_likelion_spring.intro.repository.ActivityRepository;
 import com.example.cau_likelion_spring.global.exception.CustomException;
 import com.example.cau_likelion_spring.global.exception.ErrorCode;
+import com.example.cau_likelion_spring.global.util.S3Uploader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import java.util.List;
 public class ActivityService {
 
     private final ActivityRepository activityRepository;
+    private final S3Uploader s3Uploader;
 
     @Transactional
     public ActivityResponseDto createActivity(ActivityRequestDto request) {
@@ -42,6 +44,11 @@ public class ActivityService {
     @Transactional
     public ActivityResponseDto updateActivity(Long id, ActivityRequestDto request) {
         Activity activity = findActivityById(id);
+
+        if (!request.getImageUrl().equals(activity.getImageUrl())) {
+            s3Uploader.deleteByUrl(activity.getImageUrl());
+        }
+
         activity.update(
                 request.getName(), request.getImageUrl(), request.getIntroduction(),
                 request.getDescription(), request.getButtonName(), request.getPageNavigation()
@@ -51,7 +58,9 @@ public class ActivityService {
 
     @Transactional
     public void deleteActivity(Long id) {
-        activityRepository.delete(findActivityById(id));
+        Activity activity = findActivityById(id);
+        s3Uploader.deleteByUrl(activity.getImageUrl());
+        activityRepository.delete(activity);
     }
 
     private Activity findActivityById(Long id) {

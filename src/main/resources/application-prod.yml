@@ -28,6 +28,14 @@ spring:
           auth: true
           starttls:
             enable: true
+  # S3 (spring-cloud-aws-starter-s3 3.4.0 기준 실제 프로퍼티 prefix. 기존 cloud.aws.*는 잘못된 prefix였어서 수정함)
+  cloud:
+    aws:
+      credentials:
+        access-key: ${AWS_ACCESS_KEY}
+        secret-key: ${AWS_SECRET_KEY}
+      region:
+        static: ${AWS_REGION:ap-northeast-2}
 
 server:
   port: 8080
@@ -44,6 +52,9 @@ google:
 app:
   # 실제 배포된 프론트 도메인으로 교체 필요 (CORS 허용 출처)
   frontend-base-url: ${FRONTEND_BASE_URL}
+  # 버킷 이름은 Spring Cloud AWS 자체 프로퍼티가 아니라서 앱 커스텀 설정으로 둠
+  s3:
+    bucket: ${AWS_S3_BUCKET}
 
 firebase:
   credentials-base64: ${FIREBASE_CREDENTIALS_BASE64:}
@@ -53,14 +64,3 @@ attendance:
   check-close-hour: 22
   late-grace-minutes: 5
   absence-check-cron: "0 5 19 * * WED"
-
-# S3 (global/util 업로드 모듈 구현 후 실제로 쓰일 설정 - 미리 준비만 해둠)
-cloud:
-  aws:
-    credentials:
-      access-key: ${AWS_ACCESS_KEY}
-      secret-key: ${AWS_SECRET_KEY}
-    region:
-      static: ${AWS_REGION:ap-northeast-2}
-    s3:
-      bucket: ${AWS_S3_BUCKET}

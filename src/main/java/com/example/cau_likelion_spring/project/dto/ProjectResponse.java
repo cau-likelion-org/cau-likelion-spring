@@ -47,7 +47,7 @@ public record ProjectResponse(
         @Schema(description = "종료일")
         LocalDate endDate,
 
-        @Schema(description = "배너 이미지 URL")
+        @Schema(description = "프로젝트 하이라이트 텍스트 배너", example = "2026 멋대 최우수 출품작")
         String banner,
 
         @Schema(description = "프로젝트 이미지 목록")

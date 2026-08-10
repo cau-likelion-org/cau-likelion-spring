@@ -88,10 +88,6 @@ public class ProjectService {
         Project project = getProject(id);
         Generation generation = getGeneration(request.generationId());
 
-        if (request.banner() != null && !request.banner().equals(project.getBanner())) {
-            s3Uploader.deleteByUrl(project.getBanner());
-        }
-
         project.update(generation, request.title(), request.category(), request.stack(), request.tagline(),
                 request.summary(), request.teamName(), request.startDate(), request.endDate(), request.banner());
 
@@ -116,7 +112,6 @@ public class ProjectService {
     public void delete(Long id) {
         Project project = getProject(id);
 
-        s3Uploader.deleteByUrl(project.getBanner());
         projectImageRepository.findAllByProject(project).forEach(image -> s3Uploader.deleteByUrl(image.getImageUrl()));
         projectImageRepository.deleteAllByProject(project);
         projectLinkRepository.deleteAllByProject(project);

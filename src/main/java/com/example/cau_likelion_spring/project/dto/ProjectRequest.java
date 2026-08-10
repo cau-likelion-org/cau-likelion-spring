@@ -9,7 +9,7 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.util.List;
 
-/** banner/images는 POST /api/files/PROJECT로 미리 업로드해 받은 URL을 이 DTO에 담아 넘긴다. */
+/** images는 POST /api/files/PROJECT로 미리 업로드해 받은 URL을 이 DTO에 담아 넘긴다. banner는 이미지가 아니라 랜딩페이지 프로젝트 하이라이트에 노출되는 텍스트 캡션(예: "2026 멋대 최우수 출품작")이다. */
 @Schema(description = "프로젝트 생성/수정 요청")
 public record ProjectRequest(
 
@@ -40,7 +40,7 @@ public record ProjectRequest(
         @Schema(description = "종료일")
         LocalDate endDate,
 
-        @Schema(description = "배너 이미지 URL (POST /api/files/PROJECT로 미리 업로드한 URL)")
+        @Schema(description = "프로젝트 하이라이트 텍스트 배너", example = "2026 멋대 최우수 출품작")
         String banner,
 
         @Schema(description = "프로젝트 이미지 목록 (POST /api/files/PROJECT로 미리 업로드한 URL을 담는다)")

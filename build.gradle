@@ -57,8 +57,8 @@ dependencies {
 	// 과제 평가 결과 푸시 알림 (FCM)
 	implementation 'com.google.firebase:firebase-admin:9.4.1'
 
-	// 이미지/파일 업로드 (S3)
-	implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3:3.4.0'
+	// 이미지/파일 업로드 (S3) - 3.4.0은 Spring Boot 3.x용, Boot 4.1.0과 호환되는 4.1.0으로 교체
+	implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3:4.1.0'
 }
 
 tasks.named('test') {

@@ -51,6 +51,8 @@ public class Project extends BaseTimeEntity {
     @Column(length = 255)
     private String banner;
 
+    private Boolean isExposed;
+
     @Builder
     public Project(Generation generation, String title, ProjectCategory category, String stack, String tagline,
                     String summary, String teamName, LocalDate startDate, LocalDate endDate, String banner) {
@@ -64,6 +66,7 @@ public class Project extends BaseTimeEntity {
         this.startDate = startDate;
         this.endDate = endDate;
         this.banner = banner;
+        this.isExposed = false;
     }
 
     public void update(Generation generation, String title, ProjectCategory category, String stack, String tagline,

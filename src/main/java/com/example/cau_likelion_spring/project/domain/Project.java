@@ -82,4 +82,8 @@ public class Project extends BaseTimeEntity {
         this.endDate = endDate;
         this.banner = banner;
     }
+
+    public void updateExposure(boolean isExposed) {
+        this.isExposed = isExposed;
+    }
 }

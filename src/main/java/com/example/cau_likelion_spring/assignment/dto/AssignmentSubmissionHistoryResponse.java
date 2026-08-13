@@ -25,7 +25,7 @@ public record AssignmentSubmissionHistoryResponse(
         List<AssignmentSubmitResponse> submissions
 ) {
 
-    @Schema(description = "주차별로 묶인 과제별 제출 이력 (아기사자 본인 기준)")
+    @Schema(name = "AssignmentSubmissionHistoryWeekGroup", description = "주차별로 묶인 과제별 제출 이력 (아기사자 본인 기준)")
     public record WeekGroup(
 
             @Schema(description = "주차", example = "1")

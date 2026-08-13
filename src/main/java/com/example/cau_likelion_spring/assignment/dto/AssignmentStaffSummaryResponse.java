@@ -33,7 +33,7 @@ public record AssignmentStaffSummaryResponse(
         int approvedCount
 ) {
 
-    @Schema(description = "주차별로 묶인 과제 목록 (운영진 본인 파트 기준)")
+    @Schema(name = "AssignmentStaffSummaryWeekGroup", description = "주차별로 묶인 과제 목록 (운영진 본인 파트 기준)")
     public record WeekGroup(
 
             @Schema(description = "주차", example = "1")

@@ -26,6 +26,7 @@ import java.time.LocalDateTime;
  * 신청자에게 모집 공고 이메일을 발송(예정/완료)한 이력
  * 생성 시점에는 PENDING 상태이며 sentAt은 null, 실제 발송 시도 후 markSent()로 상태와 발송 시각이 채워짐
  * 구독자가 삭제(매년 3월 1일 초기화 등)되어도 발송 이력 자체는 남아야 하므로 subscriber는 nullable
+ * recipientEmail은 생성 시점의 이메일을 스냅샷으로 남겨둔 것이라, 구독자가 나중에 삭제돼도 계속 남아있음
  */
 @Entity
 @Getter
@@ -46,6 +47,9 @@ public class EmailSentLog {
     @JoinColumn(name = "text_id", nullable = false)
     private RecruitmentText recruitmentText;
 
+    @Column(nullable = false)
+    private String recipientEmail;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "varchar(20)")
     private EmailSentStatus status;
@@ -60,6 +64,7 @@ public class EmailSentLog {
     public EmailSentLog(RecruitmentSubscriber subscriber, RecruitmentText recruitmentText) {
         this.subscriber = subscriber;
         this.recruitmentText = recruitmentText;
+        this.recipientEmail = subscriber.getEmail();
         this.status = EmailSentStatus.PENDING;
     }
 

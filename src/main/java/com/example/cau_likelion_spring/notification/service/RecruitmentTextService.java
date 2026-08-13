@@ -168,8 +168,7 @@ public class RecruitmentTextService {
         int failed = (int) logs.stream().filter(log -> log.getStatus() == EmailSentStatus.FAILED).count();
 
         List<RecipientResponse> recipients = logs.stream()
-                .filter(log -> log.getSubscriber() != null)
-                .map(log -> new RecipientResponse(log.getSubscriber().getEmail(), log.getStatus()))
+                .map(log -> new RecipientResponse(log.getRecipientEmail(), log.getStatus()))
                 .toList();
 
         return new TextCounts(target, success, failed, recipients);

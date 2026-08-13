@@ -34,7 +34,7 @@ public record RecruitmentTextResponse(
         @Schema(description = "발송 실패 건수", example = "2")
         int failedCount,
 
-        @Schema(description = "수신자별 발송 결과 (구독자가 삭제된 대상은 제외)")
+        @Schema(description = "수신자별 발송 결과 (발송 시점 이메일 스냅샷이라 구독자가 나중에 삭제돼도 유지됨)")
         List<RecipientResponse> recipients,
 
         @Schema(description = "공고 발송 상태 (수신자별 성공/실패가 아닌, 공고 자체의 발송 진행 상태)")

@@ -14,6 +14,15 @@ public record RecruitmentSubscriberResponse(
         @Schema(description = "구독 이메일")
         String email,
 
+        @Schema(description = "신청자 이름")
+        String name,
+
+        @Schema(description = "관심 파트 id", example = "6")
+        Long interestPartId,
+
+        @Schema(description = "관심 파트 이름", example = "Backend")
+        String interestPartName,
+
         @Schema(description = "신청 일시")
         LocalDateTime registeredAt
 ) {
@@ -22,6 +31,9 @@ public record RecruitmentSubscriberResponse(
         return new RecruitmentSubscriberResponse(
                 subscriber.getId(),
                 subscriber.getEmail(),
+                subscriber.getName(),
+                subscriber.getInterestPart().getId(),
+                subscriber.getInterestPart().getName(),
                 subscriber.getRegisteredAt()
         );
     }

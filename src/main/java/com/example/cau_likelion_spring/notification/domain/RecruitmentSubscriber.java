@@ -1,11 +1,15 @@
 package com.example.cau_likelion_spring.notification.domain;
 
+import com.example.cau_likelion_spring.organization.domain.Part;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -31,11 +35,20 @@ public class RecruitmentSubscriber {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(nullable = false)
+    private String name;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "interest_part_id", nullable = false)
+    private Part interestPart;
+
     @CreatedDate
     private LocalDateTime registeredAt;
 
     @Builder
-    public RecruitmentSubscriber(String email) {
+    public RecruitmentSubscriber(String email, String name, Part interestPart) {
         this.email = email;
+        this.name = name;
+        this.interestPart = interestPart;
     }
 }

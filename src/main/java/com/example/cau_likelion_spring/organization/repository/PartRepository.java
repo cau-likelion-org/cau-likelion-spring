@@ -11,4 +11,6 @@ public interface PartRepository extends JpaRepository<Part, Long> {
     Optional<Part> findByNameAndGeneration_Number(String name, Integer number);
 
     List<Part> findAllByGeneration_IdIn(List<Long> generationIds);
+
+    List<Part> findAllByGeneration_Id(Long generationId);
 }

@@ -1,5 +1,6 @@
 package com.example.cau_likelion_spring.notification.controller;
 
+import com.example.cau_likelion_spring.notification.dto.AvailablePartResponse;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentSubscribeRequest;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentSubscriberResponse;
 import com.example.cau_likelion_spring.notification.service.RecruitmentSubscriberService;
@@ -27,6 +28,14 @@ import java.util.List;
 public class RecruitmentSubscriberController {
 
     private final RecruitmentSubscriberService recruitmentSubscriberService;
+
+    @Operation(summary = "구독 신청 시 선택 가능한 관심 파트 목록 조회",
+            description = "가장 최근 기수의 파트 목록을 반환합니다. 로그인 없이 누구나 조회할 수 있습니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
+    @GetMapping("/available-parts")
+    public ResponseEntity<List<AvailablePartResponse>> getAvailableParts() {
+        return ResponseEntity.ok(recruitmentSubscriberService.getAvailableParts());
+    }
 
     @Operation(summary = "모집 알림 이메일 구독 신청",
             description = "이메일을 입력받아 모집 공고 알림 구독자로 등록합니다. 로그인 없이 누구나 신청할 수 있습니다.")

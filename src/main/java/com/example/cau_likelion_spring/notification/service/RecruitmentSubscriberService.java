@@ -1,11 +1,16 @@
 package com.example.cau_likelion_spring.notification.service;
 
 import com.example.cau_likelion_spring.notification.domain.RecruitmentSubscriber;
+import com.example.cau_likelion_spring.notification.dto.AvailablePartResponse;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentSubscribeRequest;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentSubscriberResponse;
 import com.example.cau_likelion_spring.global.exception.CustomException;
 import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.notification.repository.RecruitmentSubscriberRepository;
+import com.example.cau_likelion_spring.organization.domain.Generation;
+import com.example.cau_likelion_spring.organization.domain.Part;
+import com.example.cau_likelion_spring.organization.repository.GenerationRepository;
+import com.example.cau_likelion_spring.organization.repository.PartRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
@@ -22,6 +27,8 @@ import java.util.List;
 public class RecruitmentSubscriberService {
 
     private final RecruitmentSubscriberRepository recruitmentSubscriberRepository;
+    private final GenerationRepository generationRepository;
+    private final PartRepository partRepository;
 
     @Transactional
     public RecruitmentSubscriberResponse subscribe(RecruitmentSubscribeRequest request) {
@@ -29,9 +36,14 @@ public class RecruitmentSubscriberService {
             throw new CustomException(ErrorCode.DUPLICATE_SUBSCRIPTION, "이미 구독 중인 이메일입니다. email=" + request.email());
         }
 
+        Part interestPart = partRepository.findById(request.interestPartId())
+                .orElseThrow(() -> new CustomException(ErrorCode.PART_NOT_FOUND, "존재하지 않는 파트입니다. interestPartId=" + request.interestPartId()));
+
         RecruitmentSubscriber subscriber = recruitmentSubscriberRepository.save(
                 RecruitmentSubscriber.builder()
                         .email(request.email())
+                        .name(request.name())
+                        .interestPart(interestPart)
                         .build());
 
         return RecruitmentSubscriberResponse.of(subscriber);
@@ -40,6 +52,19 @@ public class RecruitmentSubscriberService {
     public List<RecruitmentSubscriberResponse> getAll() {
         return recruitmentSubscriberRepository.findAll(Sort.by(Sort.Direction.DESC, "registeredAt")).stream()
                 .map(RecruitmentSubscriberResponse::of)
+                .toList();
+    }
+
+    /**
+     * 신청 폼에 노출할 관심 파트 목록. 가장 최근 기수(number 최댓값)의 파트를 기준으로 삼는다.
+     * (모집 알림은 다음 기수가 생성되기 전에 미리 받기 때문에, 다음 기수가 아닌 직전 기수의 파트를 기준으로 함)
+     */
+    public List<AvailablePartResponse> getAvailableParts() {
+        Generation latestGeneration = generationRepository.findTopByOrderByNumberDesc()
+                .orElseThrow(() -> new CustomException(ErrorCode.GENERATION_NOT_FOUND, "등록된 기수가 없습니다."));
+
+        return partRepository.findAllByGeneration_Id(latestGeneration.getId()).stream()
+                .map(AvailablePartResponse::of)
                 .toList();
     }
 

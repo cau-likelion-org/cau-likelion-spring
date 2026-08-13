@@ -3,10 +3,10 @@ package com.example.cau_likelion_spring.assignment.controller;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentCreateRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadlineRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadlineResponse;
-import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberSubmissionResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberWeeklyStatusResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffDetailResponse;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffSubmissionHistoryResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffSummaryResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitEvaluateRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitResponse;
@@ -126,6 +126,21 @@ public class AssignmentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(assignmentService.create(memberId, request));
     }
 
+    @Operation(summary = "과제 단건 조회",
+            description = "로그인한 운영진이 본인 파트의 과제 1개를 상세 조회합니다 (과제명/설명/마감기한/제출형식 등). STAFF 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음 또는 본인 파트의 과제가 아님"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 과제"),
+            @ApiResponse(responseCode = "409", description = "운영진에게 배정된 파트가 없음")
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<AssignmentResponse> getById(
+            @AuthenticationPrincipal Long memberId,
+            @Parameter(description = "과제 ID", required = true) @PathVariable Long id) {
+        return ResponseEntity.ok(assignmentService.getById(memberId, id));
+    }
+
     @Operation(summary = "과제 수정",
             description = "로그인한 운영진이 본인 파트의 과제를 수정합니다. 파트/주차는 수정할 수 없고 과제명/설명/마감기한/제출형식만 변경됩니다. "
                     + "수정 전까지 제출된 과제 제출 이력은 그대로 유지됩니다. STAFF 권한이 필요합니다.")
@@ -180,9 +195,10 @@ public class AssignmentController {
     }
 
     // 파트원 제출 현황 조회 및 평가
-    @Operation(summary = "파트원 전체 제출 현황 조회",
-            description = "로그인한 운영진이 본인 파트원 전체의 과제 제출 현황을 조회합니다. 제출한 파트원은 최종 제출본(제출물/최종 제출 시각/상태)만 노출되고, "
-                    + "한 번도 제출하지 않은 파트원도 제출전/미제출 상태로 함께 포함됩니다. 평가(승인/반려)가 완료된 제출이면 평가한 운영진 이름(reviewerName)도 함께 내려줍니다. "
+    @Operation(summary = "파트원 전체 제출 이력 조회",
+            description = "로그인한 운영진이 본인 파트원 전체의 과제 제출 이력을 조회합니다. 과제 자체의 제목/설명/마감기한과 함께, "
+                    + "파트원별 제출 이력을 최신순으로 전부 내려줍니다 (반려 후 재제출처럼 같은 파트원이 같은 과제를 여러 번 제출했다면 그 이력이 모두 노출됨). "
+                    + "한 번도 제출하지 않은 파트원도 제출전/미제출 상태로 빈 이력과 함께 포함됩니다. 평가(승인/반려)가 완료된 제출이면 평가한 운영진 이름(reviewerName)도 함께 내려줍니다. "
                     + "STAFF 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
@@ -191,7 +207,7 @@ public class AssignmentController {
             @ApiResponse(responseCode = "409", description = "운영진에게 배정된 파트가 없음")
     })
     @GetMapping("/{assignmentId}/submissions/staff")
-    public ResponseEntity<List<AssignmentMemberSubmissionResponse>> getSubmissionsForStaff(
+    public ResponseEntity<AssignmentStaffSubmissionHistoryResponse> getSubmissionsForStaff(
             @AuthenticationPrincipal Long memberId,
             @Parameter(description = "과제 ID", required = true) @PathVariable Long assignmentId) {
         return ResponseEntity.ok(assignmentService.getSubmissionsForStaff(memberId, assignmentId));

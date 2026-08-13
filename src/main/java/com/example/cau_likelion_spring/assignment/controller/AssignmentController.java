@@ -6,6 +6,7 @@ import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadli
 import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberWeeklyStatusResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffDetailResponse;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffSubmissionHistoryResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffSummaryResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitEvaluateRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitResponse;
@@ -179,10 +180,10 @@ public class AssignmentController {
     }
 
     // 파트원 제출 현황 조회 및 평가
-    @Operation(summary = "파트원 전체 제출 현황 조회",
-            description = "로그인한 운영진이 본인 파트원 전체의 과제 제출 현황을 조회합니다. 과제 자체의 제목/설명/마감기한과 함께, "
-                    + "제출한 파트원은 최종 제출본(제출물/최종 제출 시각/상태)만 노출되고, "
-                    + "한 번도 제출하지 않은 파트원도 제출전/미제출 상태로 함께 포함됩니다. 평가(승인/반려)가 완료된 제출이면 평가한 운영진 이름(reviewerName)도 함께 내려줍니다. "
+    @Operation(summary = "파트원 전체 제출 이력 조회",
+            description = "로그인한 운영진이 본인 파트원 전체의 과제 제출 이력을 조회합니다. 과제 자체의 제목/설명/마감기한과 함께, "
+                    + "파트원별 제출 이력을 최신순으로 전부 내려줍니다 (반려 후 재제출처럼 같은 파트원이 같은 과제를 여러 번 제출했다면 그 이력이 모두 노출됨). "
+                    + "한 번도 제출하지 않은 파트원도 제출전/미제출 상태로 빈 이력과 함께 포함됩니다. 평가(승인/반려)가 완료된 제출이면 평가한 운영진 이름(reviewerName)도 함께 내려줍니다. "
                     + "STAFF 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
@@ -191,7 +192,7 @@ public class AssignmentController {
             @ApiResponse(responseCode = "409", description = "운영진에게 배정된 파트가 없음")
     })
     @GetMapping("/{assignmentId}/submissions/staff")
-    public ResponseEntity<AssignmentStaffDetailResponse> getSubmissionsForStaff(
+    public ResponseEntity<AssignmentStaffSubmissionHistoryResponse> getSubmissionsForStaff(
             @AuthenticationPrincipal Long memberId,
             @Parameter(description = "과제 ID", required = true) @PathVariable Long assignmentId) {
         return ResponseEntity.ok(assignmentService.getSubmissionsForStaff(memberId, assignmentId));

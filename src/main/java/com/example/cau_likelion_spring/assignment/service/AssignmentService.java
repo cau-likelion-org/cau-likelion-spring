@@ -9,10 +9,12 @@ import com.example.cau_likelion_spring.assignment.domain.SubmissionFile;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentCreateRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadlineRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadlineResponse;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberSubmissionHistoryResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberSubmissionResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberWeeklyStatusResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffDetailResponse;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffSubmissionHistoryResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffSummaryResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitEvaluateRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitResponse;
@@ -206,12 +208,13 @@ public class AssignmentService {
     }
 
     /**
-     * 운영진이 보는 파트원 전체의 제출 현황. 제출했다면 최종본만 보여주고,
-     * 한 번도 제출하지 않은 파트원도 "제출전"/"미제출" 상태로 함께 노출된다.
+     * 운영진이 보는 파트원 전체의 제출 이력. 파트원별로 제출 이력을 전부(최신순) 보여준다 -
+     * 반려 후 재제출처럼 같은 파트원이 같은 과제에 여러 번 제출했다면 그 이력이 모두 노출된다.
+     * 한 번도 제출하지 않은 파트원도 "제출전"/"미제출" 상태로 빈 이력과 함께 포함된다.
      * 과제 자체의 제목/설명/마감기한도 함께 내려준다.
      */
     @PreAuthorize("hasRole('STAFF')")
-    public AssignmentStaffDetailResponse getSubmissionsForStaff(Long staffMemberId, Long assignmentId) {
+    public AssignmentStaffSubmissionHistoryResponse getSubmissionsForStaff(Long staffMemberId, Long assignmentId) {
         Assignment assignment = getAssignment(assignmentId);
         Part staffPart = getStaffPart(staffMemberId);
         if (!assignment.getPart().getId().equals(staffPart.getId())) {
@@ -220,7 +223,7 @@ public class AssignmentService {
 
         List<Member> babyLions = memberRepository.findByPart_IdAndRole(assignment.getPart().getId(), MemberRole.BABY_LION);
         if (babyLions.isEmpty()) {
-            return new AssignmentStaffDetailResponse(assignment.getId(), assignment.getTitle(), assignment.getDetail(),
+            return new AssignmentStaffSubmissionHistoryResponse(assignment.getId(), assignment.getTitle(), assignment.getDetail(),
                     assignment.getEndDate(), List.of());
         }
 
@@ -235,16 +238,15 @@ public class AssignmentService {
                 .findAllByAssignment_IdAndMember_IdIn(assignmentId, memberIds).stream()
                 .collect(Collectors.toMap(deadline -> deadline.getMember().getId(), AssignmentIndividualDeadline::getDeadline));
 
-        List<AssignmentMemberSubmissionResponse> submissions = babyLions.stream()
+        List<AssignmentMemberSubmissionHistoryResponse> submissions = babyLions.stream()
                 .map(member -> {
                     List<AssignmentSubmit> submits = submitsByMemberId.getOrDefault(member.getId(), List.of());
-                    AssignmentSubmit latest = submits.isEmpty() ? null : submits.get(0);
                     LocalDateTime endDate = individualDeadlineByMemberId.getOrDefault(member.getId(), assignment.getEndDate());
-                    return toMemberSubmission(member, endDate, latest, filesBySubmitId);
+                    return toMemberSubmissionHistory(member, endDate, submits, filesBySubmitId);
                 })
                 .toList();
 
-        return new AssignmentStaffDetailResponse(assignment.getId(), assignment.getTitle(), assignment.getDetail(),
+        return new AssignmentStaffSubmissionHistoryResponse(assignment.getId(), assignment.getTitle(), assignment.getDetail(),
                 assignment.getEndDate(), submissions);
     }
 
@@ -422,6 +424,18 @@ public class AssignmentService {
         AssignmentSubmitResponse latestResponse = latest == null ? null
                 : AssignmentSubmitResponse.of(latest, filesBySubmitId.getOrDefault(latest.getId(), List.of()), displayStatus);
         return AssignmentMemberSubmissionResponse.of(member, displayStatus, latestResponse);
+    }
+
+    private AssignmentMemberSubmissionHistoryResponse toMemberSubmissionHistory(Member member, LocalDateTime endDate,
+                                                                                  List<AssignmentSubmit> submits,
+                                                                                  Map<Long, List<SubmissionFile>> filesBySubmitId) {
+        AssignmentSubmit latest = submits.isEmpty() ? null : submits.get(0);
+        AssignmentSubmitDisplayStatus displayStatus = AssignmentSubmitDisplayStatusCalculator.calculate(endDate, latest);
+        List<AssignmentSubmitResponse> history = submits.stream()
+                .map(submit -> AssignmentSubmitResponse.of(submit, filesBySubmitId.getOrDefault(submit.getId(), List.of()),
+                        AssignmentSubmitDisplayStatusCalculator.calculate(endDate, submit)))
+                .toList();
+        return AssignmentMemberSubmissionHistoryResponse.of(member, displayStatus, history);
     }
 
     private Map<Long, List<SubmissionFile>> groupFilesBySubmitId(List<AssignmentSubmit> submits) {

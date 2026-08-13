@@ -88,6 +88,7 @@ public enum ErrorCode {
     DUPLICATE_SUBSCRIPTION(HttpStatus.CONFLICT, "이미 구독 중입니다."),
     RECRUITMENT_TEXT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 모집 공고입니다."),
     RECRUITMENT_TEXT_ALREADY_SENT(HttpStatus.CONFLICT, "이미 발송된 모집 공고입니다."),
+    RECRUITMENT_TEXT_NO_RESEND_TARGET(HttpStatus.CONFLICT, "재전송할 실패 대상이 없습니다."),
 
     // ===== File Upload (global/util) =====
     FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다."),

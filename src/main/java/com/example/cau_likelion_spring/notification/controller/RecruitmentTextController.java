@@ -1,7 +1,5 @@
 package com.example.cau_likelion_spring.notification.controller;
 
-import com.example.cau_likelion_spring.notification.domain.EmailSentStatus;
-import com.example.cau_likelion_spring.notification.dto.EmailSentLogResponse;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentTextRequest;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentTextResponse;
 import com.example.cau_likelion_spring.notification.service.RecruitmentTextService;
@@ -15,14 +13,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -89,34 +85,20 @@ public class RecruitmentTextController {
         return ResponseEntity.ok(recruitmentTextService.update(id, request));
     }
 
-    @Operation(summary = "발송 이력 조회",
-            description = "공고의 이메일 발송 이력을 조회합니다. status 파라미터로 FAILED 등 특정 상태만 필터링할 수 있고, "
-                    + "생략하면 재전송 시도까지 포함한 전체 이력을 조회합니다. ADMIN 권한이 필요합니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "조회 성공"),
-            @ApiResponse(responseCode = "404", description = "존재하지 않는 공고")
-    })
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/{id}/logs")
-    public ResponseEntity<List<EmailSentLogResponse>> getLogs(
-            @Parameter(description = "공고 ID", required = true) @PathVariable Long id,
-            @Parameter(description = "필터링할 발송 상태") @RequestParam(required = false) EmailSentStatus status) {
-        return ResponseEntity.ok(recruitmentTextService.getLogs(id, status));
-    }
-
     @Operation(summary = "실패 건 재전송",
-            description = "FAILED 상태인 발송 대상들에게 원본 공고와 동일한 제목/본문으로 이메일을 즉시 재전송합니다. "
-                    + "기존 실패 이력은 유지되며, 재전송 시도마다 새로운 발송 이력이 추가됩니다. "
+            description = "FAILED 상태인 발송 대상들에게 원본과 동일한 제목/본문으로 새 공고를 하나 더 만들어 즉시 재전송합니다. "
+                    + "원본 공고는 그대로 유지되며, 재전송 건은 목록에 독립된 공고로 추가됩니다. "
                     + "구독자가 이미 삭제된 로그는 재전송 대상에서 제외됩니다. ADMIN 권한이 필요합니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "재전송 처리 완료"),
-            @ApiResponse(responseCode = "404", description = "존재하지 않는 공고")
+            @ApiResponse(responseCode = "201", description = "재전송 공고 생성 및 처리 완료"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 공고"),
+            @ApiResponse(responseCode = "409", description = "재전송할 실패 대상이 없음")
     })
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/resend")
-    public ResponseEntity<List<EmailSentLogResponse>> resend(
+    public ResponseEntity<RecruitmentTextResponse> resend(
             @Parameter(description = "공고 ID", required = true) @PathVariable Long id) {
-        return ResponseEntity.ok(recruitmentTextService.resendFailed(id));
+        return ResponseEntity.status(HttpStatus.CREATED).body(recruitmentTextService.resendFailed(id));
     }
 
     @Operation(summary = "모집 공고 발송 취소",
@@ -133,22 +115,6 @@ public class RecruitmentTextController {
     public ResponseEntity<Void> cancel(
             @Parameter(description = "공고 ID", required = true) @PathVariable Long id) {
         recruitmentTextService.cancel(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @Operation(summary = "모집 공고 삭제",
-            description = "아직 발송이 시작되지 않은 공고만 삭제할 수 있습니다. ADMIN 권한이 필요합니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "삭제 성공"),
-            @ApiResponse(responseCode = "403", description = "권한 없음"),
-            @ApiResponse(responseCode = "404", description = "존재하지 않는 공고"),
-            @ApiResponse(responseCode = "409", description = "이미 발송이 시작되어 삭제 불가")
-    })
-    @PreAuthorize("hasRole('ADMIN')")
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(
-            @Parameter(description = "공고 ID", required = true) @PathVariable Long id) {
-        recruitmentTextService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

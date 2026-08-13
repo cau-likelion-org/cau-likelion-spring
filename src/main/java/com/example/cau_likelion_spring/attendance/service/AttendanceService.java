@@ -154,7 +154,7 @@ public class AttendanceService {
                 .toList();
     }
 
-    private AttendanceStatusResponse updateAttendanceStatus(Member requester, AttendanceStatusBatchUpdateRequest.Item item) {
+    private AttendanceStatusResponse updateAttendanceStatus(Member requester, AttendanceStatusBatchUpdateRequest.AttendanceUpdateItem item) {
         boolean requiresReason = item.status() == AttendanceStatus.ABSENT || item.status() == AttendanceStatus.EXCUSED;
         if (requiresReason && (item.reason() == null || item.reason().isBlank())) {
             throw new CustomException(ErrorCode.ATTENDANCE_REASON_REQUIRED);

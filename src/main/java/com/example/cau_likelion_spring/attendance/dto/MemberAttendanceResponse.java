@@ -18,6 +18,9 @@ public record MemberAttendanceResponse(
         @Schema(description = "기수 번호")
         Integer generationNumber,
 
+        @Schema(description = "파트 이름")
+        String partName,
+
         @Schema(description = "주차별 출결 현황")
         List<AttendanceStatusResponse> attendances,
 
@@ -35,6 +38,7 @@ public record MemberAttendanceResponse(
                 member.getId(),
                 member.getName(),
                 member.getPart().getGeneration().getNumber(),
+                member.getPart().getName(),
                 attendances,
                 attendancePenalty
         );

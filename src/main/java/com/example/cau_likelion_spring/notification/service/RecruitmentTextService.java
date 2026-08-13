@@ -4,7 +4,7 @@ import com.example.cau_likelion_spring.notification.domain.EmailSentLog;
 import com.example.cau_likelion_spring.notification.domain.EmailSentStatus;
 import com.example.cau_likelion_spring.notification.domain.RecruitmentSubscriber;
 import com.example.cau_likelion_spring.notification.domain.RecruitmentText;
-import com.example.cau_likelion_spring.notification.dto.EmailSentLogResponse;
+import com.example.cau_likelion_spring.notification.dto.RecipientResponse;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentTextRequest;
 import com.example.cau_likelion_spring.notification.dto.RecruitmentTextResponse;
 import com.example.cau_likelion_spring.global.exception.CustomException;
@@ -17,9 +17,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -43,15 +43,10 @@ public class RecruitmentTextService {
                 .scheduledSendAt(request.scheduledSendAt())
                 .build());
 
-        List<EmailSentLog> logs = subscribers.stream()
-                .map(subscriber -> EmailSentLog.builder()
-                        .subscriber(subscriber)
-                        .recruitmentText(text)
-                        .build())
-                .toList();
-        emailSentLogRepository.saveAll(logs);
+        List<EmailSentLog> logs = saveLogsFor(text, subscribers);
 
-        return RecruitmentTextResponse.of(text, logs.size(), 0, 0);
+        List<RecipientResponse> recipients = toPendingRecipients(subscribers);
+        return RecruitmentTextResponse.of(text, logs.size(), 0, 0, recipients);
     }
 
     public List<RecruitmentTextResponse> getAll() {
@@ -59,7 +54,8 @@ public class RecruitmentTextService {
         return recruitmentTextRepository.findAll(sort).stream()
                 .map(text -> {
                     TextCounts counts = countLogs(text);
-                    return RecruitmentTextResponse.of(text, counts.target(), counts.success(), counts.failed());
+                    return RecruitmentTextResponse.of(
+                            text, counts.target(), counts.success(), counts.failed(), counts.recipients());
                 })
                 .toList();
     }
@@ -67,7 +63,8 @@ public class RecruitmentTextService {
     public RecruitmentTextResponse getById(Long id) {
         RecruitmentText text = getText(id);
         TextCounts counts = countLogs(text);
-        return RecruitmentTextResponse.of(text, counts.target(), counts.success(), counts.failed());
+        return RecruitmentTextResponse.of(
+                text, counts.target(), counts.success(), counts.failed(), counts.recipients());
     }
 
     @Transactional
@@ -79,47 +76,45 @@ public class RecruitmentTextService {
         text.update(request.title(), request.content(), request.scheduledSendAt());
 
         emailSentLogRepository.deleteAll(emailSentLogRepository.findAllByRecruitmentText(text));
-        List<EmailSentLog> logs = subscribers.stream()
-                .map(subscriber -> EmailSentLog.builder()
-                        .subscriber(subscriber)
-                        .recruitmentText(text)
-                        .build())
-                .toList();
-        emailSentLogRepository.saveAll(logs);
+        List<EmailSentLog> logs = saveLogsFor(text, subscribers);
 
-        return RecruitmentTextResponse.of(text, logs.size(), 0, 0);
-    }
-
-    public List<EmailSentLogResponse> getLogs(Long id, EmailSentStatus status) {
-        RecruitmentText text = getText(id);
-        List<EmailSentLog> logs = (status != null)
-                ? emailSentLogRepository.findAllByRecruitmentTextAndStatus(text, status)
-                : emailSentLogRepository.findAllByRecruitmentText(text);
-        return logs.stream().map(EmailSentLogResponse::of).toList();
+        List<RecipientResponse> recipients = toPendingRecipients(subscribers);
+        return RecruitmentTextResponse.of(text, logs.size(), 0, 0, recipients);
     }
 
     /**
-     * FAILED 상태인 발송 대상들에게 원본 공고와 동일한 제목/본문으로 재전송한다. 기존 실패 로그는 그대로 두고
-     * 재전송 시도마다 새로운 EmailSentLog를 남겨 전체 발송 이력이 누적되도록 한다.
+     * FAILED 상태인 발송 대상들에게 원본 공고와 동일한 제목/본문으로 새 공고를 하나 더 만들어 즉시 재전송한다.
+     * 원본 공고는 그대로 두고(수정하지 않음), 재전송 건은 별도 공고 row + 로그로 남아 목록에서 독립된 한 건으로 보인다.
      * 구독자가 이미 삭제된 로그는 보낼 대상이 없으므로 재전송에서 제외한다.
      */
     @Transactional
-    public List<EmailSentLogResponse> resendFailed(Long id) {
-        RecruitmentText text = getText(id);
+    public RecruitmentTextResponse resendFailed(Long id) {
+        RecruitmentText originalText = getText(id);
         List<EmailSentLog> failedLogs = emailSentLogRepository
-                .findAllByRecruitmentTextAndStatus(text, EmailSentStatus.FAILED);
-
-        List<EmailSentLog> resentLogs = failedLogs.stream()
-                .filter(log -> log.getSubscriber() != null)
-                .map(log -> EmailSentLog.builder()
-                        .subscriber(log.getSubscriber())
-                        .recruitmentText(text)
-                        .build())
+                .findAllByRecruitmentTextAndStatus(originalText, EmailSentStatus.FAILED);
+        List<RecruitmentSubscriber> failedSubscribers = failedLogs.stream()
+                .map(EmailSentLog::getSubscriber)
+                .filter(subscriber -> subscriber != null)
                 .toList();
-        emailSentLogRepository.saveAll(resentLogs);
-        resentLogs.forEach(recruitmentEmailSenderService::send);
 
-        return resentLogs.stream().map(EmailSentLogResponse::of).toList();
+        if (failedSubscribers.isEmpty()) {
+            throw new CustomException(ErrorCode.RECRUITMENT_TEXT_NO_RESEND_TARGET,
+                    "재전송할 실패 대상이 없습니다. id=" + id);
+        }
+
+        RecruitmentText resendText = recruitmentTextRepository.save(RecruitmentText.builder()
+                .title(originalText.getTitle())
+                .content(originalText.getContent())
+                .scheduledSendAt(LocalDateTime.now())
+                .build());
+
+        List<EmailSentLog> resentLogs = saveLogsFor(resendText, failedSubscribers);
+        resentLogs.forEach(recruitmentEmailSenderService::send);
+        resendText.markSent();
+
+        TextCounts counts = countLogs(resendText);
+        return RecruitmentTextResponse.of(
+                resendText, counts.target(), counts.success(), counts.failed(), counts.recipients());
     }
 
     /**
@@ -145,31 +140,42 @@ public class RecruitmentTextService {
         }
     }
 
+    private List<EmailSentLog> saveLogsFor(RecruitmentText text, List<RecruitmentSubscriber> subscribers) {
+        List<EmailSentLog> logs = subscribers.stream()
+                .map(subscriber -> EmailSentLog.builder()
+                        .subscriber(subscriber)
+                        .recruitmentText(text)
+                        .build())
+                .toList();
+        return emailSentLogRepository.saveAll(logs);
+    }
+
+    private List<RecipientResponse> toPendingRecipients(List<RecruitmentSubscriber> subscribers) {
+        return subscribers.stream()
+                .map(subscriber -> new RecipientResponse(subscriber.getEmail(), EmailSentStatus.PENDING))
+                .toList();
+    }
+
     /**
-     * 재전송으로 같은 구독자에게 로그가 여러 건 쌓일 수 있어, targetCount는 로그 개수가 아닌 서로 다른 구독자 수로 센다.
-     * 구독자가 삭제된 로그(subscriber null)는 재전송 대상에서 제외되므로 중복 없이 항상 로그 1건 = 대상 1명이다.
-     * successCount/failedCount는 수신자별 최신 발송 결과가 아닌, 누적된 로그(재전송 포함) 기준 건수다.
+     * 재전송은 이제 원본과 별개의 공고(RecruitmentText)로 남기 때문에, 한 공고의 로그는 항상 수신자 1명당 1건이다
+     * (같은 공고에 같은 구독자의 로그가 중복될 일이 없음). 그래서 target은 단순히 로그 개수와 같다.
      */
     private TextCounts countLogs(RecruitmentText text) {
         List<EmailSentLog> logs = emailSentLogRepository.findAllByRecruitmentText(text);
-        long distinctSubscriberCount = logs.stream()
-                .map(EmailSentLog::getSubscriber)
-                .filter(Objects::nonNull)
-                .map(RecruitmentSubscriber::getId)
-                .distinct()
-                .count();
-        long deletedSubscriberLogCount = logs.stream()
-                .filter(log -> log.getSubscriber() == null)
-                .count();
-        int target = (int) (distinctSubscriberCount + deletedSubscriberLogCount);
 
+        int target = logs.size();
         int success = (int) logs.stream().filter(log -> log.getStatus() == EmailSentStatus.SUCCESS).count();
         int failed = (int) logs.stream().filter(log -> log.getStatus() == EmailSentStatus.FAILED).count();
 
-        return new TextCounts(target, success, failed);
+        List<RecipientResponse> recipients = logs.stream()
+                .filter(log -> log.getSubscriber() != null)
+                .map(log -> new RecipientResponse(log.getSubscriber().getEmail(), log.getStatus()))
+                .toList();
+
+        return new TextCounts(target, success, failed, recipients);
     }
 
-    private record TextCounts(int target, int success, int failed) {
+    private record TextCounts(int target, int success, int failed, List<RecipientResponse> recipients) {
     }
 
     private List<RecruitmentSubscriber> getSubscribers(List<Long> subscriberIds) {

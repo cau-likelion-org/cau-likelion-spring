@@ -2,6 +2,7 @@ package com.example.cau_likelion_spring.notification.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.FetchType;
@@ -16,6 +17,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
@@ -26,6 +29,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Getter
+@EntityListeners(AuditingEntityListener.class)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class EmailSentLog {
 
@@ -45,6 +49,10 @@ public class EmailSentLog {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "varchar(20)")
     private EmailSentStatus status;
+
+    /** 로그 생성 시각 (최초 발송 대상 등록 시각, 재전송이면 재전송 시도한 시각) */
+    @CreatedDate
+    private LocalDateTime createdAt;
 
     private LocalDateTime sentAt;
 

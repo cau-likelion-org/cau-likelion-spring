@@ -5,6 +5,7 @@ import com.example.cau_likelion_spring.notification.domain.RecruitmentText;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Schema(description = "모집 공고 응답")
 public record RecruitmentTextResponse(
@@ -33,11 +34,15 @@ public record RecruitmentTextResponse(
         @Schema(description = "발송 실패 건수", example = "2")
         int failedCount,
 
+        @Schema(description = "수신자별 발송 결과 (구독자가 삭제된 대상은 제외)")
+        List<RecipientResponse> recipients,
+
         @Schema(description = "공고 발송 상태 (수신자별 성공/실패가 아닌, 공고 자체의 발송 진행 상태)")
         RecruitmentSendStatus status
 ) {
 
-    public static RecruitmentTextResponse of(RecruitmentText text, int targetCount, int successCount, int failedCount) {
+    public static RecruitmentTextResponse of(
+            RecruitmentText text, int targetCount, int successCount, int failedCount, List<RecipientResponse> recipients) {
         boolean cancelled = text.getStatus() == RecruitmentSendStatus.CANCELLED;
         return new RecruitmentTextResponse(
                 text.getId(),
@@ -48,6 +53,7 @@ public record RecruitmentTextResponse(
                 targetCount,
                 successCount,
                 failedCount,
+                recipients,
                 text.getStatus()
         );
     }

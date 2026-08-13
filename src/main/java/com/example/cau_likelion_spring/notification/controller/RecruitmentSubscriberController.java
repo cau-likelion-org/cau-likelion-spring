@@ -52,6 +52,17 @@ public class RecruitmentSubscriberController {
         return ResponseEntity.status(HttpStatus.CREATED).body(recruitmentSubscriberService.subscribe(request));
     }
 
+    @Operation(summary = "신청자들이 선택한 관심 파트 이름 목록 조회",
+            description = "구독자 목록 필터 드롭다운 구성용입니다. 현재 신청자들이 실제로 선택한 관심 파트 이름만 "
+                    + "중복 없이 반환하며, 신청자 명단이 바뀌면(신규 신청, 매년 3/1 초기화 등) 결과도 같이 바뀝니다. "
+                    + "ADMIN 권한이 필요합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/interest-parts")
+    public ResponseEntity<List<String>> getInterestPartNames() {
+        return ResponseEntity.ok(recruitmentSubscriberService.getInterestPartNames());
+    }
+
     @Operation(summary = "모집 알림 구독자 목록 조회",
             description = "공고 발송 대상을 선택하기 위한 구독자 목록입니다. interestPartName을 넘기면 해당 이름의 관심 파트를 "
                     + "선택한 구독자만 필터링합니다. 파트는 기수마다 새로 생성되는 데이터라 id가 아닌 이름으로 필터링하며, "

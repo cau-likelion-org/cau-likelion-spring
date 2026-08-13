@@ -78,6 +78,14 @@ public class RecruitmentSubscriberService {
                 .toList();
     }
 
+    /**
+     * 필터 드롭다운용. available-parts(신청 폼용, 최신 기수 고정 목록)와 달리, 실제 신청자들이 지금 고른
+     * 관심 파트 이름만 뽑는다. 신청자 명단이 바뀌면 결과도 그때그때 달라진다.
+     */
+    public List<String> getInterestPartNames() {
+        return recruitmentSubscriberRepository.findDistinctInterestPartNames();
+    }
+
     private List<Part> findPartsOrThrow(List<Long> partIds) {
         Set<Long> uniqueIds = new LinkedHashSet<>(partIds);
         List<Part> parts = partRepository.findAllById(uniqueIds);

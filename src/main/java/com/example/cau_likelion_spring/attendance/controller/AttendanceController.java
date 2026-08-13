@@ -74,6 +74,17 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.getPartAttendances(memberId));
     }
 
+    @Operation(summary = "전체 파트 아기사자 출결 현황 조회", description = "회장이 전체 파트 아기사자들의 주차별 출결 현황을 조회합니다. "
+            + "각 아기사자의 출결로 인한 감점(attendancePenalty)도 함께 반환합니다 (과제 감점은 제외). PRESIDENT 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음")
+    })
+    @GetMapping("/all")
+    public ResponseEntity<List<MemberAttendanceResponse>> getAllAttendances() {
+        return ResponseEntity.ok(attendanceService.getAllAttendances());
+    }
+
     @Operation(summary = "출결 상태 일괄 수정", description = "운영진/회장이 여러 아기사자의 출결 상태를 한 번에 수정합니다. " +
             "결석 또는 공결로 변경할 때는 사유가 필수입니다. STAFF는 본인 파트 아기사자만, PRESIDENT는 전체 파트를 수정할 수 있습니다.")
     @ApiResponses({

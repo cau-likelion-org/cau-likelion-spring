@@ -435,7 +435,7 @@ public class AssignmentService {
                 .map(submit -> AssignmentSubmitResponse.of(submit, filesBySubmitId.getOrDefault(submit.getId(), List.of()),
                         AssignmentSubmitDisplayStatusCalculator.calculate(endDate, submit)))
                 .toList();
-        return AssignmentMemberSubmissionHistoryResponse.of(member, displayStatus, history);
+        return AssignmentMemberSubmissionHistoryResponse.of(member, endDate, displayStatus, history);
     }
 
     private Map<Long, List<SubmissionFile>> groupFilesBySubmitId(List<AssignmentSubmit> submits) {

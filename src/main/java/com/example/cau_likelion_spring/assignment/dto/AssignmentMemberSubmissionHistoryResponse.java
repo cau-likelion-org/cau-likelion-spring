@@ -4,6 +4,7 @@ import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplay
 import com.example.cau_likelion_spring.member.domain.Member;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Schema(description = "운영진이 보는 파트원 1명의 과제 제출 이력 전체 (재제출로 여러 건이면 모두 노출, 최신순)")
@@ -15,6 +16,9 @@ public record AssignmentMemberSubmissionHistoryResponse(
         @Schema(description = "멤버 이름")
         String memberName,
 
+        @Schema(description = "이 파트원에게 적용되는 마감일 (개별 마감일이 있으면 그 값, 없으면 과제 공통 마감일)")
+        LocalDateTime deadline,
+
         @Schema(description = "화면 표시용 상태 (최신 제출 기준)")
         AssignmentSubmitDisplayStatus displayStatus,
 
@@ -22,8 +26,9 @@ public record AssignmentMemberSubmissionHistoryResponse(
         List<AssignmentSubmitResponse> submissions
 ) {
 
-    public static AssignmentMemberSubmissionHistoryResponse of(Member member, AssignmentSubmitDisplayStatus displayStatus,
+    public static AssignmentMemberSubmissionHistoryResponse of(Member member, LocalDateTime deadline,
+                                                                 AssignmentSubmitDisplayStatus displayStatus,
                                                                  List<AssignmentSubmitResponse> submissions) {
-        return new AssignmentMemberSubmissionHistoryResponse(member.getId(), member.getName(), displayStatus, submissions);
+        return new AssignmentMemberSubmissionHistoryResponse(member.getId(), member.getName(), deadline, displayStatus, submissions);
     }
 }

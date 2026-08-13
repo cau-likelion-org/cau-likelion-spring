@@ -18,7 +18,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -36,14 +39,13 @@ public class RecruitmentSubscriberService {
             throw new CustomException(ErrorCode.DUPLICATE_SUBSCRIPTION, "이미 구독 중인 이메일입니다. email=" + request.email());
         }
 
-        Part interestPart = partRepository.findById(request.interestPartId())
-                .orElseThrow(() -> new CustomException(ErrorCode.PART_NOT_FOUND, "존재하지 않는 파트입니다. interestPartId=" + request.interestPartId()));
+        List<Part> interestParts = findPartsOrThrow(request.interestPartIds());
 
         RecruitmentSubscriber subscriber = recruitmentSubscriberRepository.save(
                 RecruitmentSubscriber.builder()
                         .email(request.email())
                         .name(request.name())
-                        .interestPart(interestPart)
+                        .interestParts(interestParts)
                         .build());
 
         return RecruitmentSubscriberResponse.of(subscriber);
@@ -66,6 +68,19 @@ public class RecruitmentSubscriberService {
         return partRepository.findAllByGeneration_Id(latestGeneration.getId()).stream()
                 .map(AvailablePartResponse::of)
                 .toList();
+    }
+
+    private List<Part> findPartsOrThrow(List<Long> partIds) {
+        Set<Long> uniqueIds = new LinkedHashSet<>(partIds);
+        List<Part> parts = partRepository.findAllById(uniqueIds);
+
+        if (parts.size() != uniqueIds.size()) {
+            Set<Long> foundIds = parts.stream().map(Part::getId).collect(Collectors.toSet());
+            List<Long> missingIds = uniqueIds.stream().filter(id -> !foundIds.contains(id)).toList();
+            throw new CustomException(ErrorCode.PART_NOT_FOUND, "존재하지 않는 파트입니다. interestPartIds=" + missingIds);
+        }
+
+        return parts;
     }
 
     /**

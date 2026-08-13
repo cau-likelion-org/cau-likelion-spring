@@ -16,10 +16,10 @@ public record AllowedUserEmailSyncRequest(
 
         @NotNull(message = "items는 필수입니다.")
         @Valid
-        List<Item> items
+        List<AllowedUserEmailItem> items
 ) {
 
-    public record Item(
+    public record AllowedUserEmailItem(
 
             @Schema(description = "기존 항목의 id. 신규 추가된 행이면 null", example = "1")
             Long id,

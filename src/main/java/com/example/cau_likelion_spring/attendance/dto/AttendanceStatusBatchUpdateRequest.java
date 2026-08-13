@@ -13,11 +13,11 @@ public record AttendanceStatusBatchUpdateRequest(
 
         @Schema(description = "수정할 출결 상태 목록")
         @NotEmpty
-        List<@Valid Item> updates
+        List<@Valid AttendanceUpdateItem> updates
 ) {
 
     @Schema(description = "출결 상태 수정 항목")
-    public record Item(
+    public record AttendanceUpdateItem(
 
             @Schema(description = "출결 상세 기록 ID")
             @NotNull Long detailAttendanceId,

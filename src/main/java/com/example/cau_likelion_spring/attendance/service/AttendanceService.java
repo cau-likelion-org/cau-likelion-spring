@@ -127,6 +127,16 @@ public class AttendanceService {
         Member staff = getMember(staffMemberId);
 
         List<Member> babyLions = memberRepository.findByPart_IdAndRole(staff.getPart().getId(), MemberRole.BABY_LION);
+        return buildMemberAttendanceResponses(babyLions);
+    }
+
+    @PreAuthorize("hasRole('PRESIDENT')")
+    public List<MemberAttendanceResponse> getAllAttendances() {
+        List<Member> babyLions = memberRepository.findByRole(MemberRole.BABY_LION);
+        return buildMemberAttendanceResponses(babyLions);
+    }
+
+    private List<MemberAttendanceResponse> buildMemberAttendanceResponses(List<Member> babyLions) {
         if (babyLions.isEmpty()) {
             return List.of();
         }
@@ -154,7 +164,7 @@ public class AttendanceService {
                 .toList();
     }
 
-    private AttendanceStatusResponse updateAttendanceStatus(Member requester, AttendanceStatusBatchUpdateRequest.Item item) {
+    private AttendanceStatusResponse updateAttendanceStatus(Member requester, AttendanceStatusBatchUpdateRequest.AttendanceUpdateItem item) {
         boolean requiresReason = item.status() == AttendanceStatus.ABSENT || item.status() == AttendanceStatus.EXCUSED;
         if (requiresReason && (item.reason() == null || item.reason().isBlank())) {
             throw new CustomException(ErrorCode.ATTENDANCE_REASON_REQUIRED);

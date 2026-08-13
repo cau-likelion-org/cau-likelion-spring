@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface GenerationRepository extends JpaRepository<Generation, Long> {
 
     Optional<Generation> findByStatus(GenerationStatus status);
+
+    Optional<Generation> findTopByOrderByNumberDesc();
 }

@@ -24,7 +24,7 @@ public class Curriculum extends BaseTimeEntity {
     private Track track;
 
     /** 주차 */
-    private Integer week;
+    private String week;
 
     @Column(nullable = false)
     private String title;
@@ -33,14 +33,14 @@ public class Curriculum extends BaseTimeEntity {
     private String description;
 
     @Builder
-    public Curriculum(Track track, Integer week, String title, String description) {
+    public Curriculum(Track track, String week, String title, String description) {
         this.track = track;
         this.week = week;
         this.title = title;
         this.description = description;
     }
 
-    public void update(Track track, Integer week, String title, String description) {
+    public void update(Track track, String week, String title, String description) {
         this.track = track;
         this.week = week;
         this.title = title;

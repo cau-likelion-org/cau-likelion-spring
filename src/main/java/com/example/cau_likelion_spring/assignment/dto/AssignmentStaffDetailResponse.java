@@ -24,7 +24,7 @@ public record AssignmentStaffDetailResponse(
         List<AssignmentMemberSubmissionResponse> submissions
 ) {
 
-    @Schema(description = "주차별로 묶인 과제별 파트원 제출 현황 (운영진 본인 파트 기준)")
+    @Schema(name = "AssignmentStaffDetailWeekGroup", description = "주차별로 묶인 과제별 파트원 제출 현황 (운영진 본인 파트 기준)")
     public record WeekGroup(
 
             @Schema(description = "주차", example = "1")

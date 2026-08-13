@@ -129,15 +129,6 @@ public class RecruitmentTextService {
         text.cancel();
     }
 
-    @Transactional
-    public void delete(Long id) {
-        RecruitmentText text = getText(id);
-        validateNotSent(text);
-
-        emailSentLogRepository.deleteAll(emailSentLogRepository.findAllByRecruitmentText(text));
-        recruitmentTextRepository.delete(text);
-    }
-
     private RecruitmentText getText(Long id) {
         return recruitmentTextRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.RECRUITMENT_TEXT_NOT_FOUND, "존재하지 않는 모집 공고입니다. id=" + id));
@@ -146,7 +137,7 @@ public class RecruitmentTextService {
     private void validateNotSent(RecruitmentText text) {
         if (emailSentLogRepository.existsByRecruitmentTextAndStatusNot(text, EmailSentStatus.PENDING)) {
             throw new CustomException(ErrorCode.RECRUITMENT_TEXT_ALREADY_SENT,
-                    "이미 발송이 시작된 공고는 수정/삭제할 수 없습니다. id=" + text.getId());
+                    "이미 발송이 시작된 공고는 수정/취소할 수 없습니다. id=" + text.getId());
         }
     }
 

@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -133,22 +132,6 @@ public class RecruitmentTextController {
     public ResponseEntity<Void> cancel(
             @Parameter(description = "공고 ID", required = true) @PathVariable Long id) {
         recruitmentTextService.cancel(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @Operation(summary = "모집 공고 삭제",
-            description = "아직 발송이 시작되지 않은 공고만 삭제할 수 있습니다. ADMIN 권한이 필요합니다.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "삭제 성공"),
-            @ApiResponse(responseCode = "403", description = "권한 없음"),
-            @ApiResponse(responseCode = "404", description = "존재하지 않는 공고"),
-            @ApiResponse(responseCode = "409", description = "이미 발송이 시작되어 삭제 불가")
-    })
-    @PreAuthorize("hasRole('ADMIN')")
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(
-            @Parameter(description = "공고 ID", required = true) @PathVariable Long id) {
-        recruitmentTextService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

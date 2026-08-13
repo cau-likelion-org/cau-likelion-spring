@@ -18,7 +18,7 @@ public class CurriculumRequestDto {
     private Long trackId;
 
     @NotNull
-    private Integer week;
+    private String week;
 
     @NotBlank
     private String title;

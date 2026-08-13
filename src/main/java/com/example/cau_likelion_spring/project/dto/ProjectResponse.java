@@ -57,7 +57,10 @@ public record ProjectResponse(
         List<LinkResponse> links,
 
         @Schema(description = "프로젝트 참여 멤버 목록")
-        List<MemberResponse> members
+        List<MemberResponse> members,
+
+        @Schema(description = "프로젝트 랜딩페이지 노출 여부")
+        Boolean isExposed
 ) {
 
     @Schema(description = "프로젝트 이미지 응답")
@@ -129,7 +132,8 @@ public record ProjectResponse(
                 project.getBanner(),
                 images.stream().map(ImageResponse::from).toList(),
                 links.stream().map(LinkResponse::from).toList(),
-                members.stream().map(MemberResponse::from).toList()
+                members.stream().map(MemberResponse::from).toList(),
+                project.getIsExposed()
         );
     }
 }

@@ -88,6 +88,11 @@ public class AssignmentService {
     }
 
     @PreAuthorize("hasRole('STAFF')")
+    public AssignmentResponse getById(Long staffMemberId, Long assignmentId) {
+        return AssignmentResponse.of(getOwnedAssignment(staffMemberId, assignmentId));
+    }
+
+    @PreAuthorize("hasRole('STAFF')")
     @Transactional
     public AssignmentResponse update(Long staffMemberId, Long assignmentId, AssignmentUpdateRequest request) {
         Assignment assignment = getOwnedAssignment(staffMemberId, assignmentId);

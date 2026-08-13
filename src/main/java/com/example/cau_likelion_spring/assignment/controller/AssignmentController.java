@@ -126,6 +126,21 @@ public class AssignmentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(assignmentService.create(memberId, request));
     }
 
+    @Operation(summary = "과제 단건 조회",
+            description = "로그인한 운영진이 본인 파트의 과제 1개를 상세 조회합니다 (과제명/설명/마감기한/제출형식 등). STAFF 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음 또는 본인 파트의 과제가 아님"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 과제"),
+            @ApiResponse(responseCode = "409", description = "운영진에게 배정된 파트가 없음")
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<AssignmentResponse> getById(
+            @AuthenticationPrincipal Long memberId,
+            @Parameter(description = "과제 ID", required = true) @PathVariable Long id) {
+        return ResponseEntity.ok(assignmentService.getById(memberId, id));
+    }
+
     @Operation(summary = "과제 수정",
             description = "로그인한 운영진이 본인 파트의 과제를 수정합니다. 파트/주차는 수정할 수 없고 과제명/설명/마감기한/제출형식만 변경됩니다. "
                     + "수정 전까지 제출된 과제 제출 이력은 그대로 유지됩니다. STAFF 권한이 필요합니다.")

@@ -51,19 +51,23 @@ public class RecruitmentTextService {
                 .toList();
         emailSentLogRepository.saveAll(logs);
 
-        return RecruitmentTextResponse.of(text, logs.size());
+        return RecruitmentTextResponse.of(text, logs.size(), 0, 0);
     }
 
     public List<RecruitmentTextResponse> getAll() {
         Sort sort = Sort.by(Sort.Direction.ASC, "scheduledSendAt");
         return recruitmentTextRepository.findAll(sort).stream()
-                .map(text -> RecruitmentTextResponse.of(text, targetCount(text)))
+                .map(text -> {
+                    TextCounts counts = countLogs(text);
+                    return RecruitmentTextResponse.of(text, counts.target(), counts.success(), counts.failed());
+                })
                 .toList();
     }
 
     public RecruitmentTextResponse getById(Long id) {
         RecruitmentText text = getText(id);
-        return RecruitmentTextResponse.of(text, targetCount(text));
+        TextCounts counts = countLogs(text);
+        return RecruitmentTextResponse.of(text, counts.target(), counts.success(), counts.failed());
     }
 
     @Transactional
@@ -83,7 +87,7 @@ public class RecruitmentTextService {
                 .toList();
         emailSentLogRepository.saveAll(logs);
 
-        return RecruitmentTextResponse.of(text, logs.size());
+        return RecruitmentTextResponse.of(text, logs.size(), 0, 0);
     }
 
     public List<EmailSentLogResponse> getLogs(Long id, EmailSentStatus status) {
@@ -142,10 +146,11 @@ public class RecruitmentTextService {
     }
 
     /**
-     * 재전송으로 같은 구독자에게 로그가 여러 건 쌓일 수 있어, 로그 개수가 아닌 서로 다른 구독자 수로 센다.
+     * 재전송으로 같은 구독자에게 로그가 여러 건 쌓일 수 있어, targetCount는 로그 개수가 아닌 서로 다른 구독자 수로 센다.
      * 구독자가 삭제된 로그(subscriber null)는 재전송 대상에서 제외되므로 중복 없이 항상 로그 1건 = 대상 1명이다.
+     * successCount/failedCount는 수신자별 최신 발송 결과가 아닌, 누적된 로그(재전송 포함) 기준 건수다.
      */
-    private int targetCount(RecruitmentText text) {
+    private TextCounts countLogs(RecruitmentText text) {
         List<EmailSentLog> logs = emailSentLogRepository.findAllByRecruitmentText(text);
         long distinctSubscriberCount = logs.stream()
                 .map(EmailSentLog::getSubscriber)
@@ -156,7 +161,15 @@ public class RecruitmentTextService {
         long deletedSubscriberLogCount = logs.stream()
                 .filter(log -> log.getSubscriber() == null)
                 .count();
-        return (int) (distinctSubscriberCount + deletedSubscriberLogCount);
+        int target = (int) (distinctSubscriberCount + deletedSubscriberLogCount);
+
+        int success = (int) logs.stream().filter(log -> log.getStatus() == EmailSentStatus.SUCCESS).count();
+        int failed = (int) logs.stream().filter(log -> log.getStatus() == EmailSentStatus.FAILED).count();
+
+        return new TextCounts(target, success, failed);
+    }
+
+    private record TextCounts(int target, int success, int failed) {
     }
 
     private List<RecruitmentSubscriber> getSubscribers(List<Long> subscriberIds) {

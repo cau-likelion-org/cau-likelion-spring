@@ -18,7 +18,7 @@ public record RecruitmentTextResponse(
         @Schema(description = "본문 내용")
         String content,
 
-        @Schema(description = "발송일 (예약 중이면 예정일시, 발송 완료면 발송된 일시)")
+        @Schema(description = "예정 전송일시. 취소된 공고는 더 이상 발송되지 않으므로 null")
         LocalDateTime scheduledSendAt,
 
         @Schema(description = "작성일시")
@@ -27,18 +27,27 @@ public record RecruitmentTextResponse(
         @Schema(description = "발송 대상자 수", example = "42")
         int targetCount,
 
+        @Schema(description = "발송 성공 건수", example = "40")
+        int successCount,
+
+        @Schema(description = "발송 실패 건수", example = "2")
+        int failedCount,
+
         @Schema(description = "공고 발송 상태 (수신자별 성공/실패가 아닌, 공고 자체의 발송 진행 상태)")
         RecruitmentSendStatus status
 ) {
 
-    public static RecruitmentTextResponse of(RecruitmentText text, int targetCount) {
+    public static RecruitmentTextResponse of(RecruitmentText text, int targetCount, int successCount, int failedCount) {
+        boolean cancelled = text.getStatus() == RecruitmentSendStatus.CANCELLED;
         return new RecruitmentTextResponse(
                 text.getId(),
                 text.getTitle(),
                 text.getContent(),
-                text.getScheduledSendAt(),
+                cancelled ? null : text.getScheduledSendAt(),
                 text.getCreatedAt(),
                 targetCount,
+                successCount,
+                failedCount,
                 text.getStatus()
         );
     }

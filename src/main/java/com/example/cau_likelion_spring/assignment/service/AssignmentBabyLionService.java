@@ -159,11 +159,7 @@ public class AssignmentBabyLionService {
         LocalDateTime endDate = resolveEndDate(assignment, member);
         Map<Long, List<SubmissionFile>> filesBySubmitId = groupFilesBySubmitId(submits);
 
-        return submits.stream()
-                .map(submit -> AssignmentSubmitResponse.of(submit,
-                        filesBySubmitId.getOrDefault(submit.getId(), List.of()),
-                        AssignmentSubmitDisplayStatusCalculator.calculate(endDate, submit)))
-                .toList();
+        return toSubmissionResponses(submits, filesBySubmitId, endDate);
     }
 
     private AssignmentSubmit editSubmission(AssignmentSubmit latest, AssignmentSubmitRequest request) {
@@ -319,12 +315,18 @@ public class AssignmentBabyLionService {
     private AssignmentSubmissionHistoryResponse toSubmissionHistory(Assignment assignment, List<AssignmentSubmit> submits,
                                                                       Map<Long, List<SubmissionFile>> filesBySubmitId,
                                                                       LocalDateTime endDate) {
-        List<AssignmentSubmitResponse> history = submits.stream()
+        List<AssignmentSubmitResponse> history = toSubmissionResponses(submits, filesBySubmitId, endDate);
+        return new AssignmentSubmissionHistoryResponse(assignment.getId(), assignment.getTitle(), assignment.getDetail(),
+                endDate, history);
+    }
+
+    private List<AssignmentSubmitResponse> toSubmissionResponses(List<AssignmentSubmit> submits,
+                                                                   Map<Long, List<SubmissionFile>> filesBySubmitId,
+                                                                   LocalDateTime endDate) {
+        return submits.stream()
                 .map(submit -> AssignmentSubmitResponse.of(submit, filesBySubmitId.getOrDefault(submit.getId(), List.of()),
                         AssignmentSubmitDisplayStatusCalculator.calculate(endDate, submit)))
                 .toList();
-        return new AssignmentSubmissionHistoryResponse(assignment.getId(), assignment.getTitle(), assignment.getDetail(),
-                endDate, history);
     }
 
     private AssignmentSubmitDisplayStatus currentStatus(List<AssignmentSubmit> submits, LocalDateTime endDate) {

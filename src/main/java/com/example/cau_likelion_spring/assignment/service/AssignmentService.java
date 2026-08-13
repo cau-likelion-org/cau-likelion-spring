@@ -227,11 +227,16 @@ public class AssignmentService {
         }
 
         List<Member> babyLions = memberRepository.findByPart_IdAndRole(assignment.getPart().getId(), MemberRole.BABY_LION);
-        if (babyLions.isEmpty()) {
-            return new AssignmentStaffSubmissionHistoryResponse(assignment.getId(), assignment.getTitle(), assignment.getDetail(),
-                    assignment.getEndDate(), List.of());
-        }
+        List<AssignmentMemberSubmissionHistoryResponse> submissions = babyLions.isEmpty()
+                ? List.of()
+                : buildMemberSubmissionHistories(assignment, babyLions);
 
+        return new AssignmentStaffSubmissionHistoryResponse(assignment.getId(), assignment.getTitle(), assignment.getDetail(),
+                assignment.getEndDate(), submissions);
+    }
+
+    private List<AssignmentMemberSubmissionHistoryResponse> buildMemberSubmissionHistories(Assignment assignment,
+                                                                                             List<Member> babyLions) {
         List<Long> memberIds = babyLions.stream().map(Member::getId).toList();
         List<AssignmentSubmit> allSubmits = assignmentSubmitRepository
                 .findAllByAssignmentAndSubmitMember_IdInOrderByCreatedAtDesc(assignment, memberIds);
@@ -240,19 +245,16 @@ public class AssignmentService {
                 .collect(Collectors.groupingBy(submit -> submit.getSubmitMember().getId()));
         Map<Long, List<SubmissionFile>> filesBySubmitId = groupFilesBySubmitId(allSubmits);
         Map<Long, LocalDateTime> individualDeadlineByMemberId = assignmentIndividualDeadlineRepository
-                .findAllByAssignment_IdAndMember_IdIn(assignmentId, memberIds).stream()
+                .findAllByAssignment_IdAndMember_IdIn(assignment.getId(), memberIds).stream()
                 .collect(Collectors.toMap(deadline -> deadline.getMember().getId(), AssignmentIndividualDeadline::getDeadline));
 
-        List<AssignmentMemberSubmissionHistoryResponse> submissions = babyLions.stream()
+        return babyLions.stream()
                 .map(member -> {
                     List<AssignmentSubmit> submits = submitsByMemberId.getOrDefault(member.getId(), List.of());
                     LocalDateTime endDate = individualDeadlineByMemberId.getOrDefault(member.getId(), assignment.getEndDate());
                     return toMemberSubmissionHistory(member, endDate, submits, filesBySubmitId);
                 })
                 .toList();
-
-        return new AssignmentStaffSubmissionHistoryResponse(assignment.getId(), assignment.getTitle(), assignment.getDetail(),
-                assignment.getEndDate(), submissions);
     }
 
     /**

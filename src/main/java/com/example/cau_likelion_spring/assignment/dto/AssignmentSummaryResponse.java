@@ -25,7 +25,7 @@ public record AssignmentSummaryResponse(
         LocalDateTime submittedAt
 ) {
 
-    @Schema(description = "주차별로 묶인 과제 목록 (아기사자 본인 기준)")
+    @Schema(name = "AssignmentSummaryWeekGroup", description = "주차별로 묶인 과제 목록 (아기사자 본인 기준)")
     public record WeekGroup(
 
             @Schema(description = "주차", example = "1")

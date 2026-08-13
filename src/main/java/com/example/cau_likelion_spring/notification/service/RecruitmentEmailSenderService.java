@@ -3,7 +3,6 @@ package com.example.cau_likelion_spring.notification.service;
 import com.example.cau_likelion_spring.notification.domain.EmailSentLog;
 import com.example.cau_likelion_spring.notification.domain.EmailSentStatus;
 import com.example.cau_likelion_spring.notification.domain.RecruitmentSendStatus;
-import com.example.cau_likelion_spring.notification.domain.RecruitmentSubscriber;
 import com.example.cau_likelion_spring.notification.domain.RecruitmentText;
 import com.example.cau_likelion_spring.notification.repository.EmailSentLogRepository;
 import lombok.RequiredArgsConstructor;
@@ -66,19 +65,12 @@ public class RecruitmentEmailSenderService {
      * 스케줄러의 자동 발송뿐 아니라 실패 건 재전송(RecruitmentTextService)에서도 재사용된다.
      */
     public void send(EmailSentLog emailSentLog) {
-        RecruitmentSubscriber subscriber = emailSentLog.getSubscriber();
-        if (subscriber == null) {
-            log.warn("구독자가 삭제되어 발송할 수 없는 로그입니다. emailSentLogId={}", emailSentLog.getId());
-            emailSentLog.markSent(EmailSentStatus.FAILED);
-            return;
-        }
-
         try {
-            javaMailSender.send(buildMessage(subscriber.getEmail(), emailSentLog));
+            javaMailSender.send(buildMessage(emailSentLog.getRecipientEmail(), emailSentLog));
             emailSentLog.markSent(EmailSentStatus.SUCCESS);
         } catch (MailException e) {
-            log.error("모집 알림 이메일 발송 실패. emailSentLogId={}, subscriberEmail={}",
-                    emailSentLog.getId(), subscriber.getEmail(), e);
+            log.error("모집 알림 이메일 발송 실패. emailSentLogId={}, recipientEmail={}",
+                    emailSentLog.getId(), emailSentLog.getRecipientEmail(), e);
             emailSentLog.markSent(EmailSentStatus.FAILED);
         }
     }

@@ -11,7 +11,7 @@ public class CurriculumResponseDto {
     private Long id;
     private Long trackId;
     private String trackKoName;
-    private Integer week;
+    private String week;
     private String title;
     private String description;
 

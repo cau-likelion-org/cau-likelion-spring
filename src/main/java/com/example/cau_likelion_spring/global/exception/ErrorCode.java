@@ -43,6 +43,7 @@ public enum ErrorCode {
     FAQ_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 FAQ입니다."),
     DESIRED_TALENT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 인재상입니다."),
     CURRICULUM_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 커리큘럼입니다."),
+    ROADMAP_NOT_FOUND(HttpStatus.NOT_FOUND, "등록된 로드맵 이미지가 없습니다."),
 
     // ===== Project =====
     PROJECT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 프로젝트입니다."),

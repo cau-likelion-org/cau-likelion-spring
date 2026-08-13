@@ -208,9 +208,10 @@ public class AssignmentService {
     /**
      * 운영진이 보는 파트원 전체의 제출 현황. 제출했다면 최종본만 보여주고,
      * 한 번도 제출하지 않은 파트원도 "제출전"/"미제출" 상태로 함께 노출된다.
+     * 과제 자체의 제목/설명/마감기한도 함께 내려준다.
      */
     @PreAuthorize("hasRole('STAFF')")
-    public List<AssignmentMemberSubmissionResponse> getSubmissionsForStaff(Long staffMemberId, Long assignmentId) {
+    public AssignmentStaffDetailResponse getSubmissionsForStaff(Long staffMemberId, Long assignmentId) {
         Assignment assignment = getAssignment(assignmentId);
         Part staffPart = getStaffPart(staffMemberId);
         if (!assignment.getPart().getId().equals(staffPart.getId())) {
@@ -219,7 +220,8 @@ public class AssignmentService {
 
         List<Member> babyLions = memberRepository.findByPart_IdAndRole(assignment.getPart().getId(), MemberRole.BABY_LION);
         if (babyLions.isEmpty()) {
-            return List.of();
+            return new AssignmentStaffDetailResponse(assignment.getId(), assignment.getTitle(), assignment.getDetail(),
+                    assignment.getEndDate(), List.of());
         }
 
         List<Long> memberIds = babyLions.stream().map(Member::getId).toList();
@@ -233,7 +235,7 @@ public class AssignmentService {
                 .findAllByAssignment_IdAndMember_IdIn(assignmentId, memberIds).stream()
                 .collect(Collectors.toMap(deadline -> deadline.getMember().getId(), AssignmentIndividualDeadline::getDeadline));
 
-        return babyLions.stream()
+        List<AssignmentMemberSubmissionResponse> submissions = babyLions.stream()
                 .map(member -> {
                     List<AssignmentSubmit> submits = submitsByMemberId.getOrDefault(member.getId(), List.of());
                     AssignmentSubmit latest = submits.isEmpty() ? null : submits.get(0);
@@ -241,6 +243,9 @@ public class AssignmentService {
                     return toMemberSubmission(member, endDate, latest, filesBySubmitId);
                 })
                 .toList();
+
+        return new AssignmentStaffDetailResponse(assignment.getId(), assignment.getTitle(), assignment.getDetail(),
+                assignment.getEndDate(), submissions);
     }
 
     /**
@@ -407,7 +412,8 @@ public class AssignmentService {
                 })
                 .toList();
 
-        return new AssignmentStaffDetailResponse(assignment.getId(), assignment.getTitle(), assignment.getEndDate(), submissions);
+        return new AssignmentStaffDetailResponse(assignment.getId(), assignment.getTitle(), assignment.getDetail(),
+                assignment.getEndDate(), submissions);
     }
 
     private AssignmentMemberSubmissionResponse toMemberSubmission(Member member, LocalDateTime endDate, AssignmentSubmit latest,

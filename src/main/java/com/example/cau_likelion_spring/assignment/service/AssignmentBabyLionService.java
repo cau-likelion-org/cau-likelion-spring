@@ -8,6 +8,7 @@ import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplay
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitStatus;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentType;
 import com.example.cau_likelion_spring.assignment.domain.SubmissionFile;
+import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmissionHistoryResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSummaryResponse;
@@ -104,6 +105,40 @@ public class AssignmentBabyLionService {
         List<SubmissionFile> files = saveFiles(submit, request.files());
 
         return AssignmentSubmitResponse.of(submit, files, AssignmentSubmitDisplayStatusCalculator.calculate(endDate, submit));
+    }
+
+    /**
+     * week를 지정하면 해당 주차만, 지정하지 않으면 전체 주차를 주차 오름차순으로 묶어서 반환한다.
+     * getMyAssignments와 달리 과제별 최신 상태 1건이 아니라, 아기사자 본인의 제출 이력 전체(최신순)를 과제마다 내려준다.
+     */
+    @PreAuthorize("hasRole('BABY_LION')")
+    public List<AssignmentSubmissionHistoryResponse.WeekGroup> getMySubmissionHistoryByWeek(Long memberId, Integer week) {
+        Member member = getMember(memberId);
+        Part part = getMemberPart(member);
+
+        List<Assignment> assignments = (week == null)
+                ? assignmentRepository.findAllByPart_IdOrderByWeekAscEndDateAsc(part.getId())
+                : assignmentRepository.findAllByPart_IdAndWeekOrderByEndDateAsc(part.getId(), week);
+        if (assignments.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
+        List<AssignmentSubmit> allSubmits = assignmentSubmitRepository
+                .findAllByAssignment_IdInAndSubmitMemberOrderByCreatedAtDesc(assignmentIds, member);
+
+        Map<Long, List<AssignmentSubmit>> submitsByAssignmentId = allSubmits.stream()
+                .collect(Collectors.groupingBy(submit -> submit.getAssignment().getId()));
+        Map<Long, List<SubmissionFile>> filesBySubmitId = groupFilesBySubmitId(allSubmits);
+        Map<Long, LocalDateTime> individualDeadlineByAssignmentId = findIndividualDeadlinesByAssignmentId(assignments, member);
+
+        Map<Integer, List<Assignment>> assignmentsByWeek = assignments.stream()
+                .collect(Collectors.groupingBy(Assignment::getWeek, LinkedHashMap::new, Collectors.toList()));
+
+        return assignmentsByWeek.entrySet().stream()
+                .map(entry -> toSubmissionHistoryWeekGroup(entry.getKey(), entry.getValue(), submitsByAssignmentId,
+                        filesBySubmitId, individualDeadlineByAssignmentId))
+                .toList();
     }
 
     /**
@@ -260,6 +295,41 @@ public class AssignmentBabyLionService {
         AssignmentSubmitDisplayStatus status = AssignmentSubmitDisplayStatusCalculator.calculate(endDate, latest);
         LocalDateTime submittedAt = latest == null ? null : latest.getUpdatedAt();
         return new AssignmentSummaryResponse(assignment.getId(), assignment.getTitle(), endDate, status, submittedAt);
+    }
+
+    private AssignmentSubmissionHistoryResponse.WeekGroup toSubmissionHistoryWeekGroup(
+            Integer week, List<Assignment> weekAssignments, Map<Long, List<AssignmentSubmit>> submitsByAssignmentId,
+            Map<Long, List<SubmissionFile>> filesBySubmitId, Map<Long, LocalDateTime> individualDeadlineByAssignmentId) {
+        List<AssignmentSubmissionHistoryResponse> assignmentHistories = weekAssignments.stream()
+                .map(assignment -> toSubmissionHistory(assignment,
+                        submitsByAssignmentId.getOrDefault(assignment.getId(), List.of()), filesBySubmitId,
+                        individualDeadlineByAssignmentId.getOrDefault(assignment.getId(), assignment.getEndDate())))
+                .toList();
+
+        AssignmentSubmitDisplayStatus weeklyStatus = AssignmentSubmitDisplayStatusCalculator.aggregateWeekly(
+                weekAssignments.stream()
+                        .map(assignment -> currentStatus(
+                                submitsByAssignmentId.getOrDefault(assignment.getId(), List.of()),
+                                individualDeadlineByAssignmentId.getOrDefault(assignment.getId(), assignment.getEndDate())))
+                        .toList());
+
+        return new AssignmentSubmissionHistoryResponse.WeekGroup(week, weeklyStatus, assignmentHistories);
+    }
+
+    private AssignmentSubmissionHistoryResponse toSubmissionHistory(Assignment assignment, List<AssignmentSubmit> submits,
+                                                                      Map<Long, List<SubmissionFile>> filesBySubmitId,
+                                                                      LocalDateTime endDate) {
+        List<AssignmentSubmitResponse> history = submits.stream()
+                .map(submit -> AssignmentSubmitResponse.of(submit, filesBySubmitId.getOrDefault(submit.getId(), List.of()),
+                        AssignmentSubmitDisplayStatusCalculator.calculate(endDate, submit)))
+                .toList();
+        return new AssignmentSubmissionHistoryResponse(assignment.getId(), assignment.getTitle(), assignment.getDetail(),
+                endDate, history);
+    }
+
+    private AssignmentSubmitDisplayStatus currentStatus(List<AssignmentSubmit> submits, LocalDateTime endDate) {
+        AssignmentSubmit latest = submits.isEmpty() ? null : submits.get(0);
+        return AssignmentSubmitDisplayStatusCalculator.calculate(endDate, latest);
     }
 
     private Assignment getAssignment(Long id) {

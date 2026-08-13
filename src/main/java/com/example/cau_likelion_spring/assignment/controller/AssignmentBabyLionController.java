@@ -1,5 +1,6 @@
 package com.example.cau_likelion_spring.assignment.controller;
 
+import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmissionHistoryResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSubmitResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentSummaryResponse;
@@ -49,6 +50,25 @@ public class AssignmentBabyLionController {
             @AuthenticationPrincipal Long memberId,
             @Parameter(description = "조회할 주차 (미지정 시 전체 주차)") @RequestParam(required = false) Integer week) {
         return ResponseEntity.ok(assignmentBabyLionService.getMyAssignments(memberId, week));
+    }
+
+    @Operation(summary = "주차별 과제 현황",
+            description = "로그인한 아기사자 본인 파트의 과제를 주차별로 묶어서, 과제마다 본인의 제출 이력을 전체(최신순)로 함께 조회합니다. "
+                    + "week 파라미터를 주면 해당 주차만, 주지 않으면 전체 주차를 반환합니다. "
+                    + "각 주차 그룹에는 그 주차 개별 과제 상태들을 우선순위(제출전 > 승인반려 > 승인대기 > 미제출 > 지각제출 > 승인완료)로 판단해 합친 "
+                    + "주차 종합 상태(weeklyStatus)도 함께 내려줍니다. "
+                    + "'/api/assignments/me'와 달리 과제별 최신 상태 1건이 아니라, 반려 후 재제출처럼 여러 번 제출한 이력이 있다면 그걸 전부 보여줍니다. "
+                    + "BABY_LION 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "409", description = "아기사자에게 배정된 파트가 없음")
+    })
+    @GetMapping("/submissions/history")
+    public ResponseEntity<List<AssignmentSubmissionHistoryResponse.WeekGroup>> getMySubmissionHistoryByWeek(
+            @AuthenticationPrincipal Long memberId,
+            @Parameter(description = "조회할 주차 (미지정 시 전체 주차)") @RequestParam(required = false) Integer week) {
+        return ResponseEntity.ok(assignmentBabyLionService.getMySubmissionHistoryByWeek(memberId, week));
     }
 
     // 과제 제출/수정/재제출 및 이력 조회

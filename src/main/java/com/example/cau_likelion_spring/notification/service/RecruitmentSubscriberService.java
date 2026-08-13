@@ -51,8 +51,16 @@ public class RecruitmentSubscriberService {
         return RecruitmentSubscriberResponse.of(subscriber);
     }
 
-    public List<RecruitmentSubscriberResponse> getAll() {
-        return recruitmentSubscriberRepository.findAll(Sort.by(Sort.Direction.DESC, "registeredAt")).stream()
+    /**
+     * interestPartName으로 필터링한다 (id 아님). Part는 기수마다 새로 생성되는 row라 12기 "Backend"와
+     * 13기 "Backend"는 id가 다른데, "백엔드 지원자 전체"를 보고 싶은 게 실제 니즈라 이름 기준으로 묶는다.
+     */
+    public List<RecruitmentSubscriberResponse> getAll(String interestPartName) {
+        List<RecruitmentSubscriber> subscribers = (interestPartName != null)
+                ? recruitmentSubscriberRepository.findAllByInterestParts_NameOrderByRegisteredAtDesc(interestPartName)
+                : recruitmentSubscriberRepository.findAll(Sort.by(Sort.Direction.DESC, "registeredAt"));
+
+        return subscribers.stream()
                 .map(RecruitmentSubscriberResponse::of)
                 .toList();
     }

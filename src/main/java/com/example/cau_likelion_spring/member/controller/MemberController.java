@@ -62,12 +62,14 @@ public class MemberController {
     }
 
     @Operation(summary = "구성원 정보 수정",
-            description = "관리자가 특정 구성원의 이름/역할/파트 정보를 수정합니다. ADMIN 권한이 필요합니다.")
+            description = "관리자가 특정 구성원의 이름/로그인 이메일/역할/파트 정보를 수정합니다. 기수는 파트에 종속된 값이라 별도로 지정할 수 없고, "
+                    + "파트를 다른 기수 소속 파트로 바꾸면 기수도 함께 바뀝니다. ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "수정 성공"),
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
             @ApiResponse(responseCode = "403", description = "관리자 권한 없음"),
-            @ApiResponse(responseCode = "404", description = "존재하지 않는 구성원 또는 파트")
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 구성원 또는 파트"),
+            @ApiResponse(responseCode = "409", description = "이미 가입된 이메일")
     })
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")

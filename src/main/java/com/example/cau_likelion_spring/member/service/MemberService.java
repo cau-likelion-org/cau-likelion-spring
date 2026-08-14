@@ -37,8 +37,9 @@ public class MemberService {
     public MemberResponse update(Long id, MemberUpdateRequest request) {
         Member member = getMember(id);
         Part part = getPart(request.partId());
+        validateEmailNotTaken(member, request.email());
 
-        member.update(request.name(), request.role(), part);
+        member.update(request.name(), request.email(), request.role(), part);
 
         return MemberResponse.from(member);
     }
@@ -53,6 +54,15 @@ public class MemberService {
     private Member getMember(Long id) {
         return memberRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND, "존재하지 않는 구성원입니다. id=" + id));
+    }
+
+    private void validateEmailNotTaken(Member member, String email) {
+        if (member.getEmail().equals(email)) {
+            return;
+        }
+        if (memberRepository.existsByEmail(email)) {
+            throw new CustomException(ErrorCode.DUPLICATE_EMAIL, "이미 가입된 이메일입니다. email=" + email);
+        }
     }
 
     private Part getPart(Long partId) {

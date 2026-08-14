@@ -1,5 +1,6 @@
 package com.example.cau_likelion_spring.member.controller;
 
+import com.example.cau_likelion_spring.member.domain.MemberRole;
 import com.example.cau_likelion_spring.member.dto.FcmTokenRequest;
 import com.example.cau_likelion_spring.member.dto.MemberResponse;
 import com.example.cau_likelion_spring.member.dto.MemberUpdateRequest;
@@ -54,11 +55,17 @@ public class MemberController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "전체 구성원 조회", description = "전체 구성원 목록을 조회합니다.")
+    @Operation(summary = "전체 구성원 조회",
+            description = "전체 구성원 목록을 조회합니다. 이름/기수/파트/권한 파라미터로 필터링할 수 있으며, 모두 선택 사항이라 "
+                    + "아무것도 지정하지 않으면 전체 구성원이 조회됩니다. 이름은 부분 일치(대소문자 무시)로 검색됩니다.")
     @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping
-    public ResponseEntity<List<MemberResponse>> getAll() {
-        return ResponseEntity.ok(memberService.getAll());
+    public ResponseEntity<List<MemberResponse>> getAll(
+            @Parameter(description = "이름 (부분 일치)") @RequestParam(required = false) String name,
+            @Parameter(description = "기수", example = "13") @RequestParam(required = false) Integer generationNumber,
+            @Parameter(description = "파트 ID") @RequestParam(required = false) Long partId,
+            @Parameter(description = "역할") @RequestParam(required = false) MemberRole role) {
+        return ResponseEntity.ok(memberService.getAll(name, generationNumber, partId, role));
     }
 
     @Operation(summary = "구성원 정보 수정",

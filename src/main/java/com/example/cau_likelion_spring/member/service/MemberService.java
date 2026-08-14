@@ -1,6 +1,7 @@
 package com.example.cau_likelion_spring.member.service;
 
 import com.example.cau_likelion_spring.member.domain.Member;
+import com.example.cau_likelion_spring.member.domain.MemberRole;
 import com.example.cau_likelion_spring.member.dto.FcmTokenRequest;
 import com.example.cau_likelion_spring.member.dto.MemberResponse;
 import com.example.cau_likelion_spring.member.dto.MemberUpdateRequest;
@@ -27,8 +28,9 @@ public class MemberService {
         return MemberResponse.from(getMember(memberId));
     }
 
-    public List<MemberResponse> getAll() {
-        return memberRepository.findAll().stream()
+    /** 이름/기수/파트/권한으로 구성원을 검색한다. 각 파라미터는 선택이며, 지정하지 않으면 전체 조회된다. */
+    public List<MemberResponse> getAll(String name, Integer generationNumber, Long partId, MemberRole role) {
+        return memberRepository.search(name, generationNumber, partId, role).stream()
                 .map(MemberResponse::from)
                 .toList();
     }

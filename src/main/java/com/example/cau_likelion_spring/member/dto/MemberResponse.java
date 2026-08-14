@@ -23,7 +23,10 @@ public record MemberResponse(
         Long partId,
 
         @Schema(description = "파트 이름", example = "Backend")
-        String partName
+        String partName,
+
+        @Schema(description = "기수 (소속 파트가 없으면 null)", example = "13")
+        Integer generationNumber
 ) {
 
     public static MemberResponse from(Member member) {
@@ -33,7 +36,8 @@ public record MemberResponse(
                 member.getEmail(),
                 member.getRole(),
                 member.getPart() != null ? member.getPart().getId() : null,
-                member.getPart() != null ? member.getPart().getName() : null
+                member.getPart() != null ? member.getPart().getName() : null,
+                member.getPart() != null ? member.getPart().getGeneration().getNumber() : null
         );
     }
 }

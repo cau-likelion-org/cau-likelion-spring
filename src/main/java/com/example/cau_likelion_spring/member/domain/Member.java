@@ -43,8 +43,9 @@ public class Member extends BaseTimeEntity {
         this.part = part;
     }
 
-    public void update(String name, MemberRole role, Part part) {
+    public void update(String name, String email, MemberRole role, Part part) {
         this.name = name;
+        this.email = email;
         this.role = role;
         this.part = part;
     }

@@ -14,6 +14,8 @@ public interface DetailAttendanceRepository extends JpaRepository<DetailAttendan
 
     List<DetailAttendance> findByMember_IdOrderByWeeklyAttendance_WeekNumberAsc(Long memberId);
 
+    void deleteAllByMember_Id(Long memberId);
+
     List<DetailAttendance> findByMember_IdInOrderByWeeklyAttendance_WeekNumberAsc(List<Long> memberIds);
 
     Optional<DetailAttendance> findByMember_IdAndWeeklyAttendance_Id(Long memberId, Long weeklyAttendanceId);

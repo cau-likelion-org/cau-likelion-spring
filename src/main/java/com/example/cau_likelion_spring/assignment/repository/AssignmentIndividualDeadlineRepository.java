@@ -13,6 +13,8 @@ public interface AssignmentIndividualDeadlineRepository extends JpaRepository<As
 
     void deleteAllByAssignment(Assignment assignment);
 
+    void deleteAllByMember_Id(Long memberId);
+
     /** 여러 과제에 걸친 개별 마감일을 한 번에 조회할 때 사용 (이후 과제별·멤버별로 그룹핑) */
     List<AssignmentIndividualDeadline> findAllByAssignment_IdIn(List<Long> assignmentIds);
 

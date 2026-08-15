@@ -36,7 +36,7 @@ public record AssignmentSubmitResponse(
         @Schema(description = "화면 표시용 상태 (제출전/미제출/승인대기/지각제출/승인완료/승인반려)")
         AssignmentSubmitDisplayStatus displayStatus,
 
-        @Schema(description = "평가(승인/반려)한 운영진 이름 (아직 평가 전이면 null)")
+        @Schema(description = "평가(승인/반려)한 운영진 이름 (아직 평가 전이면 null). 평가 시점의 이름 스냅샷이라 그 운영진이 나중에 삭제/개명돼도 유지됨")
         String reviewerName,
 
         @Schema(description = "평가 일시")
@@ -68,7 +68,7 @@ public record AssignmentSubmitResponse(
                 submit.getStatus(),
                 submit.getUpdatedAt(),
                 displayStatus,
-                submit.getReviewMember() == null ? null : submit.getReviewMember().getName(),
+                submit.getReviewerName(),
                 submit.getApprovalDate(),
                 submit.getRejectionReason()
         );

@@ -103,4 +103,22 @@ public class MemberController {
             @Valid @RequestBody MemberUpdateRequest request) {
         return ResponseEntity.ok(memberService.update(id, request));
     }
+
+    @Operation(summary = "구성원 삭제",
+            description = "관리자가 특정 구성원을 완전히 삭제합니다. 과제 제출/평가 이력, 개별 마감일, 출결 기록, FCM/리프레시 토큰까지 "
+                    + "함께 삭제되며, 되돌릴 수 없습니다. 이 구성원이 평가자였던 다른 구성원의 제출 이력은 삭제되지 않고, 평가자 이름은 "
+                    + "평가 시점 스냅샷으로 그대로 유지된 채 평가자 참조만 비워집니다. PRESIDENT/ADMIN 권한의 구성원은 삭제할 수 없습니다. "
+                    + "ADMIN 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "삭제 성공"),
+            @ApiResponse(responseCode = "403", description = "관리자 권한 없음, 또는 PRESIDENT/ADMIN 권한의 구성원은 삭제 불가"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 구성원")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+            @Parameter(description = "구성원 ID", required = true) @PathVariable Long id) {
+        memberService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }

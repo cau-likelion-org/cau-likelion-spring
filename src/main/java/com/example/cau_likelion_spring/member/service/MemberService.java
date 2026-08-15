@@ -15,7 +15,6 @@ import com.example.cau_likelion_spring.member.dto.MemberUpdateRequest;
 import com.example.cau_likelion_spring.global.exception.CustomException;
 import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.global.util.S3Uploader;
-import com.example.cau_likelion_spring.member.repository.AllowedUserEmailRepository;
 import com.example.cau_likelion_spring.member.repository.FcmTokenRepository;
 import com.example.cau_likelion_spring.member.repository.MemberRepository;
 import com.example.cau_likelion_spring.organization.domain.Part;
@@ -35,7 +34,6 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PartRepository partRepository;
     private final FcmTokenRepository fcmTokenRepository;
-    private final AllowedUserEmailRepository allowedUserEmailRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final AssignmentSubmitRepository assignmentSubmitRepository;
     private final SubmissionFileRepository submissionFileRepository;
@@ -86,7 +84,8 @@ public class MemberService {
     }
 
     /**
-     * 구성원을 완전히 삭제한다 (제출/평가 이력, 개별 마감일, 출결, FCM/리프레시 토큰, 회원가입 허용 이메일까지 전부 함께 삭제).
+     * 구성원을 완전히 삭제한다 (제출/평가 이력, 개별 마감일, 출결, FCM/리프레시 토큰까지 전부 함께 삭제).
+     * 회원가입 허용 이메일은 가입 시점(AuthService.join)에 이미 소진돼 삭제되므로 여기서 따로 지우지 않는다.
      * 이 구성원이 평가자(reviewMember)였던 다른 사람의 제출은 지우지 않고 평가자 참조만 비운다.
      * PRESIDENT/ADMIN 권한의 구성원은 삭제할 수 없다.
      */
@@ -109,7 +108,6 @@ public class MemberService {
         detailAttendanceRepository.deleteAllByMember_Id(id);
         fcmTokenRepository.deleteAllByMember_Id(id);
         refreshTokenRepository.deleteByMember_Id(id);
-        allowedUserEmailRepository.deleteAllByAllowedEmail(member.getEmail());
 
         memberRepository.delete(member);
     }

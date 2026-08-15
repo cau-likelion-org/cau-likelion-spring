@@ -31,7 +31,7 @@ public class Track extends BaseTimeEntity {
     @Lob
     private String introduction;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "track_tech_stack", joinColumns = @JoinColumn(name = "track_id"))
     @Column(name = "tech_stack", length = 10)
     private List<String> techStack = new ArrayList<>();

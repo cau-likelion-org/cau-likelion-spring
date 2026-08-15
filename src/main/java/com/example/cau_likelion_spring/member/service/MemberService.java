@@ -1,5 +1,6 @@
 package com.example.cau_likelion_spring.member.service;
 
+import com.example.cau_likelion_spring.member.domain.FcmToken;
 import com.example.cau_likelion_spring.member.domain.Member;
 import com.example.cau_likelion_spring.member.domain.MemberRole;
 import com.example.cau_likelion_spring.member.dto.FcmTokenRequest;
@@ -7,6 +8,7 @@ import com.example.cau_likelion_spring.member.dto.MemberResponse;
 import com.example.cau_likelion_spring.member.dto.MemberUpdateRequest;
 import com.example.cau_likelion_spring.global.exception.CustomException;
 import com.example.cau_likelion_spring.global.exception.ErrorCode;
+import com.example.cau_likelion_spring.member.repository.FcmTokenRepository;
 import com.example.cau_likelion_spring.member.repository.MemberRepository;
 import com.example.cau_likelion_spring.organization.domain.Part;
 import com.example.cau_likelion_spring.organization.repository.PartRepository;
@@ -23,6 +25,7 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final PartRepository partRepository;
+    private final FcmTokenRepository fcmTokenRepository;
 
     public MemberResponse getMyInfo(Long memberId) {
         return MemberResponse.from(getMember(memberId));
@@ -46,11 +49,23 @@ public class MemberService {
         return MemberResponse.from(member);
     }
 
-    /** 본인의 FCM 토큰을 등록/갱신한다. 기기 1개만 지원하며 재등록 시 이전 값을 덮어쓴다. */
+    /**
+     * 본인 기기의 FCM 토큰을 등록한다. 기기(브라우저)마다 별도로 등록되므로 여러 개를 동시에 가질 수 있다.
+     * 이미 등록된 토큰이면(재등록/갱신) 그대로 유지되고, 다른 구성원이 쓰던 토큰이면(기기 재사용, 계정 전환) 이 구성원 소유로 옮겨진다.
+     */
     @Transactional
-    public void updateFcmToken(Long memberId, FcmTokenRequest request) {
+    public void registerFcmToken(Long memberId, FcmTokenRequest request) {
         Member member = getMember(memberId);
-        member.updateFcmToken(request.fcmToken());
+        FcmToken fcmToken = fcmTokenRepository.findByToken(request.fcmToken())
+                .orElseGet(() -> FcmToken.builder().member(member).token(request.fcmToken()).build());
+        fcmToken.reassignTo(member);
+        fcmTokenRepository.save(fcmToken);
+    }
+
+    /** 본인 기기의 FCM 토큰을 삭제한다 (로그아웃 시 등). 등록돼 있지 않아도 조용히 넘어간다. */
+    @Transactional
+    public void deleteFcmToken(Long memberId, FcmTokenRequest request) {
+        fcmTokenRepository.deleteByMember_IdAndToken(memberId, request.fcmToken());
     }
 
     private Member getMember(Long id) {

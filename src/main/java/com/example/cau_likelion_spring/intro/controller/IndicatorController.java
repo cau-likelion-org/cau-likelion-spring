@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "정량 지표 (Admin)", description = "랜딩페이지 누적 기수/수료자/프로젝트 지표 조회/수정 API")
@@ -24,7 +25,8 @@ public class IndicatorController {
         return ResponseEntity.ok(indicatorService.getIndicator());
     }
 
-    @Operation(summary = "정량 지표 수정", description = "요청 바디로 전체 필드를 덮어씁니다.")
+    @Operation(summary = "정량 지표 수정", description = "요청 바디로 전체 필드를 덮어씁니다. ADMIN 권한이 필요합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping
     public ResponseEntity<IndicatorResponseDto> updateIndicator(
             @Valid @RequestBody IndicatorRequestDto request) {

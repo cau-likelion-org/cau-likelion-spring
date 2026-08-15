@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,7 +23,8 @@ public class GenerationController {
 
     private final GenerationService generationService;
 
-    @Operation(summary = "기수 생성", description = "기수 번호, 활동 년도, 파트명 리스트를 받아 기수와 파트를 한 번에 생성합니다.")
+    @Operation(summary = "기수 생성", description = "기수 번호, 활동 년도, 파트명 리스트를 받아 기수와 파트를 한 번에 생성합니다. ADMIN 권한이 필요합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<GenerationListResponseDto> createGeneration(
             @Valid @RequestBody GenerationCreateRequestDto request) {
@@ -35,7 +37,8 @@ public class GenerationController {
         return ResponseEntity.ok(generationService.getGenerationList());
     }
 
-    @Operation(summary = "현재 기수 전환", description = "해당 id의 기수를 현재 기수(isCurrent=true)로 지정하고, 나머지 기수는 모두 isCurrent=false로 바뀝니다.")
+    @Operation(summary = "현재 기수 전환", description = "해당 id의 기수를 현재 기수(isCurrent=true)로 지정하고, 나머지 기수는 모두 isCurrent=false로 바뀝니다. ADMIN 권한이 필요합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/current")
     public ResponseEntity<Void> changeCurrentGeneration(
             @Parameter(description = "현재 기수로 지정할 기수 id") @PathVariable Long id) {

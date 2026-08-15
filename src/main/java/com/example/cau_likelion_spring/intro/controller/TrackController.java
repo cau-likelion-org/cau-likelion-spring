@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,7 +23,8 @@ public class TrackController {
 
     private final TrackService trackService;
 
-    @Operation(summary = "트랙 소개 생성")
+    @Operation(summary = "트랙 소개 생성", description = "ADMIN 권한이 필요합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<TrackResponseDto> createTrack(@Valid @RequestBody TrackRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(trackService.createTrack(request));
@@ -34,7 +36,8 @@ public class TrackController {
         return ResponseEntity.ok(trackService.getTrackList());
     }
 
-    @Operation(summary = "트랙 소개 수정", description = "요청 바디로 전체 필드를 덮어씁니다 (부분 수정 아님).")
+    @Operation(summary = "트랙 소개 수정", description = "요청 바디로 전체 필드를 덮어씁니다 (부분 수정 아님). ADMIN 권한이 필요합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<TrackResponseDto> updateTrack(
             @Parameter(description = "트랙 id") @PathVariable Long id,
@@ -42,7 +45,8 @@ public class TrackController {
         return ResponseEntity.ok(trackService.updateTrack(id, request));
     }
 
-    @Operation(summary = "트랙 소개 삭제")
+    @Operation(summary = "트랙 소개 삭제", description = "ADMIN 권한이 필요합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTrack(@Parameter(description = "트랙 id") @PathVariable Long id) {
         trackService.deleteTrack(id);

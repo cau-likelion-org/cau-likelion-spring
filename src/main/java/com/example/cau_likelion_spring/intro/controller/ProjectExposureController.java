@@ -27,14 +27,14 @@ public class ProjectExposureController {
     private final ProjectExposureService projectExposureService;
 
     @Operation(summary = "랜딩페이지 노출 프로젝트 지정", description = "요청에 담긴 id의 프로젝트만 랜딩페이지에 노출(isExposed=true)되고, "
-            + "나머지 전체 프로젝트는 비노출(isExposed=false) 처리됩니다. 매 호출마다 전체 노출 목록을 덮어씁니다. ADMIN, STAFF 권한이 필요합니다.")
+            + "나머지 전체 프로젝트는 비노출(isExposed=false) 처리됩니다. 매 호출마다 전체 노출 목록을 덮어씁니다. ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "지정 성공 - 현재 노출 중인 프로젝트 목록 반환"),
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
             @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "404", description = "요청에 존재하지 않는 프로젝트 id가 포함됨")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/exposure")
     public ResponseEntity<List<ProjectResponse>> updateExposure(
             @RequestBody @Valid ExposedProjectsRequest request) {

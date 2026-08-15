@@ -39,19 +39,37 @@ public class MemberController {
         return ResponseEntity.ok(memberService.getMyInfo(memberId));
     }
 
-    @Operation(summary = "FCM 토큰 등록/갱신",
-            description = "요청자 본인의 PWA 푸시 알림 수신용 FCM 토큰을 등록/갱신합니다. 기기 1개만 지원하며, 재등록 시 이전 값을 덮어씁니다.")
+    @Operation(summary = "FCM 토큰 등록",
+            description = "요청자 본인의 PWA 푸시 알림 수신용 FCM 토큰을 등록합니다. 기기(브라우저)마다 별도로 등록되므로 여러 기기에서 "
+                    + "동시에 알림을 받을 수 있습니다. 이미 등록된 토큰이면 그대로 유지되고, 다른 구성원이 쓰던 토큰이면(기기 재사용/계정 전환) "
+                    + "이 구성원 소유로 옮겨집니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "등록/갱신 성공"),
+            @ApiResponse(responseCode = "204", description = "등록 성공"),
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
             @ApiResponse(responseCode = "401", description = "인증되지 않은 요청"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 구성원")
     })
     @PatchMapping("/me/fcm-token")
-    public ResponseEntity<Void> updateFcmToken(
+    public ResponseEntity<Void> registerFcmToken(
             @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody FcmTokenRequest request) {
-        memberService.updateFcmToken(memberId, request);
+        memberService.registerFcmToken(memberId, request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "FCM 토큰 삭제",
+            description = "요청자 본인 기기의 FCM 토큰을 삭제합니다. 로그아웃하거나 공용 기기에서 알림을 끊고 싶을 때 호출합니다. "
+                    + "등록돼 있지 않은 토큰이어도 에러 없이 정상 처리됩니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "삭제 성공"),
+            @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 요청")
+    })
+    @DeleteMapping("/me/fcm-token")
+    public ResponseEntity<Void> deleteFcmToken(
+            @AuthenticationPrincipal Long memberId,
+            @Valid @RequestBody FcmTokenRequest request) {
+        memberService.deleteFcmToken(memberId, request);
         return ResponseEntity.noContent().build();
     }
 

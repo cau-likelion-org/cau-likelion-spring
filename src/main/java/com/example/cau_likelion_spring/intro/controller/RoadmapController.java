@@ -27,13 +27,13 @@ public class RoadmapController {
     private final RoadmapService roadmapService;
 
     @Operation(summary = "로드맵 이미지 추가", description = "새 로드맵 이미지를 추가합니다. 기존 이미지를 덮어쓰지 않고 새 row로 쌓입니다. "
-            + "imageUrl은 POST /api/files/ROADMAP으로 미리 업로드해 받은 URL을 담아 보냅니다. ADMIN, STAFF 권한이 필요합니다.")
+            + "imageUrl은 POST /api/files/ROADMAP으로 미리 업로드해 받은 URL을 담아 보냅니다. ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "추가 성공"),
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
             @ApiResponse(responseCode = "403", description = "권한 없음")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<RoadmapResponseDto> addRoadmap(@RequestBody @Valid RoadmapRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(roadmapService.addRoadmap(request));

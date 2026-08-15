@@ -4,6 +4,9 @@ import com.example.cau_likelion_spring.assignment.domain.Assignment;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmit;
 import com.example.cau_likelion_spring.member.domain.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -11,6 +14,13 @@ import java.util.Optional;
 public interface AssignmentSubmitRepository extends JpaRepository<AssignmentSubmit, Long> {
 
     void deleteAllByAssignment(Assignment assignment);
+
+    void deleteAllBySubmitMember_Id(Long memberId);
+
+    /** 회원 삭제 시 그 사람이 평가한(reviewMember) 다른 사람의 제출은 지우지 않고, 평가자 참조만 비운다 */
+    @Modifying
+    @Query("UPDATE AssignmentSubmit s SET s.reviewMember = NULL WHERE s.reviewMember.id = :memberId")
+    void clearReviewMemberById(@Param("memberId") Long memberId);
 
     Optional<AssignmentSubmit> findFirstByAssignmentAndSubmitMemberOrderByCreatedAtDesc(
             Assignment assignment, Member submitMember);

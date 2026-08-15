@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface PushNotiLogRepository extends JpaRepository<PushNotiLog, Long> {
 
     void deleteAllByAssignmentSubmit_Assignment(Assignment assignment);
+
+    void deleteAllByAssignmentSubmit_SubmitMember_Id(Long memberId);
 }

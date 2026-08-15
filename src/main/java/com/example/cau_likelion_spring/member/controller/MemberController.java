@@ -39,19 +39,37 @@ public class MemberController {
         return ResponseEntity.ok(memberService.getMyInfo(memberId));
     }
 
-    @Operation(summary = "FCM 토큰 등록/갱신",
-            description = "요청자 본인의 PWA 푸시 알림 수신용 FCM 토큰을 등록/갱신합니다. 기기 1개만 지원하며, 재등록 시 이전 값을 덮어씁니다.")
+    @Operation(summary = "FCM 토큰 등록",
+            description = "요청자 본인의 PWA 푸시 알림 수신용 FCM 토큰을 등록합니다. 기기(브라우저)마다 별도로 등록되므로 여러 기기에서 "
+                    + "동시에 알림을 받을 수 있습니다. 이미 등록된 토큰이면 그대로 유지되고, 다른 구성원이 쓰던 토큰이면(기기 재사용/계정 전환) "
+                    + "이 구성원 소유로 옮겨집니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "등록/갱신 성공"),
+            @ApiResponse(responseCode = "204", description = "등록 성공"),
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
             @ApiResponse(responseCode = "401", description = "인증되지 않은 요청"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 구성원")
     })
     @PatchMapping("/me/fcm-token")
-    public ResponseEntity<Void> updateFcmToken(
+    public ResponseEntity<Void> registerFcmToken(
             @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody FcmTokenRequest request) {
-        memberService.updateFcmToken(memberId, request);
+        memberService.registerFcmToken(memberId, request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "FCM 토큰 삭제",
+            description = "요청자 본인 기기의 FCM 토큰을 삭제합니다. 로그아웃하거나 공용 기기에서 알림을 끊고 싶을 때 호출합니다. "
+                    + "등록돼 있지 않은 토큰이어도 에러 없이 정상 처리됩니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "삭제 성공"),
+            @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 요청")
+    })
+    @DeleteMapping("/me/fcm-token")
+    public ResponseEntity<Void> deleteFcmToken(
+            @AuthenticationPrincipal Long memberId,
+            @Valid @RequestBody FcmTokenRequest request) {
+        memberService.deleteFcmToken(memberId, request);
         return ResponseEntity.noContent().build();
     }
 
@@ -84,5 +102,23 @@ public class MemberController {
             @Parameter(description = "구성원 ID", required = true) @PathVariable Long id,
             @Valid @RequestBody MemberUpdateRequest request) {
         return ResponseEntity.ok(memberService.update(id, request));
+    }
+
+    @Operation(summary = "구성원 삭제",
+            description = "관리자가 특정 구성원을 완전히 삭제합니다. 과제 제출/평가 이력, 개별 마감일, 출결 기록, FCM/리프레시 토큰까지 "
+                    + "함께 삭제되며, 되돌릴 수 없습니다. 이 구성원이 평가자였던 다른 구성원의 제출 이력은 삭제되지 않고, 평가자 이름은 "
+                    + "평가 시점 스냅샷으로 그대로 유지된 채 평가자 참조만 비워집니다. PRESIDENT/ADMIN 권한의 구성원은 삭제할 수 없습니다. "
+                    + "ADMIN 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "삭제 성공"),
+            @ApiResponse(responseCode = "403", description = "관리자 권한 없음, 또는 PRESIDENT/ADMIN 권한의 구성원은 삭제 불가"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 구성원")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+            @Parameter(description = "구성원 ID", required = true) @PathVariable Long id) {
+        memberService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

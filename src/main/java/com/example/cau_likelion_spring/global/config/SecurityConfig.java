@@ -55,6 +55,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/blogs", "/api/blogs/{id:[0-9]+}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/gallery/sessions/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/gallery/histories/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/gallery/projects/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/recruitment/subscribers").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/recruitment/subscribers/available-parts").permitAll()
                         .anyRequest().authenticated()

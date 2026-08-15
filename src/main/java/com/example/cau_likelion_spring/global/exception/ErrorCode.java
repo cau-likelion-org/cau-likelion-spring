@@ -79,6 +79,9 @@ public enum ErrorCode {
     HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 히스토리입니다."),
     HISTORY_IMAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 히스토리 이미지입니다."),
 
+    // ===== Project Gallery =====
+    PROJECT_GALLERY_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 프로젝트 게시물입니다."),
+
     // ===== Blog =====
     BLOG_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 블로그 글입니다."),
     INVALID_SCRAPING_URL(HttpStatus.BAD_REQUEST, "유효하지 않은 스크래핑 URL입니다."),

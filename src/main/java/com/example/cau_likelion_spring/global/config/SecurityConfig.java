@@ -53,8 +53,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/projects/**").permitAll()
                         // /api/blogs/scraping은 숫자 id 패턴에 걸리지 않으므로 아래 permitAll 대상에서 제외됨
                         .requestMatchers(HttpMethod.GET, "/api/blogs", "/api/blogs/{id:[0-9]+}").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/sessions/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/histories/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/gallery/sessions/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/gallery/histories/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/gallery/projects/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/recruitment/subscribers").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/recruitment/subscribers/available-parts").permitAll()
                         .anyRequest().authenticated()

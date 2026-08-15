@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,7 +23,8 @@ public class DesiredTalentController {
 
     private final DesiredTalentService desiredTalentService;
 
-    @Operation(summary = "인재상 생성", description = "partName을 비워두면 공통 인재상, 값을 넣으면 해당 파트의 인재상으로 생성됩니다.")
+    @Operation(summary = "인재상 생성", description = "partName을 비워두면 공통 인재상, 값을 넣으면 해당 파트의 인재상으로 생성됩니다. ADMIN 권한이 필요합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<DesiredTalentResponseDto> createDesiredTalent(
             @Valid @RequestBody DesiredTalentRequestDto request) {
@@ -35,7 +37,8 @@ public class DesiredTalentController {
         return ResponseEntity.ok(desiredTalentService.getDesiredTalentList());
     }
 
-    @Operation(summary = "인재상 수정", description = "요청 바디로 전체 필드를 덮어씁니다 (부분 수정 아님).")
+    @Operation(summary = "인재상 수정", description = "요청 바디로 전체 필드를 덮어씁니다 (부분 수정 아님). ADMIN 권한이 필요합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<DesiredTalentResponseDto> updateDesiredTalent(
             @Parameter(description = "인재상 id") @PathVariable Long id,
@@ -43,7 +46,8 @@ public class DesiredTalentController {
         return ResponseEntity.ok(desiredTalentService.updateDesiredTalent(id, request));
     }
 
-    @Operation(summary = "인재상 삭제")
+    @Operation(summary = "인재상 삭제", description = "ADMIN 권한이 필요합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteDesiredTalent(@Parameter(description = "인재상 id") @PathVariable Long id) {
         desiredTalentService.deleteDesiredTalent(id);

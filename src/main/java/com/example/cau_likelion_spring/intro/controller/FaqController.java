@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,7 +23,8 @@ public class FaqController {
 
     private final FaqService faqService;
 
-    @Operation(summary = "FAQ 생성")
+    @Operation(summary = "FAQ 생성", description = "ADMIN 권한이 필요합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<FaqResponseDto> createFaq(@Valid @RequestBody FaqRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(faqService.createFaq(request));
@@ -34,7 +36,8 @@ public class FaqController {
         return ResponseEntity.ok(faqService.getFaqList());
     }
 
-    @Operation(summary = "FAQ 수정", description = "요청 바디로 전체 필드를 덮어씁니다 (부분 수정 아님). answer는 최대 1000자입니다.")
+    @Operation(summary = "FAQ 수정", description = "요청 바디로 전체 필드를 덮어씁니다 (부분 수정 아님). answer는 최대 1000자입니다. ADMIN 권한이 필요합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<FaqResponseDto> updateFaq(
             @Parameter(description = "FAQ id") @PathVariable Long id,
@@ -42,7 +45,8 @@ public class FaqController {
         return ResponseEntity.ok(faqService.updateFaq(id, request));
     }
 
-    @Operation(summary = "FAQ 삭제")
+    @Operation(summary = "FAQ 삭제", description = "ADMIN 권한이 필요합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFaq(@Parameter(description = "FAQ id") @PathVariable Long id) {
         faqService.deleteFaq(id);

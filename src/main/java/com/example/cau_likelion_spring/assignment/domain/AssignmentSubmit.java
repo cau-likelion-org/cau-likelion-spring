@@ -32,10 +32,14 @@ public class AssignmentSubmit extends BaseTimeEntity {
     @JoinColumn(name = "assignment_id", nullable = false)
     private Assignment assignment;
 
-    /** 검토 운영진 */
+    /** 검토 운영진. 평가자가 삭제되면 이 참조는 비워지므로(reviewerName 스냅샷은 유지), 화면엔 reviewerName을 써야 한다 */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "review_member_id")
     private Member reviewMember;
+
+    /** 평가 시점의 검토 운영진 이름 스냅샷. reviewMember가 삭제로 비워져도 "누가 평가했는지"는 남아있어야 하므로 별도 보관 */
+    @Column(length = 50)
+    private String reviewerName;
 
     /** 제출 아기사자 */
     @ManyToOne(fetch = FetchType.LAZY)
@@ -74,6 +78,7 @@ public class AssignmentSubmit extends BaseTimeEntity {
 
     public void approve(Member reviewMember) {
         this.reviewMember = reviewMember;
+        this.reviewerName = reviewMember.getName();
         this.status = AssignmentSubmitStatus.APPROVED;
         this.approvalDate = LocalDateTime.now();
         this.rejectionReason = null;
@@ -81,6 +86,7 @@ public class AssignmentSubmit extends BaseTimeEntity {
 
     public void reject(Member reviewMember, String rejectionReason) {
         this.reviewMember = reviewMember;
+        this.reviewerName = reviewMember.getName();
         this.status = AssignmentSubmitStatus.REJECTED;
         this.approvalDate = LocalDateTime.now();
         this.rejectionReason = rejectionReason;

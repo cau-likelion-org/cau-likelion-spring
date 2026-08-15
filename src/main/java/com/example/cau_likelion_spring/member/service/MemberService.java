@@ -1,5 +1,11 @@
 package com.example.cau_likelion_spring.member.service;
 
+import com.example.cau_likelion_spring.assignment.repository.AssignmentIndividualDeadlineRepository;
+import com.example.cau_likelion_spring.assignment.repository.AssignmentSubmitRepository;
+import com.example.cau_likelion_spring.assignment.repository.PushNotiLogRepository;
+import com.example.cau_likelion_spring.assignment.repository.SubmissionFileRepository;
+import com.example.cau_likelion_spring.attendance.repository.DetailAttendanceRepository;
+import com.example.cau_likelion_spring.auth.repository.RefreshTokenRepository;
 import com.example.cau_likelion_spring.member.domain.FcmToken;
 import com.example.cau_likelion_spring.member.domain.Member;
 import com.example.cau_likelion_spring.member.domain.MemberRole;
@@ -8,11 +14,14 @@ import com.example.cau_likelion_spring.member.dto.MemberResponse;
 import com.example.cau_likelion_spring.member.dto.MemberUpdateRequest;
 import com.example.cau_likelion_spring.global.exception.CustomException;
 import com.example.cau_likelion_spring.global.exception.ErrorCode;
+import com.example.cau_likelion_spring.global.util.S3Uploader;
+import com.example.cau_likelion_spring.member.repository.AllowedUserEmailRepository;
 import com.example.cau_likelion_spring.member.repository.FcmTokenRepository;
 import com.example.cau_likelion_spring.member.repository.MemberRepository;
 import com.example.cau_likelion_spring.organization.domain.Part;
 import com.example.cau_likelion_spring.organization.repository.PartRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +35,14 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PartRepository partRepository;
     private final FcmTokenRepository fcmTokenRepository;
+    private final AllowedUserEmailRepository allowedUserEmailRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final AssignmentSubmitRepository assignmentSubmitRepository;
+    private final SubmissionFileRepository submissionFileRepository;
+    private final PushNotiLogRepository pushNotiLogRepository;
+    private final AssignmentIndividualDeadlineRepository assignmentIndividualDeadlineRepository;
+    private final DetailAttendanceRepository detailAttendanceRepository;
+    private final S3Uploader s3Uploader;
 
     public MemberResponse getMyInfo(Long memberId) {
         return MemberResponse.from(getMember(memberId));
@@ -66,6 +83,35 @@ public class MemberService {
     @Transactional
     public void deleteFcmToken(Long memberId, FcmTokenRequest request) {
         fcmTokenRepository.deleteByMember_IdAndToken(memberId, request.fcmToken());
+    }
+
+    /**
+     * 구성원을 완전히 삭제한다 (제출/평가 이력, 개별 마감일, 출결, FCM/리프레시 토큰, 회원가입 허용 이메일까지 전부 함께 삭제).
+     * 이 구성원이 평가자(reviewMember)였던 다른 사람의 제출은 지우지 않고 평가자 참조만 비운다.
+     * PRESIDENT/ADMIN 권한의 구성원은 삭제할 수 없다.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public void delete(Long id) {
+        Member member = getMember(id);
+        if (member.getRole() == MemberRole.PRESIDENT || member.getRole() == MemberRole.ADMIN) {
+            throw new CustomException(ErrorCode.MEMBER_DELETE_NOT_ALLOWED,
+                    "회장/관리자 권한의 구성원은 삭제할 수 없습니다. id=" + id);
+        }
+
+        submissionFileRepository.findAllByAssignmentSubmit_SubmitMember_Id(id)
+                .forEach(file -> s3Uploader.deleteByUrl(file.getFileUrl()));
+        pushNotiLogRepository.deleteAllByAssignmentSubmit_SubmitMember_Id(id);
+        submissionFileRepository.deleteAllByAssignmentSubmit_SubmitMember_Id(id);
+        assignmentSubmitRepository.clearReviewMemberById(id);
+        assignmentSubmitRepository.deleteAllBySubmitMember_Id(id);
+        assignmentIndividualDeadlineRepository.deleteAllByMember_Id(id);
+        detailAttendanceRepository.deleteAllByMember_Id(id);
+        fcmTokenRepository.deleteAllByMember_Id(id);
+        refreshTokenRepository.deleteByMember_Id(id);
+        allowedUserEmailRepository.deleteAllByAllowedEmail(member.getEmail());
+
+        memberRepository.delete(member);
     }
 
     private Member getMember(Long id) {

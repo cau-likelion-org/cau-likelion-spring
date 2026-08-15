@@ -20,4 +20,9 @@ public interface SubmissionFileRepository extends JpaRepository<SubmissionFile, 
     List<SubmissionFile> findAllByAssignmentSubmit(AssignmentSubmit assignmentSubmit);
 
     List<SubmissionFile> findAllByAssignmentSubmitIn(List<AssignmentSubmit> assignmentSubmits);
+
+    /** 회원 탈퇴/삭제 시 본인 제출물에 딸린 첨부파일을 S3에서 함께 정리하기 위해, DB에서 지우기 전에 URL 목록을 먼저 조회 */
+    List<SubmissionFile> findAllByAssignmentSubmit_SubmitMember_Id(Long memberId);
+
+    void deleteAllByAssignmentSubmit_SubmitMember_Id(Long memberId);
 }

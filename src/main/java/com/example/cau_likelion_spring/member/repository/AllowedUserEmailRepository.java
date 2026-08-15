@@ -13,4 +13,6 @@ public interface AllowedUserEmailRepository extends JpaRepository<AllowedUserEma
     boolean existsByAllowedEmail(String allowedEmail);
 
     List<AllowedUserEmail> findAllByGeneration_Id(Long generationId);
+
+    void deleteAllByAllowedEmail(String allowedEmail);
 }

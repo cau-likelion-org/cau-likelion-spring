@@ -26,6 +26,8 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 /** S3 업로드/삭제 + 검증(확장자/용량)을 담당한다. 어떤 도메인 폴더에, 어떤 파일까지 허용할지는 {@link UploadDomain}이 정의한다. */
 @Slf4j
@@ -40,6 +42,13 @@ public class S3Uploader {
     // Thumbnailator가 기본 지원하는 포맷만 리사이징 대상으로 함.
     // gif는 애니메이션이 깨질 수 있고, webp는 JDK가 기본 지원하지 않아 리사이징 시도 시 에러가 나므로 원본 그대로 업로드한다.
     private static final Set<String> RESIZABLE_EXTENSIONS = Set.of("jpg", "jpeg", "png");
+
+    // 리사이징(디코딩~인코딩)은 순간적으로 메모리를 많이 쓰므로, t3.micro(메모리 1GB) 기준으로
+    // 동시에 최대 2건까지만 처리하도록 제한한다. 자리가 없으면 최대 5초 대기하고, 그래도 안 되면 실패 처리한다.
+    // (무한 대기시키면 어딘가 막혔을 때 요청이 영원히 안 끝날 수 있어 타임아웃을 둔다)
+    private static final int MAX_CONCURRENT_RESIZE = 2;
+    private static final long RESIZE_WAIT_TIMEOUT_SECONDS = 5;
+    private final Semaphore resizeSemaphore = new Semaphore(MAX_CONCURRENT_RESIZE);
 
     private final S3Template s3Template;
 
@@ -86,12 +95,14 @@ public class S3Uploader {
      * 리사이징 대상 도메인(UploadDomain.resizable=true) + 지원 포맷(jpg/jpeg/png)인 경우에만 리사이징한다.
      * 원본이 이미 MAX_DIMENSION보다 작으면 리사이징을 건너뛰고 원본을 그대로 사용한다 - 절대 확대(업스케일)하지 않는다.
      * <p>
-     * 메모리 최적화: ImageIO.read()로 픽셀을 100% 디코딩하는 대신, 먼저 헤더에서 가로/세로만 읽어
+     * 메모리 최적화 1: ImageIO.read()로 픽셀을 100% 디코딩하는 대신, 먼저 헤더에서 가로/세로만 읽어
      * 리사이징이 필요한지 판단하고, 필요한 경우에만 서브샘플링(setSourceSubsampling)으로 이미 축소된
-     * 해상도로 디코딩한다. 원본을 통째로 펼친 뒤 축소하면(4000x3000 원본이 픽셀당 4바이트 기준 약 48MB까지
-     * 커질 수 있음) 사진 여러 장이 동시에 처리될 때 OOM 위험이 커지므로, 애초에 필요한 크기로만 디코딩해서
-     * 순간 메모리 사용량을 크게 줄인다.
+     * 해상도로 디코딩한다.
+     * 메모리 최적화 2: 그래도 여러 장이 정확히 동시에 몰리면 순간 메모리가 쌓일 수 있으므로,
+     * 세마포어로 동시 리사이징 개수 자체를 MAX_CONCURRENT_RESIZE로 제한한다.
      * 리사이징이 실패하면(손상된 파일 등) 업로드 자체를 막지 않고 원본을 그대로 사용한다 - best-effort.
+     * 단, 동시 처리 자리를 못 구한 경우(서버가 바쁨)는 원본 업로드로 눈감아주지 않고 명시적으로 실패시킨다 -
+     * 안전장치를 우회해서 결국 메모리를 또 많이 쓰게 되면 세마포어를 두는 의미가 없기 때문이다.
      */
     private byte[] resizeIfNeeded(MultipartFile file, UploadDomain domain, String extension) {
         if (!domain.isResizable() || !RESIZABLE_EXTENSIONS.contains(extension)) {
@@ -100,25 +111,65 @@ public class S3Uploader {
 
         byte[] originalBytes = readAllBytes(file);
 
-        try (ImageInputStream iis = ImageIO.createImageInputStream(new ByteArrayInputStream(originalBytes))) {
-            ImageReader reader = findImageReader(iis, file.getOriginalFilename());
+        // 먼저 헤더만 가볍게 읽어서, 애초에 리사이징이 필요 없는 작은 이미지면 세마포어 자리도 안 쓰고 바로 반환
+        Dimension dimension = readDimension(originalBytes, file.getOriginalFilename());
+        if (dimension == null) {
+            return originalBytes;
+        }
+        if (dimension.width() <= MAX_DIMENSION && dimension.height() <= MAX_DIMENSION) {
+            return originalBytes;
+        }
+
+        boolean acquired;
+        try {
+            acquired = resizeSemaphore.tryAcquire(RESIZE_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new CustomException(ErrorCode.IMAGE_PROCESSING_BUSY);
+        }
+        if (!acquired) {
+            throw new CustomException(ErrorCode.IMAGE_PROCESSING_BUSY);
+        }
+
+        try {
+            return resize(originalBytes, dimension, extension, file.getOriginalFilename());
+        } finally {
+            resizeSemaphore.release();
+        }
+    }
+
+    /** 픽셀을 디코딩하지 않고 이미지 헤더만 읽어 가로/세로를 확인한다. 읽을 수 없는 파일이면 null을 반환한다. */
+    private Dimension readDimension(byte[] imageBytes, String filename) {
+        try (ImageInputStream iis = ImageIO.createImageInputStream(new ByteArrayInputStream(imageBytes))) {
+            ImageReader reader = findImageReader(iis, filename);
             if (reader == null) {
-                // ImageIO가 못 읽는 파일(손상됐거나 예상 못한 포맷) - 리사이징 없이 원본 그대로 업로드
+                return null;
+            }
+            try {
+                reader.setInput(iis, true, true);
+                return new Dimension(reader.getWidth(0), reader.getHeight(0));
+            } finally {
+                reader.dispose();
+            }
+        } catch (IOException e) {
+            log.warn("이미지 헤더를 읽을 수 없어 리사이징을 건너뜁니다: filename={}", filename, e);
+            return null;
+        }
+    }
+
+    /** 서브샘플링으로 축소된 해상도로 디코딩한 뒤, Thumbnailator로 정밀하게 MAX_DIMENSION에 맞춘다. */
+    private byte[] resize(byte[] originalBytes, Dimension original, String extension, String filename) {
+        try (ImageInputStream iis = ImageIO.createImageInputStream(new ByteArrayInputStream(originalBytes))) {
+            ImageReader reader = findImageReader(iis, filename);
+            if (reader == null) {
                 return originalBytes;
             }
 
             try {
                 reader.setInput(iis, true, true);
-                int originalWidth = reader.getWidth(0);
-                int originalHeight = reader.getHeight(0);
-
-                // 원본이 이미 목표 크기 이하면 확대하지 않고 원본을 그대로 사용 (디코딩 자체를 안 해서 더 빠름)
-                if (originalWidth <= MAX_DIMENSION && originalHeight <= MAX_DIMENSION) {
-                    return originalBytes;
-                }
 
                 // 축소할 배수만큼만 디코딩하도록 서브샘플링 설정 - 원본을 100% 펼치지 않고 처음부터 줄여서 읽음
-                int subsampling = Math.max(1, Math.min(originalWidth, originalHeight) / MAX_DIMENSION);
+                int subsampling = Math.max(1, Math.min(original.width(), original.height()) / MAX_DIMENSION);
                 ImageReadParam param = reader.getDefaultReadParam();
                 param.setSourceSubsampling(subsampling, subsampling, 0, 0);
 
@@ -135,9 +186,12 @@ public class S3Uploader {
                 reader.dispose();
             }
         } catch (IOException e) {
-            log.warn("이미지 리사이징 실패, 원본으로 업로드합니다: filename={}", file.getOriginalFilename(), e);
+            log.warn("이미지 리사이징 실패, 원본으로 업로드합니다: filename={}", filename, e);
             return originalBytes;
         }
+    }
+
+    private record Dimension(int width, int height) {
     }
 
     private ImageReader findImageReader(ImageInputStream iis, String filename) {

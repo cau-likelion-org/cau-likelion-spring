@@ -179,7 +179,7 @@ public class AssignmentService {
      * 회장이 보는 특정 파트 과제 목록(주차별). 파트를 파라미터로 직접 지정한다는 점을 제외하면
      * {@link #getMyAssignmentsForStaff}와 동일한 집계 로직을 사용한다.
      */
-    @PreAuthorize("hasRole('PRESIDENT')")
+    @PreAuthorize("hasAnyRole('PRESIDENT', 'ADMIN')")
     public List<AssignmentStaffSummaryResponse.WeekGroup> getAssignmentsForPresident(Long partId) {
         Part part = getPart(partId);
         return getAssignmentsByPart(part);

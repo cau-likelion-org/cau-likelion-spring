@@ -74,8 +74,8 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.getPartAttendances(memberId));
     }
 
-    @Operation(summary = "전체 파트 아기사자 출결 현황 조회", description = "회장이 전체 파트 아기사자들의 주차별 출결 현황을 조회합니다. "
-            + "각 아기사자의 출결로 인한 감점(attendancePenalty)도 함께 반환합니다 (과제 감점은 제외). PRESIDENT 권한이 필요합니다.")
+    @Operation(summary = "전체 파트 아기사자 출결 현황 조회", description = "회장 또는 관리자가 전체 파트 아기사자들의 주차별 출결 현황을 조회합니다. "
+            + "각 아기사자의 출결로 인한 감점(attendancePenalty)도 함께 반환합니다 (과제 감점은 제외). PRESIDENT 또는 ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "403", description = "권한 없음")

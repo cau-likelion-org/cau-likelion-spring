@@ -130,7 +130,7 @@ public class AttendanceService {
         return buildMemberAttendanceResponses(babyLions);
     }
 
-    @PreAuthorize("hasRole('PRESIDENT')")
+    @PreAuthorize("hasAnyRole('PRESIDENT', 'ADMIN')")
     public List<MemberAttendanceResponse> getAllAttendances() {
         List<Member> babyLions = memberRepository.findByRole(MemberRole.BABY_LION);
         return buildMemberAttendanceResponses(babyLions);

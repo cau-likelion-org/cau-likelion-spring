@@ -39,9 +39,10 @@ public class S3Uploader {
     private static final int MAX_DIMENSION = 1920;
     private static final double OUTPUT_QUALITY = 0.85;
 
-    // Thumbnailator가 기본 지원하는 포맷만 리사이징 대상으로 함.
-    // gif는 애니메이션이 깨질 수 있고, webp는 JDK가 기본 지원하지 않아 리사이징 시도 시 에러가 나므로 원본 그대로 업로드한다.
-    private static final Set<String> RESIZABLE_EXTENSIONS = Set.of("jpg", "jpeg", "png");
+    // Thumbnailator(=ImageIO)가 지원하는 포맷만 리사이징 대상으로 함.
+    // jpg/jpeg/png는 JDK 표준 지원, webp는 별도 플러그인(webp-imageio)을 추가해서 지원한다.
+    // gif는 리사이징하면 애니메이션이 깨지므로 대상에서 제외하고 원본 그대로 업로드한다.
+    private static final Set<String> RESIZABLE_EXTENSIONS = Set.of("jpg", "jpeg", "png", "webp");
 
     // 리사이징(디코딩~인코딩)은 순간적으로 메모리를 많이 쓰므로, t3.micro(메모리 1GB) 기준으로
     // 동시에 최대 2건까지만 처리하도록 제한한다. 자리가 없으면 최대 5초 대기하고, 그래도 안 되면 실패 처리한다.

@@ -14,11 +14,15 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
@@ -81,6 +85,12 @@ public class S3Uploader {
     /**
      * 리사이징 대상 도메인(UploadDomain.resizable=true) + 지원 포맷(jpg/jpeg/png)인 경우에만 리사이징한다.
      * 원본이 이미 MAX_DIMENSION보다 작으면 리사이징을 건너뛰고 원본을 그대로 사용한다 - 절대 확대(업스케일)하지 않는다.
+     * <p>
+     * 메모리 최적화: ImageIO.read()로 픽셀을 100% 디코딩하는 대신, 먼저 헤더에서 가로/세로만 읽어
+     * 리사이징이 필요한지 판단하고, 필요한 경우에만 서브샘플링(setSourceSubsampling)으로 이미 축소된
+     * 해상도로 디코딩한다. 원본을 통째로 펼친 뒤 축소하면(4000x3000 원본이 픽셀당 4바이트 기준 약 48MB까지
+     * 커질 수 있음) 사진 여러 장이 동시에 처리될 때 OOM 위험이 커지므로, 애초에 필요한 크기로만 디코딩해서
+     * 순간 메모리 사용량을 크게 줄인다.
      * 리사이징이 실패하면(손상된 파일 등) 업로드 자체를 막지 않고 원본을 그대로 사용한다 - best-effort.
      */
     private byte[] resizeIfNeeded(MultipartFile file, UploadDomain domain, String extension) {
@@ -90,30 +100,53 @@ public class S3Uploader {
 
         byte[] originalBytes = readAllBytes(file);
 
-        try {
-            BufferedImage image = ImageIO.read(new ByteArrayInputStream(originalBytes));
-            if (image == null) {
+        try (ImageInputStream iis = ImageIO.createImageInputStream(new ByteArrayInputStream(originalBytes))) {
+            ImageReader reader = findImageReader(iis, file.getOriginalFilename());
+            if (reader == null) {
                 // ImageIO가 못 읽는 파일(손상됐거나 예상 못한 포맷) - 리사이징 없이 원본 그대로 업로드
-                log.warn("이미지를 읽을 수 없어 리사이징을 건너뜁니다: filename={}", file.getOriginalFilename());
                 return originalBytes;
             }
 
-            // 원본이 이미 목표 크기 이하면 확대하지 않고 원본을 그대로 사용
-            if (image.getWidth() <= MAX_DIMENSION && image.getHeight() <= MAX_DIMENSION) {
-                return originalBytes;
-            }
+            try {
+                reader.setInput(iis, true, true);
+                int originalWidth = reader.getWidth(0);
+                int originalHeight = reader.getHeight(0);
 
-            ByteArrayOutputStream resized = new ByteArrayOutputStream();
-            Thumbnails.of(image)
-                    .size(MAX_DIMENSION, MAX_DIMENSION)
-                    .outputQuality(OUTPUT_QUALITY)
-                    .outputFormat(extension.equals("jpg") ? "jpeg" : extension)
-                    .toOutputStream(resized);
-            return resized.toByteArray();
+                // 원본이 이미 목표 크기 이하면 확대하지 않고 원본을 그대로 사용 (디코딩 자체를 안 해서 더 빠름)
+                if (originalWidth <= MAX_DIMENSION && originalHeight <= MAX_DIMENSION) {
+                    return originalBytes;
+                }
+
+                // 축소할 배수만큼만 디코딩하도록 서브샘플링 설정 - 원본을 100% 펼치지 않고 처음부터 줄여서 읽음
+                int subsampling = Math.max(1, Math.min(originalWidth, originalHeight) / MAX_DIMENSION);
+                ImageReadParam param = reader.getDefaultReadParam();
+                param.setSourceSubsampling(subsampling, subsampling, 0, 0);
+
+                BufferedImage image = reader.read(0, param);
+
+                ByteArrayOutputStream resized = new ByteArrayOutputStream();
+                Thumbnails.of(image)
+                        .size(MAX_DIMENSION, MAX_DIMENSION)
+                        .outputQuality(OUTPUT_QUALITY)
+                        .outputFormat(extension.equals("jpg") ? "jpeg" : extension)
+                        .toOutputStream(resized);
+                return resized.toByteArray();
+            } finally {
+                reader.dispose();
+            }
         } catch (IOException e) {
             log.warn("이미지 리사이징 실패, 원본으로 업로드합니다: filename={}", file.getOriginalFilename(), e);
             return originalBytes;
         }
+    }
+
+    private ImageReader findImageReader(ImageInputStream iis, String filename) {
+        Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
+        if (!readers.hasNext()) {
+            log.warn("이미지를 읽을 수 없어 리사이징을 건너뜁니다: filename={}", filename);
+            return null;
+        }
+        return readers.next();
     }
 
     private byte[] readAllBytes(MultipartFile file) {

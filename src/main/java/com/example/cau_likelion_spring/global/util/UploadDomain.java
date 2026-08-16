@@ -7,25 +7,30 @@ import java.util.Set;
 /**
  * 이미지/파일 업로드가 저장될 S3 폴더와, 도메인별로 허용하는 파일 확장자·최대 용량을 정의한다.
  * PROJECT/HISTORY/SESSION/ACTIVITY/ROADMAP은 이미지 전용이고, ASSIGNMENT(과제 첨부파일)만 문서 파일도 허용한다.
+ * resizable=true인 도메인은 S3 업로드 전에 리사이징을 거친다 (ASSIGNMENT는 이미지/문서가 섞여있어 리사이징 대상에서 제외).
+ * maxSizeBytes는 "업로드를 허용하는 원본 크기" 기준이며, 리사이징 대상 도메인은 스마트폰 원본 사진(8~15MB대)도
+ * 받을 수 있도록 넉넉하게 잡혀있다 - 실제 저장되는 최종 용량은 리사이징 후 훨씬 작아진다.
  */
 @Getter
 public enum UploadDomain {
 
-    PROJECT("project", imageExtensions(), 5 * 1024 * 1024L),
-    HISTORY("history", imageExtensions(), 5 * 1024 * 1024L),
-    SESSION("session", imageExtensions(), 5 * 1024 * 1024L),
-    ACTIVITY("activity", imageExtensions(), 5 * 1024 * 1024L),
-    ROADMAP("roadmap", imageExtensions(), 5 * 1024 * 1024L),
-    ASSIGNMENT("assignment", Set.of("jpg", "jpeg", "png", "webp", "gif", "pdf", "zip", "doc", "docx", "ppt", "pptx"), 10 * 1024 * 1024L);
+    PROJECT("project", imageExtensions(), 20 * 1024 * 1024L, true),
+    HISTORY("history", imageExtensions(), 20 * 1024 * 1024L, true),
+    SESSION("session", imageExtensions(), 20 * 1024 * 1024L, true),
+    ACTIVITY("activity", imageExtensions(), 20 * 1024 * 1024L, true),
+    ROADMAP("roadmap", imageExtensions(), 20 * 1024 * 1024L, true),
+    ASSIGNMENT("assignment", Set.of("jpg", "jpeg", "png", "webp", "gif", "pdf", "zip", "doc", "docx", "ppt", "pptx"), 10 * 1024 * 1024L, false);
 
     private final String folder;
     private final Set<String> allowedExtensions;
     private final long maxSizeBytes;
+    private final boolean resizable;
 
-    UploadDomain(String folder, Set<String> allowedExtensions, long maxSizeBytes) {
+    UploadDomain(String folder, Set<String> allowedExtensions, long maxSizeBytes, boolean resizable) {
         this.folder = folder;
         this.allowedExtensions = allowedExtensions;
         this.maxSizeBytes = maxSizeBytes;
+        this.resizable = resizable;
     }
 
     private static Set<String> imageExtensions() {

@@ -5,6 +5,7 @@ spring:
     default: local
   servlet:
     multipart:
-      # 도메인별 제일 큰 제한(ASSIGNMENT 10MB)보다 살짝 여유를 둠(멀티파트 인코딩 오버헤드) - 실제 용량 제한은 UploadDomain이 담당
-      max-file-size: 12MB
-      max-request-size: 12MB
+      # 도메인별 제일 큰 원본 허용치(이미지 도메인 20MB)보다 살짝 여유를 둠(멀티파트 인코딩 오버헤드)
+      # 실제 저장 용량은 S3Uploader의 리사이징을 거쳐 훨씬 작아짐 - 이 값은 "원본 업로드 허용치"일 뿐
+      max-file-size: 22MB
+      max-request-size: 22MB

@@ -7,14 +7,20 @@ import io.awspring.cloud.s3.S3Resource;
 import io.awspring.cloud.s3.S3Template;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 /** S3 업로드/삭제 + 검증(확장자/용량)을 담당한다. 어떤 도메인 폴더에, 어떤 파일까지 허용할지는 {@link UploadDomain}이 정의한다. */
@@ -22,6 +28,14 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 public class S3Uploader {
+
+    // 리사이징 결과의 가로/세로 최대 픽셀 - 웹에서 실제 표시되는 크기보다 넉넉하게 잡아, 고해상도 화면에서도 화질 저하가 안 보이게 함
+    private static final int MAX_DIMENSION = 1920;
+    private static final double OUTPUT_QUALITY = 0.85;
+
+    // Thumbnailator가 기본 지원하는 포맷만 리사이징 대상으로 함.
+    // gif는 애니메이션이 깨질 수 있고, webp는 JDK가 기본 지원하지 않아 리사이징 시도 시 에러가 나므로 원본 그대로 업로드한다.
+    private static final Set<String> RESIZABLE_EXTENSIONS = Set.of("jpg", "jpeg", "png");
 
     private final S3Template s3Template;
 
@@ -31,13 +45,16 @@ public class S3Uploader {
     public String upload(MultipartFile file, UploadDomain domain) {
         validate(file, domain);
 
-        String key = domain.getFolder() + "/" + UUID.randomUUID() + "." + extractExtension(file.getOriginalFilename());
+        String extension = extractExtension(file.getOriginalFilename());
+        byte[] content = resizeIfNeeded(file, domain, extension);
+
+        String key = domain.getFolder() + "/" + UUID.randomUUID() + "." + extension;
         ObjectMetadata metadata = ObjectMetadata.builder()
                 .contentType(file.getContentType())
                 .build();
 
         try {
-            S3Resource resource = s3Template.upload(bucket, key, file.getInputStream(), metadata);
+            S3Resource resource = s3Template.upload(bucket, key, new ByteArrayInputStream(content), metadata);
             return resource.getURL().toString();
         } catch (IOException e) {
             throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
@@ -58,6 +75,52 @@ public class S3Uploader {
             s3Template.deleteObject(bucket, key);
         } catch (Exception e) {
             log.warn("S3 파일 삭제 실패 (무시하고 진행): url={}", url, e);
+        }
+    }
+
+    /**
+     * 리사이징 대상 도메인(UploadDomain.resizable=true) + 지원 포맷(jpg/jpeg/png)인 경우에만 리사이징한다.
+     * 원본이 이미 MAX_DIMENSION보다 작으면 리사이징을 건너뛰고 원본을 그대로 사용한다 - 절대 확대(업스케일)하지 않는다.
+     * 리사이징이 실패하면(손상된 파일 등) 업로드 자체를 막지 않고 원본을 그대로 사용한다 - best-effort.
+     */
+    private byte[] resizeIfNeeded(MultipartFile file, UploadDomain domain, String extension) {
+        if (!domain.isResizable() || !RESIZABLE_EXTENSIONS.contains(extension)) {
+            return readAllBytes(file);
+        }
+
+        byte[] originalBytes = readAllBytes(file);
+
+        try {
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(originalBytes));
+            if (image == null) {
+                // ImageIO가 못 읽는 파일(손상됐거나 예상 못한 포맷) - 리사이징 없이 원본 그대로 업로드
+                log.warn("이미지를 읽을 수 없어 리사이징을 건너뜁니다: filename={}", file.getOriginalFilename());
+                return originalBytes;
+            }
+
+            // 원본이 이미 목표 크기 이하면 확대하지 않고 원본을 그대로 사용
+            if (image.getWidth() <= MAX_DIMENSION && image.getHeight() <= MAX_DIMENSION) {
+                return originalBytes;
+            }
+
+            ByteArrayOutputStream resized = new ByteArrayOutputStream();
+            Thumbnails.of(image)
+                    .size(MAX_DIMENSION, MAX_DIMENSION)
+                    .outputQuality(OUTPUT_QUALITY)
+                    .outputFormat(extension.equals("jpg") ? "jpeg" : extension)
+                    .toOutputStream(resized);
+            return resized.toByteArray();
+        } catch (IOException e) {
+            log.warn("이미지 리사이징 실패, 원본으로 업로드합니다: filename={}", file.getOriginalFilename(), e);
+            return originalBytes;
+        }
+    }
+
+    private byte[] readAllBytes(MultipartFile file) {
+        try {
+            return file.getBytes();
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
         }
     }
 

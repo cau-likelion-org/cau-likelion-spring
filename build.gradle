@@ -59,6 +59,9 @@ dependencies {
 
 	// 이미지/파일 업로드 (S3) - 3.4.0은 Spring Boot 3.x용, Boot 4.1.0과 호환되는 4.1.0으로 교체
 	implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3:4.1.0'
+
+	// 이미지 리사이징 (업로드 시 용량 절감)
+	implementation 'net.coobird:thumbnailator:0.4.20'
 }
 
 tasks.named('test') {

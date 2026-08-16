@@ -41,7 +41,6 @@ public class S3Uploader {
 
     // Thumbnailator(=ImageIO)가 지원하는 포맷만 리사이징 대상으로 함.
     // jpg/jpeg/png는 JDK 표준 지원, webp는 별도 플러그인(webp-imageio)을 추가해서 지원한다.
-    // gif는 리사이징하면 애니메이션이 깨지므로 대상에서 제외하고 원본 그대로 업로드한다.
     private static final Set<String> RESIZABLE_EXTENSIONS = Set.of("jpg", "jpeg", "png", "webp");
 
     // 리사이징(디코딩~인코딩)은 순간적으로 메모리를 많이 쓰므로, t3.micro(메모리 1GB) 기준으로

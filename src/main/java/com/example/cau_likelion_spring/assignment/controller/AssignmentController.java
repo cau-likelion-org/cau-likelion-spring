@@ -59,11 +59,11 @@ public class AssignmentController {
         return ResponseEntity.ok(assignmentService.getMyAssignmentsForStaff(memberId));
     }
 
-    @Operation(summary = "(회장용) 파트별 생성된 과제 목록 조회 (주차별)",
-            description = "로그인한 회장이 partId로 지정한 파트의 과제 목록을 주차별로 묶어서 조회합니다. "
+    @Operation(summary = "(회장/관리자용) 파트별 생성된 과제 목록 조회 (주차별)",
+            description = "로그인한 회장 또는 관리자가 partId로 지정한 파트의 과제 목록을 주차별로 묶어서 조회합니다. "
                     + "본인 소속 파트로 제한되는 위 API와 달리 모든 파트를 조회할 수 있습니다. "
                     + "개별 과제마다 과제명/마감기한과, 파트원 전체를 대상으로 최신 제출 기준 제출전/미제출/승인대기/지각제출/승인완료 인원 수를 함께 보여줍니다. "
-                    + "PRESIDENT 권한이 필요합니다.")
+                    + "PRESIDENT 또는 ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "403", description = "권한 없음"),

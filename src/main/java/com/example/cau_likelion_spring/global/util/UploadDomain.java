@@ -34,6 +34,6 @@ public enum UploadDomain {
     }
 
     private static Set<String> imageExtensions() {
-        return Set.of("jpg", "jpeg", "png", "webp", "gif");
+        return Set.of("jpg", "jpeg", "png", "webp");
     }
 }

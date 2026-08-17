@@ -40,11 +40,11 @@ public class RecruitmentSubscriberController {
     }
 
     @Operation(summary = "모집 알림 이메일 구독 신청",
-            description = "이메일을 입력받아 모집 공고 알림 구독자로 등록합니다. 로그인 없이 누구나 신청할 수 있습니다.")
+            description = "이메일을 입력받아 모집 공고 알림 구독자로 등록합니다. 로그인 없이 누구나 신청할 수 있고, 이미 등록된 이메일로도 "
+                    + "중복 신청할 수 있습니다 (같은 이메일로 여러 건이 쌓일 수 있음).")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "구독 신청 성공"),
-            @ApiResponse(responseCode = "400", description = "요청값 검증 실패 (이메일 형식 오류 등)"),
-            @ApiResponse(responseCode = "409", description = "이미 구독 중인 이메일")
+            @ApiResponse(responseCode = "400", description = "요청값 검증 실패 (이메일 형식 오류 등)")
     })
     @PostMapping
     public ResponseEntity<RecruitmentSubscriberResponse> subscribe(

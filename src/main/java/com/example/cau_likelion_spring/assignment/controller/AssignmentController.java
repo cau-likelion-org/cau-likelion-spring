@@ -35,7 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@Tag(name = "Assignment (STAFF)", description = "과제 관련 API (운영진)")
+@Tag(name = "Assignment (STAFF)", description = "과제 관련 API (운영진/관리자)")
 @RestController
 @RequestMapping("/api/assignments")
 @RequiredArgsConstructor
@@ -47,7 +47,7 @@ public class AssignmentController {
     @Operation(summary = "내 파트 생성된 과제 목록 조회 (주차별)",
             description = "로그인한 운영진이 본인 파트에 생성한 과제 목록을 주차별로 묶어서 조회합니다. "
                     + "개별 과제마다 과제명/마감기한과, 파트원 전체를 대상으로 최신 제출 기준 제출전/미제출/승인대기/지각제출/승인완료 인원 수를 함께 보여줍니다. "
-                    + "STAFF 권한이 필요합니다.")
+                    + "STAFF 또는 ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "403", description = "권한 없음"),
@@ -78,7 +78,7 @@ public class AssignmentController {
     @Operation(summary = "(개발용) 아기사자 1명의 특정 주차 종합 상태 조회",
             description = "로그인한 운영진이 본인 파트 아기사자 1명을 memberId로 지정해, 특정 주차(week)의 종합 상태 하나를 조회합니다. "
                     + "한 주차에 과제가 여러 개면 그 개별 과제 상태들을 우선순위(제출전 > 승인반려 > 승인대기 > 미제출 > 지각제출 > 승인완료)로 판단해 하나로 합칩니다. "
-                    + "STAFF 권한이 필요합니다.")
+                    + "STAFF 또는 ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "403", description = "권한 없음 또는 본인 파트 소속이 아닌 아기사자"),
@@ -96,7 +96,7 @@ public class AssignmentController {
     @Operation(summary = "내 파트 아기사자 과제 현황 목록 조회 (주차별)",
             description = "로그인한 운영진이 본인 파트의 과제 제출 현황을 주차 → 개별 과제 → 아기사자별 내역 순으로 조회합니다. "
                     + "아기사자별 내역에는 이름/최종 제출 시각/제출물(링크·파일+코멘트)/상태/평가한 운영진 이름이 포함되고, "
-                    + "평가 버튼(승인/반려) 호출에 필요한 제출 ID(submitId)도 함께 내려줍니다. STAFF 권한이 필요합니다.")
+                    + "평가 버튼(승인/반려) 호출에 필요한 제출 ID(submitId)도 함께 내려줍니다. STAFF 또는 ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "403", description = "권한 없음"),
@@ -127,7 +127,7 @@ public class AssignmentController {
     }
 
     @Operation(summary = "과제 단건 조회",
-            description = "로그인한 운영진이 본인 파트의 과제 1개를 상세 조회합니다 (과제명/설명/마감기한/제출형식 등). STAFF 권한이 필요합니다.")
+            description = "로그인한 운영진이 본인 파트의 과제 1개를 상세 조회합니다 (과제명/설명/마감기한/제출형식 등). STAFF 또는 ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "403", description = "권한 없음 또는 본인 파트의 과제가 아님"),
@@ -143,7 +143,7 @@ public class AssignmentController {
 
     @Operation(summary = "과제 수정",
             description = "로그인한 운영진이 본인 파트의 과제를 수정합니다. 파트/주차는 수정할 수 없고 과제명/설명/마감기한/제출형식만 변경됩니다. "
-                    + "수정 전까지 제출된 과제 제출 이력은 그대로 유지됩니다. STAFF 권한이 필요합니다.")
+                    + "수정 전까지 제출된 과제 제출 이력은 그대로 유지됩니다. STAFF 또는 ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "수정 성공"),
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
@@ -162,7 +162,7 @@ public class AssignmentController {
     @Operation(summary = "개별 마감일 변경",
             description = "로그인한 운영진이 선택한 아기사자(들)에게 이 과제의 개별 마감일을 부여/변경합니다 (다중 선택 가능, 선택된 전원에게 동일한 마감일 적용). "
                     + "개별 마감일이 있는 아기사자는 이후 제출 가능 여부와 정시/지각 판정 모두 과제 공통 마감일 대신 이 개별 마감일 기준으로 계산됩니다. "
-                    + "이미 개별 마감일이 있는 아기사자면 값을 덮어씁니다. STAFF 권한이 필요합니다.")
+                    + "이미 개별 마감일이 있는 아기사자면 값을 덮어씁니다. STAFF 또는 ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "변경 성공"),
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
@@ -179,7 +179,7 @@ public class AssignmentController {
     }
 
     @Operation(summary = "과제 삭제",
-            description = "로그인한 운영진이 본인 파트의 과제를 삭제합니다. 이전에 제출된 과제 제출 이력도 함께 삭제됩니다. STAFF 권한이 필요합니다.")
+            description = "로그인한 운영진이 본인 파트의 과제를 삭제합니다. 이전에 제출된 과제 제출 이력도 함께 삭제됩니다. STAFF 또는 ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "삭제 성공"),
             @ApiResponse(responseCode = "403", description = "권한 없음 또는 본인 파트의 과제가 아님"),
@@ -199,7 +199,7 @@ public class AssignmentController {
             description = "로그인한 운영진이 본인 파트원 전체의 과제 제출 이력을 조회합니다. 과제 자체의 제목/설명/마감기한과 함께, "
                     + "파트원별 제출 이력을 최신순으로 전부 내려줍니다 (반려 후 재제출처럼 같은 파트원이 같은 과제를 여러 번 제출했다면 그 이력이 모두 노출됨). "
                     + "한 번도 제출하지 않은 파트원도 제출전/미제출 상태로 빈 이력과 함께 포함됩니다. 평가(승인/반려)가 완료된 제출이면 평가한 운영진 이름(reviewerName)도 함께 내려줍니다. "
-                    + "STAFF 권한이 필요합니다.")
+                    + "STAFF 또는 ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "403", description = "권한 없음 또는 본인 파트의 과제가 아님"),
@@ -217,7 +217,7 @@ public class AssignmentController {
             description = "로그인한 운영진이 특정 제출을 승인 또는 반려로 평가합니다. status를 APPROVED로 보내면 "
                     + "제출 시각이 마감일 이전이면 '승인완료', 마감일 이후면 '지각제출'로 표시되고, "
                     + "status를 REJECTED로 보내면 제출 시각과 무관하게 '승인반려'로 표시됩니다 (이때 rejectionReason 필수). "
-                    + "평가하면 평가한 운영진(reviewerName)과 평가 일시(approvalDate)가 함께 기록됩니다. STAFF 권한이 필요합니다.")
+                    + "평가하면 평가한 운영진(reviewerName)과 평가 일시(approvalDate)가 함께 기록됩니다. STAFF 또는 ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "평가 성공"),
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패 (REJECTED인데 반려 사유 누락 등)"),

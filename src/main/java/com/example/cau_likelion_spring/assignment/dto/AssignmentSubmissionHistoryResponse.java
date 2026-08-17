@@ -1,6 +1,7 @@
 package com.example.cau_likelion_spring.assignment.dto;
 
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplayStatus;
+import com.example.cau_likelion_spring.assignment.domain.AssignmentType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
@@ -20,6 +21,9 @@ public record AssignmentSubmissionHistoryResponse(
 
         @Schema(description = "마감 기한 (개별 마감일이 있으면 그 값, 없으면 과제 공통 마감일)")
         LocalDateTime endDate,
+
+        @Schema(description = "제출 형식 (URL 링크 / 파일 업로드)")
+        AssignmentType type,
 
         @Schema(description = "본인의 제출 이력 전체 (최신순, 제출 이력이 없으면 빈 배열)")
         List<AssignmentSubmitResponse> submissions

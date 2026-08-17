@@ -317,7 +317,7 @@ public class AssignmentBabyLionService {
                                                                       LocalDateTime endDate) {
         List<AssignmentSubmitResponse> history = toSubmissionResponses(submits, filesBySubmitId, endDate);
         return new AssignmentSubmissionHistoryResponse(assignment.getId(), assignment.getTitle(), assignment.getDetail(),
-                endDate, history);
+                endDate, assignment.getType(), history);
     }
 
     private List<AssignmentSubmitResponse> toSubmissionResponses(List<AssignmentSubmit> submits,

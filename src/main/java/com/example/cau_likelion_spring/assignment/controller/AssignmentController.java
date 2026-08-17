@@ -110,9 +110,9 @@ public class AssignmentController {
 
     // 과제 생성/수정/삭제/개별 마감일 관리
     @Operation(summary = "과제 생성",
-            description = "로그인한 운영진이 본인 파트의 과제를 생성합니다. 파트는 요청으로 받지 않고 로그인한 운영진의 소속 파트로 자동 지정됩니다. "
+            description = "로그인한 운영진(또는 관리자)이 본인 소속 파트의 과제를 생성합니다. 파트는 요청으로 받지 않고 로그인한 사용자의 소속 파트로 자동 지정됩니다. "
                     + "한 주차에 개별 과제를 1개 이상 한 번에 생성할 수 있습니다 (생성 페이지의 + 버튼으로 여러 개 모아 한 번에 저장). "
-                    + "STAFF 권한이 필요합니다.")
+                    + "STAFF 또는 ADMIN 권한이 필요합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "생성 성공"),
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),

@@ -65,8 +65,9 @@ public class AssignmentService {
 
     /**
      * 한 주차에 개별 과제 1개 이상을 한 번에 생성한다 (생성 페이지에서 +로 여러 개를 모아 한 번에 저장하는 흐름).
+     * ADMIN도 STAFF와 동일하게 본인 소속 파트에 한해 생성할 수 있다.
      */
-    @PreAuthorize("hasRole('STAFF')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
     @Transactional
     public List<AssignmentResponse> create(Long staffMemberId, AssignmentCreateRequest request) {
         Part part = getStaffPart(staffMemberId);

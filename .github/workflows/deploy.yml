@@ -45,6 +45,18 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: docker-compose.prod.yml을 EC2로 복사
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.prod.yml"
+          target: "~/app"
+
       - name: EC2에 SSH 접속해서 재배포
         uses: appleboy/ssh-action@v1.0.3
         with:

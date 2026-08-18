@@ -32,7 +32,7 @@ public class HistoryService {
     private final S3Uploader s3Uploader;
 
     public List<HistoryListResponse> getList() {
-        return historyRepository.findAllByOrderByStartDateDesc().stream()
+        return historyRepository.findAllByOrderByGeneration_NumberDescStartDateDescTitleAsc().stream()
                 .map(HistoryListResponse::from)
                 .toList();
     }

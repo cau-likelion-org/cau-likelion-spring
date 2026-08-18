@@ -7,5 +7,6 @@ import java.util.List;
 
 public interface HistoryRepository extends JpaRepository<History, Long> {
 
-    List<History> findAllByOrderByStartDateDesc();
+    // 1. 기수 내림차순 -> 2. 시작일 내림차순 -> 3. 이름(title) 오름차순
+    List<History> findAllByOrderByGeneration_NumberDescStartDateDescTitleAsc();
 }

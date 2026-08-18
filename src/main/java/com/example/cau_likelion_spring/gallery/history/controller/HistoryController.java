@@ -24,7 +24,7 @@ public class HistoryController {
 
     private final HistoryService historyService;
 
-    @Operation(summary = "추억 목록 조회", description = "시작일 최신순으로 추억 게시물 목록을 조회합니다.")
+    @Operation(summary = "추억 목록 조회", description = "기수 내림차순 -> 시작일 내림차순 -> 이름(title) 오름차순으로 추억 게시물 목록을 조회합니다.")
     @GetMapping
     public ResponseEntity<List<HistoryListResponse>> getList() {
         return ResponseEntity.ok(historyService.getList());

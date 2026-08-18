@@ -34,7 +34,7 @@ public class ProjectController {
             @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 기수(generationId)")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'PRESIDENT')")
     @PostMapping
     public ResponseEntity<ProjectResponse> create(@RequestBody @Valid ProjectRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(projectService.create(request));
@@ -70,7 +70,7 @@ public class ProjectController {
             @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 프로젝트 또는 기수(generationId)")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'PRESIDENT')")
     @PutMapping("/{id}")
     public ResponseEntity<ProjectResponse> update(
             @Parameter(description = "프로젝트 ID", required = true) @PathVariable Long id,
@@ -84,7 +84,7 @@ public class ProjectController {
             @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 프로젝트")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'PRESIDENT')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @Parameter(description = "프로젝트 ID", required = true) @PathVariable Long id) {

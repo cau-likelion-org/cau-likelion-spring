@@ -89,7 +89,7 @@ public class MemberService {
      * 이 구성원이 평가자(reviewMember)였던 다른 사람의 제출은 지우지 않고 평가자 참조만 비운다.
      * PRESIDENT/ADMIN 권한의 구성원은 삭제할 수 없다.
      */
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @Transactional
     public void delete(Long id) {
         Member member = getMember(id);

@@ -26,7 +26,7 @@ public class IndicatorController {
     }
 
     @Operation(summary = "정량 지표 수정", description = "요청 바디로 전체 필드를 덮어씁니다. ADMIN 권한이 필요합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PutMapping
     public ResponseEntity<IndicatorResponseDto> updateIndicator(
             @Valid @RequestBody IndicatorRequestDto request) {

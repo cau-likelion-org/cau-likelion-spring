@@ -24,7 +24,7 @@ public class TrackController {
     private final TrackService trackService;
 
     @Operation(summary = "트랙 소개 생성", description = "ADMIN 권한이 필요합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PostMapping
     public ResponseEntity<TrackResponseDto> createTrack(@Valid @RequestBody TrackRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(trackService.createTrack(request));
@@ -37,7 +37,7 @@ public class TrackController {
     }
 
     @Operation(summary = "트랙 소개 수정", description = "요청 바디로 전체 필드를 덮어씁니다 (부분 수정 아님). ADMIN 권한이 필요합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PutMapping("/{id}")
     public ResponseEntity<TrackResponseDto> updateTrack(
             @Parameter(description = "트랙 id") @PathVariable Long id,
@@ -46,7 +46,7 @@ public class TrackController {
     }
 
     @Operation(summary = "트랙 소개 삭제", description = "ADMIN 권한이 필요합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTrack(@Parameter(description = "트랙 id") @PathVariable Long id) {
         trackService.deleteTrack(id);

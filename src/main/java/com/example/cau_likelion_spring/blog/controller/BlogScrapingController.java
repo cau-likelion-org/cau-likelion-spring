@@ -31,7 +31,7 @@ public class BlogScrapingController {
             @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "502", description = "대상 페이지를 불러올 수 없음")
     })
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @GetMapping
     public ResponseEntity<BlogScrapingResponse> scrape(
             @Parameter(description = "스크래핑할 블로그 URL", required = true) @RequestParam String url) {

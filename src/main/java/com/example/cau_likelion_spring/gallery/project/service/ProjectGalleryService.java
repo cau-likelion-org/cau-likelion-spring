@@ -57,7 +57,7 @@ public class ProjectGalleryService {
     }
 
     @Transactional
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     public ProjectGalleryDetailResponse create(ProjectGalleryCreateRequest request) {
         Generation generation = getGeneration(request.generationId());
 
@@ -77,7 +77,7 @@ public class ProjectGalleryService {
     }
 
     @Transactional
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     public ProjectGalleryDetailResponse update(Long id, ProjectGalleryUpdateRequest request) {
         ProjectGallery projectGallery = getProjectGallery(id);
         Generation generation = getGeneration(request.generationId());
@@ -110,7 +110,7 @@ public class ProjectGalleryService {
     }
 
     @Transactional
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     public void delete(Long id) {
         ProjectGallery projectGallery = getProjectGallery(id);
         s3Uploader.deleteByUrl(projectGallery.getThumbnailUrl());

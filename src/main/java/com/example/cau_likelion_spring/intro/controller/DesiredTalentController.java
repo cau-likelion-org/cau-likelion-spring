@@ -24,7 +24,7 @@ public class DesiredTalentController {
     private final DesiredTalentService desiredTalentService;
 
     @Operation(summary = "인재상 생성", description = "partName을 비워두면 공통 인재상, 값을 넣으면 해당 파트의 인재상으로 생성됩니다. ADMIN 권한이 필요합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PostMapping
     public ResponseEntity<DesiredTalentResponseDto> createDesiredTalent(
             @Valid @RequestBody DesiredTalentRequestDto request) {
@@ -38,7 +38,7 @@ public class DesiredTalentController {
     }
 
     @Operation(summary = "인재상 수정", description = "요청 바디로 전체 필드를 덮어씁니다 (부분 수정 아님). ADMIN 권한이 필요합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PutMapping("/{id}")
     public ResponseEntity<DesiredTalentResponseDto> updateDesiredTalent(
             @Parameter(description = "인재상 id") @PathVariable Long id,
@@ -47,7 +47,7 @@ public class DesiredTalentController {
     }
 
     @Operation(summary = "인재상 삭제", description = "ADMIN 권한이 필요합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteDesiredTalent(@Parameter(description = "인재상 id") @PathVariable Long id) {
         desiredTalentService.deleteDesiredTalent(id);

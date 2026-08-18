@@ -82,13 +82,13 @@ public class SessionService {
         List<Session> sessions;
 
         if (partName != null && generationNumber != null) {
-            sessions = sessionRepository.findByPart_NameAndPart_Generation_Number(partName, generationNumber);
+            sessions = sessionRepository.findByPart_NameAndPart_Generation_NumberOrderBySessionDateDescTitleAsc(partName, generationNumber);
         } else if (partName != null) {
-            sessions = sessionRepository.findByPart_Name(partName);
+            sessions = sessionRepository.findByPart_NameOrderByPart_Generation_NumberDescSessionDateDescTitleAsc(partName);
         } else if (generationNumber != null) {
-            sessions = sessionRepository.findByPart_Generation_Number(generationNumber);
+            sessions = sessionRepository.findByPart_Generation_NumberOrderBySessionDateDescTitleAsc(generationNumber);
         } else {
-            sessions = sessionRepository.findAll();
+            sessions = sessionRepository.findAllByOrderByPart_Generation_NumberDescSessionDateDescTitleAsc();
         }
 
         List<SessionListResponseDto> sessionListResponseDtos = new ArrayList<>();

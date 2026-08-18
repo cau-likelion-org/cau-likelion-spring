@@ -48,15 +48,34 @@ public class BlogScrapingService {
             "meta[property=article:published_time]",
             "meta[name=article:published_time]",
             "meta[property=og:article:published_time]",
+            "meta[property=og:published_time]",
             "meta[name=publish-date]",
             "meta[name=pubdate]",
+            "meta[name=date]",
+            "meta[name=parsely-pub-date]",
+            "meta[name=sailthru.date]",
             "meta[itemprop=datePublished]"
     };
 
-    private static final String DATE_TEXT_SELECTOR = ".date, .post-date, .published, .publish-date, .article-date";
+    /** 사이트마다 클래스명이 제각각(blog_date, wrt_date, entry-date ...)이라 "date"를 포함하는 class/id는 전부 후보로 본다 */
+    private static final String DATE_TEXT_SELECTOR =
+            ".date, .post-date, .published, .publish-date, .article-date, "
+                    + "[class*=date], [class*=Date], [id*=date], [id*=Date]";
+
+    /**
+     * SPA(React/Next 등)는 meta·time·JSON-LD 없이 하이드레이션용 JS 상태 객체에만
+     * 작성일을 담아 보내는 경우가 많다(예: velog의 "released_at"). 흔히 쓰이는 필드명으로 스캔한다.
+     */
+    private static final Pattern SCRIPT_STATE_DATE_PATTERN = Pattern.compile(
+            "\"(?:publishedAt|pubDate|datePublished|createdAt|created_at|releasedAt|released_at"
+                    + "|releaseDate|postDate|writtenAt|regDate|articleDate)\"\\s*:\\s*\"([^\"]+)\"",
+            Pattern.CASE_INSENSITIVE);
 
     private static final Pattern EXCLUDE_IMAGE_PATTERN = Pattern.compile("(?i)(icon|logo|sprite)");
-    private static final Pattern DATE_TEXT_PATTERN = Pattern.compile("\\d{4}[-./]\\d{1,2}[-./]\\d{1,2}");
+
+    /** "2026-2-10", "2026.02.10", "2026. 2. 10." 처럼 구분자 앞뒤 공백/한글 단위까지 허용 */
+    private static final Pattern DATE_TEXT_PATTERN = Pattern.compile(
+            "(\\d{4})\\s*[-./년]\\s*(\\d{1,2})\\s*[-./월]\\s*(\\d{1,2})\\s*일?");
 
     private static final List<DateTimeFormatter> DATE_FORMATTERS = List.of(
             DateTimeFormatter.ISO_DATE_TIME,
@@ -232,6 +251,11 @@ public class BlogScrapingService {
             return jsonLdParsed;
         }
 
+        String scriptStateParsed = extractFromScriptState(doc);
+        if (scriptStateParsed != null) {
+            return scriptStateParsed;
+        }
+
         Element dateEl = doc.selectFirst(DATE_TEXT_SELECTOR);
         if (dateEl != null) {
             String parsed = parseDate(extractDateByRegex(dateEl.text()));
@@ -242,9 +266,33 @@ public class BlogScrapingService {
         return null;
     }
 
+    /** head 태그의 meta/time/JSON-LD에는 없고 하이드레이션용 SPA 상태 스크립트에만 작성일이 박혀있는 사이트(velog 등) 대응 */
+    private String extractFromScriptState(Document doc) {
+        for (Element script : doc.select("script")) {
+            String data = script.data();
+            if (!StringUtils.hasText(data)) {
+                continue;
+            }
+            Matcher matcher = SCRIPT_STATE_DATE_PATTERN.matcher(data);
+            if (matcher.find()) {
+                String parsed = parseDate(matcher.group(1));
+                if (parsed != null) {
+                    return parsed;
+                }
+            }
+        }
+        return null;
+    }
+
     private String extractDateByRegex(String text) {
         Matcher matcher = DATE_TEXT_PATTERN.matcher(text);
-        return matcher.find() ? matcher.group() : null;
+        if (!matcher.find()) {
+            return null;
+        }
+        int year = Integer.parseInt(matcher.group(1));
+        int month = Integer.parseInt(matcher.group(2));
+        int day = Integer.parseInt(matcher.group(3));
+        return String.format("%04d-%02d-%02d", year, month, day);
     }
 
     private String parseDate(String raw) {

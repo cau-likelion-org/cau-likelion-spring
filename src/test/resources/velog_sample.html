@@ -1,0 +1,585 @@
+<!doctype html>
+<html><head><title data-rh="true">데이터를 넘기는 게 아니라 상태를 넘긴다: React Query SSR과 Hydration</title><link data-rh="true" rel="canonical" href="https://velog.io/@jihaeee/데이터를-넘기는-게-아니라-상태를-넘긴다-React-Query-SSR과-Hydration-kn22v47h"/><meta data-rh="true" property="fb:app_id" content="203040656938507"/><meta data-rh="true" name="description" content="SSR로 이미 데이터를 준비했는데 왜 다시 fetch할까?  
+Hydration 패턴으로 서버와 클라이언트의 상태를 이어보자."/><meta data-rh="true" property="og:url" content="https://velog.io/@jihaeee/데이터를-넘기는-게-아니라-상태를-넘긴다-React-Query-SSR과-Hydration-kn22v47h"/><meta data-rh="true" property="og:type" content="article"/><meta data-rh="true" property="og:title" content="데이터를 넘기는 게 아니라 상태를 넘긴다: React Query SSR과 Hydration"/><meta data-rh="true" property="og:description" content="SSR로 이미 데이터를 준비했는데 왜 다시 fetch할까?  
+Hydration 패턴으로 서버와 클라이언트의 상태를 이어보자."/><meta data-rh="true" property="og:image" content="https://velog.velcdn.com/images/jihaeee/post/08b2cfe6-1bf6-486f-8cb4-4197725d3a3a/image.png"/><meta data-rh="true" name="twitter:card" content="summary_large_image"/><meta data-rh="true" name="twitter:title" content="데이터를 넘기는 게 아니라 상태를 넘긴다: React Query SSR과 Hydration"/><meta data-rh="true" name="twitter:description" content="SSR로 이미 데이터를 준비했는데 왜 다시 fetch할까?  
+Hydration 패턴으로 서버와 클라이언트의 상태를 이어보자."/><meta data-rh="true" name="twitter:image" content="https://velog.velcdn.com/images/jihaeee/post/08b2cfe6-1bf6-486f-8cb4-4197725d3a3a/image.png"/><style data-styled="" data-styled-version="5.3.3">.hSMJOX{display:-webkit-inline-box;display:-webkit-inline-flex;display:-ms-inline-flexbox;display:inline-flex;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;-ms-flex-pack:center;justify-content:center;font-weight:bold;cursor:pointer;outline:none;border:none;color:white;background:var(--primary1);color:var(--button-text);border-radius:4px;padding-top:0;padding-bottom:0;height:2rem;padding-left:1.25rem;padding-right:1.25rem;font-size:1rem;}/*!sc*/
+.hSMJOX:hover,.hSMJOX:focus{background:var(--primary2);}/*!sc*/
+.sc-jrQzAO + .sc-jrQzAO{margin-left:0.5rem;}/*!sc*/
+.hSMJOX:disabled{cursor:not-allowed;background:var(--bg-element4);color:var(--text3);}/*!sc*/
+.hSMJOX:disabled:hover{background:var(--bg-element4);color:var(--text3);}/*!sc*/
+data-styled.g11[id="sc-jrQzAO"]{content:"hSMJOX,"}/*!sc*/
+body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",나눔고딕,"Nanum Gothic","Noto Sans KR","Noto Sans CJK KR",arial,돋움,Dotum,Tahoma,Geneva,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;color:var(--text1);box-sizing:border-box;}/*!sc*/
+*{box-sizing:inherit;}/*!sc*/
+code{font-family:'Fira Mono',source-code-pro,Menlo,Monaco,Consolas,'Courier New', monospace;}/*!sc*/
+input,button,textarea{font-family:inherit;}/*!sc*/
+html,body,#root{height:100%;}/*!sc*/
+body{--bg-page1:#F8F9FA;--bg-page2:#FFFFFF;--bg-element1:#FFFFFF;--bg-element2:#F8F9FA;--bg-element3:#E9ECEF;--bg-element4:#DEE2E6;--bg-element5:#212529;--bg-element6:#343A40;--bg-element7:#FFFFFF;--bg-element8:#FBFDFC;--bg-invert:#1E1E1E;--bg-inline-code:#E9ECEF;--bg-tag:#F8F9FA;--text1:#212529;--text2:#495057;--text3:#868E96;--text4:#CED4DA;--border1:#343A40;--border2:#ADB5BD;--border3:#DEE2E6;--border4:#F1F3F5;--primary1:#12B886;--primary2:#20C997;--destructive1:#FF6B6B;--destructive2:#FF8787;--button-text:#FFFFFF;--slight-layer:rgba(0,0,0,0.05);--opaque-layer:rgba(249,249,249,0.85);--editor-footer:#FFFFFF;--prism-bg:#fbfcfd;--prism-default-text:#24292e;--prism-selection-bg:rgba(0,0,0,0.15);--prism-code-block-bg:#fbfcfd;--prism-code-1:#969896;--prism-code-2:#24292e;--prism-code-3:#a626a4;--prism-code-4:#63a35c;--prism-code-5:#0184bc;--prism-code-6:#50a14f;--prism-code-7:#a626a4;--prism-code-8:#005cc5;--prism-code-9:#a626a4;--prism-line-number:#585c63;}/*!sc*/
+@media (prefers-color-scheme:dark){body{--bg-page1:#121212;--bg-page2:#121212;--bg-element1:#1E1E1E;--bg-element2:#1E1E1E;--bg-element3:#252525;--bg-element4:#2E2E2E;--bg-element5:#F1F3F5;--bg-element6:#F8F9FA;--bg-element7:#252525;--bg-element8:#0c0c0c;--bg-invert:#FFFFFF;--bg-inline-code:#363636;--bg-tag:#252525;--text1:#ECECEC;--text2:#D9D9D9;--text3:#ACACAC;--text4:#595959;--border1:#E0E0E0;--border2:#A0A0A0;--border3:#4D4D4D;--border4:#2A2A2A;--primary1:#96F2D7;--primary2:#63E6BE;--destructive1:#FFC9C9;--destructive2:#FFA8A8;--button-text:#121212;--slight-layer:rgba(255,255,255,0.1);--opaque-layer:rgba(0,0,0,0.85);--editor-footer:#2E2E2E;--prism-bg:#1E1E1E;--prism-default-text:#e0e6f1;--prism-selection-bg:#383e49;--prism-code-block-bg:#1e1e1e;--prism-code-1:#7c858d;--prism-code-2:#abb2bf;--prism-code-3:#e06c75;--prism-code-4:#d19a66;--prism-code-5:#98c379;--prism-code-6:#56b6c2;--prism-code-7:#c678dd;--prism-code-8:#61afef;--prism-code-9:#c678dd;--prism-line-number:#5c6370;}}/*!sc*/
+body[data-theme='light']{--bg-page1:#F8F9FA;--bg-page2:#FFFFFF;--bg-element1:#FFFFFF;--bg-element2:#F8F9FA;--bg-element3:#E9ECEF;--bg-element4:#DEE2E6;--bg-element5:#212529;--bg-element6:#343A40;--bg-element7:#FFFFFF;--bg-element8:#FBFDFC;--bg-invert:#1E1E1E;--bg-inline-code:#E9ECEF;--bg-tag:#F8F9FA;--text1:#212529;--text2:#495057;--text3:#868E96;--text4:#CED4DA;--border1:#343A40;--border2:#ADB5BD;--border3:#DEE2E6;--border4:#F1F3F5;--primary1:#12B886;--primary2:#20C997;--destructive1:#FF6B6B;--destructive2:#FF8787;--button-text:#FFFFFF;--slight-layer:rgba(0,0,0,0.05);--opaque-layer:rgba(249,249,249,0.85);--editor-footer:#FFFFFF;--prism-bg:#fbfcfd;--prism-default-text:#24292e;--prism-selection-bg:rgba(0,0,0,0.15);--prism-code-block-bg:#fbfcfd;--prism-code-1:#969896;--prism-code-2:#24292e;--prism-code-3:#a626a4;--prism-code-4:#63a35c;--prism-code-5:#0184bc;--prism-code-6:#50a14f;--prism-code-7:#a626a4;--prism-code-8:#005cc5;--prism-code-9:#a626a4;--prism-line-number:#585c63;}/*!sc*/
+body[data-theme='dark']{--bg-page1:#121212;--bg-page2:#121212;--bg-element1:#1E1E1E;--bg-element2:#1E1E1E;--bg-element3:#252525;--bg-element4:#2E2E2E;--bg-element5:#F1F3F5;--bg-element6:#F8F9FA;--bg-element7:#252525;--bg-element8:#0c0c0c;--bg-invert:#FFFFFF;--bg-inline-code:#363636;--bg-tag:#252525;--text1:#ECECEC;--text2:#D9D9D9;--text3:#ACACAC;--text4:#595959;--border1:#E0E0E0;--border2:#A0A0A0;--border3:#4D4D4D;--border4:#2A2A2A;--primary1:#96F2D7;--primary2:#63E6BE;--destructive1:#FFC9C9;--destructive2:#FFA8A8;--button-text:#121212;--slight-layer:rgba(255,255,255,0.1);--opaque-layer:rgba(0,0,0,0.85);--editor-footer:#2E2E2E;--prism-bg:#1E1E1E;--prism-default-text:#e0e6f1;--prism-selection-bg:#383e49;--prism-code-block-bg:#1e1e1e;--prism-code-1:#7c858d;--prism-code-2:#abb2bf;--prism-code-3:#e06c75;--prism-code-4:#d19a66;--prism-code-5:#98c379;--prism-code-6:#56b6c2;--prism-code-7:#c678dd;--prism-code-8:#61afef;--prism-code-9:#c678dd;--prism-line-number:#5c6370;}/*!sc*/
+data-styled.g13[id="sc-global-gYCCRU1"]{content:"sc-global-gYCCRU1,"}/*!sc*/
+.cyyZlI{color:inherit;-webkit-text-decoration:none;text-decoration:none;}/*!sc*/
+data-styled.g17[id="sc-egiyK"]{content:"cyyZlI,"}/*!sc*/
+.fldlST{height:2rem;padding-left:1rem;padding-right:1rem;font-size:1rem;border-radius:1rem;background:none;border:none;outline:none;font-weight:bold;word-break:keep-all;background:var(--bg-element5);color:var(--button-text);-webkit-transition:0.125s all ease-in;transition:0.125s all ease-in;cursor:pointer;}/*!sc*/
+.fldlST:hover{background:var(--bg-element6);}/*!sc*/
+.fldlST:focus{box-shadow:0px 2px 12px #00000030;}/*!sc*/
+.fldlST:disabled{background:var(--bg-element2);}/*!sc*/
+data-styled.g18[id="sc-bqiRlB"]{content:"fldlST,"}/*!sc*/
+.cQvXTx{width:1728px;margin-left:auto;margin-right:auto;}/*!sc*/
+@media (max-width:1919px){.cQvXTx{width:1376px;}}/*!sc*/
+@media (max-width:1440px){.cQvXTx{width:1024px;}}/*!sc*/
+@media (max-width:1056px){.cQvXTx{width:calc(100% - 2rem);}}/*!sc*/
+data-styled.g22[id="sc-fFeiMQ"]{content:"cQvXTx,"}/*!sc*/
+.ddFdew{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;-ms-flex-pack:center;justify-content:center;font-weight:bold;color:var(--text1);font-size:1.3125rem;-webkit-text-decoration:none;text-decoration:none;font-family:Fira Mono,monospace;}/*!sc*/
+@media (max-width:1024px){.ddFdew{font-size:1.125rem;}.ddFdew .velog-logo{height:1.25rem;}}/*!sc*/
+.ddFdew a{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;color:inherit;-webkit-text-decoration:none;text-decoration:none;}/*!sc*/
+.ddFdew .user-logo{display:block;max-width:calc(100vw - 250px);text-overflow:ellipsis;white-space:nowrap;overflow-x:hidden;overflow-y:hidden;}/*!sc*/
+data-styled.g28[id="sc-kfPuZi"]{content:"ddFdew,"}/*!sc*/
+.kdLiUF{color:inherit;}/*!sc*/
+.kdLiUF svg{color:inherit;margin-right:1rem;width:1.75rem;height:1.75rem;display:block;}/*!sc*/
+@media (max-width:1024px){.kdLiUF svg{width:1.5rem;height:1.5rem;margin-right:0.75rem;}}/*!sc*/
+data-styled.g29[id="sc-fKVqWL"]{content:"kdLiUF,"}/*!sc*/
+.jEdNvQ{height:4rem;}/*!sc*/
+data-styled.g30[id="sc-bBHxTw"]{content:"jEdNvQ,"}/*!sc*/
+.glTvbH{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;-ms-flex-pack:center;justify-content:center;background:transparent;border:none;width:2.5rem;height:2.5rem;outline:none;border-radius:50%;color:var(--text1);cursor:pointer;margin-right:0.5rem;}/*!sc*/
+.glTvbH:hover{background:var(--slight-layer);}/*!sc*/
+.glTvbH svg{width:24px;height:24px;}/*!sc*/
+data-styled.g31[id="sc-iwjdpV"]{content:"glTvbH,"}/*!sc*/
+.pAGEY{position:relative;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;-ms-flex-pack:center;justify-content:center;background:transparent;border:none;width:2.5rem;height:2.5rem;outline:none;border-radius:50%;color:var(--text1);cursor:pointer;margin-right:4px;}/*!sc*/
+.pAGEY:hover{background:var(--slight-layer);}/*!sc*/
+.pAGEY svg{width:24px;height:24px;}/*!sc*/
+data-styled.g32[id="sc-cxpSdN"]{content:"pAGEY,"}/*!sc*/
+.hrgwyc{height:100%;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:justify;-webkit-justify-content:space-between;-ms-flex-pack:justify;justify-content:space-between;}/*!sc*/
+data-styled.g34[id="sc-iJKOTD"]{content:"hrgwyc,"}/*!sc*/
+.gHrJRn{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;position:relative;}/*!sc*/
+@media (max-width:1024px){.gHrJRn .write-button{display:none;}}/*!sc*/
+data-styled.g35[id="sc-giYglK"]{content:"gHrJRn,"}/*!sc*/
+.bxsBRa{position:fixed;top:0;background:var(--bg-element1);width:100%;z-index:10;box-shadow:0px 0 8px rgba(0,0,0,0.08);}/*!sc*/
+.bxsBRa .tab-wrapper{margin-top:-2rem;}/*!sc*/
+data-styled.g50[id="sc-cTAqQK"]{content:"bxsBRa,"}/*!sc*/
+.kTIDXm{padding-bottom:4rem;}/*!sc*/
+data-styled.g53[id="sc-bBHHxi"]{content:"kTIDXm,"}/*!sc*/
+.iLfnNd{background:var(--bg-element4);-webkit-animation:gsdBxV 1s ease-in-out infinite;animation:gsdBxV 1s ease-in-out infinite;display:inline-block;border-radius:4px;height:1em;}/*!sc*/
+.sc-lbhJGD + .sc-lbhJGD{margin-left:0.5rem;}/*!sc*/
+.jsEdRE{background:var(--bg-element4);-webkit-animation:gsdBxV 1s ease-in-out infinite;animation:gsdBxV 1s ease-in-out infinite;display:inline-block;border-radius:4px;height:1em;}/*!sc*/
+data-styled.g60[id="sc-lbhJGD"]{content:"iLfnNd,jsEdRE,"}/*!sc*/
+body{background:var(--bg-page2);}/*!sc*/
+data-styled.g69[id="sc-global-iqNrnJ1"]{content:"sc-global-iqNrnJ1,"}/*!sc*/
+.dXONqK{width:768px;margin-left:auto;margin-right:auto;}/*!sc*/
+@media (max-width:768px){.dXONqK{width:100%;}}/*!sc*/
+data-styled.g76[id="sc-TBWPX"]{content:"dXONqK,"}/*!sc*/
+.loMAkm{margin-top:2rem;padding:2rem 1.5rem;background:var(--bg-element2);border-radius:8px;box-shadow:0 0 4px 0 rgba(0,0,0,0.06);position:relative;}/*!sc*/
+@media (max-width:768px){.loMAkm{padding:1rem;}}/*!sc*/
+.loMAkm svg{color:var(--primary1);}/*!sc*/
+.loMAkm h2{margin-top:0;color:var(--text2);font-weight:bold;padding-right:2rem;font-size:1.5rem;}/*!sc*/
+.loMAkm h2 a{-webkit-text-decoration:none;text-decoration:none;color:inherit;}/*!sc*/
+.loMAkm h2 a:hover{color:var(--text3);-webkit-text-decoration:underline;text-decoration:underline;}/*!sc*/
+@media (max-width:768px){.loMAkm h2{font-size:1.125rem;padding-right:2.5rem;margin-bottom:1.5rem;}}/*!sc*/
+.loMAkm .series-corner-image{position:absolute;right:1.5rem;top:0px;}/*!sc*/
+@media (max-width:768px){.loMAkm .series-corner-image{right:1rem;width:1.5rem;height:auto;}}/*!sc*/
+data-styled.g77[id="sc-jIkXHa"]{content:"loMAkm,"}/*!sc*/
+.fOdzda{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;}/*!sc*/
+.fOdzda .series-number{font-size:0.875rem;color:var(--text3);}/*!sc*/
+data-styled.g78[id="sc-ZOtfp"]{content:"fOdzda,"}/*!sc*/
+.byLNvf{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;margin-left:-5px;color:var(--text2);line-height:1;cursor:pointer;}/*!sc*/
+.byLNvf svg{margin-right:0.25rem;color:var(--text1);font-size:1.5rem;}/*!sc*/
+.byLNvf:hover{color:var(--text1);}/*!sc*/
+.byLNvf:hover svg{color:var(--text1);}/*!sc*/
+data-styled.g79[id="sc-jOxtWs"]{content:"byLNvf,"}/*!sc*/
+.EuzLS{margin-top:3rem;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-pack:justify;-webkit-justify-content:space-between;-ms-flex-pack:justify;justify-content:space-between;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;}/*!sc*/
+data-styled.g80[id="sc-hmjpVf"]{content:"EuzLS,"}/*!sc*/
+.bsYDCu{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;margin-left:1.125rem;}/*!sc*/
+data-styled.g81[id="sc-eLwHnm"]{content:"bsYDCu,"}/*!sc*/
+.jSfrkj{width:1.5rem;height:1.5rem;border-radius:50%;outline:none;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;-ms-flex-pack:center;justify-content:center;font-size:1.25rem;color:var(--primary1);background:var(--bg-element1);border:1px solid var(--border4);padding:0;cursor:pointer;}/*!sc*/
+.jSfrkj:hover{background:var(--primary1);color:white;}/*!sc*/
+.sc-bTfYFJ + .sc-bTfYFJ{margin-left:0.375rem;}/*!sc*/
+.jSfrkj:disabled{cursor:default;background:var(--bg-element2);border:1px solid var(--border4);color:var(--text3);opacity:0.3;}/*!sc*/
+data-styled.g82[id="sc-bTfYFJ"]{content:"jSfrkj,"}/*!sc*/
+.gISUXI{margin-bottom:0.875rem;background:var(--bg-tag);padding-left:1rem;padding-right:1rem;height:2rem;border-radius:1rem;display:-webkit-inline-box;display:-webkit-inline-flex;display:-ms-inline-flexbox;display:inline-flex;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;margin-right:0.875rem;color:var(--primary1);-webkit-text-decoration:none;text-decoration:none;font-weight:500;font-size:1rem;}/*!sc*/
+@media (max-width:768px){.gISUXI{height:1.5rem;font-size:0.75rem;border-radius:0.75rem;padding-left:0.75rem;padding-right:0.75rem;margin-right:0.5rem;margin-bottom:0.5rem;}}/*!sc*/
+.gISUXI:hover{opacity:0.75;}/*!sc*/
+data-styled.g85[id="sc-dtMgUX"]{content:"gISUXI,"}/*!sc*/
+.bpMcZw{margin-top:0.875rem;margin-bottom:-0.875rem;min-height:0.875rem;}/*!sc*/
+@media (max-width:768px){.bpMcZw{margin-top:0.5rem;margin-bottom:-0.5rem;min-height:0.5rem;}}/*!sc*/
+data-styled.g86[id="sc-cZMNgc"]{content:"bpMcZw,"}/*!sc*/
+.fiOuRZ{margin-top:5.5rem;}/*!sc*/
+@media (max-width:1024px){.fiOuRZ .head-wrapper{padding-left:1rem;padding-right:1rem;}}/*!sc*/
+.fiOuRZ h1{font-size:3rem;line-height:1.5;-webkit-letter-spacing:-0.004em;-moz-letter-spacing:-0.004em;-ms-letter-spacing:-0.004em;letter-spacing:-0.004em;margin-top:0;font-weight:800;color:var(--text1);margin-bottom:2rem;word-break:keep-all;overflow-wrap:break-word;-webkit-transition:color 0.125s ease-in;transition:color 0.125s ease-in;}/*!sc*/
+@media (max-width:1024px){.fiOuRZ{margin-top:2rem;}.fiOuRZ h1{font-size:2.25rem;}}/*!sc*/
+data-styled.g88[id="sc-jQrDum"]{content:"fiOuRZ,"}/*!sc*/
+.jGdQwA{font-size:1rem;color:var(--text2);display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-pack:justify;-webkit-justify-content:space-between;-ms-flex-pack:justify;justify-content:space-between;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;}/*!sc*/
+.jGdQwA .information .username{color:var(--text1);font-weight:bold;}/*!sc*/
+.jGdQwA .information .username a{color:inherit;-webkit-text-decoration:none;text-decoration:none;}/*!sc*/
+.jGdQwA .information .username a:hover{color:var(--text2);-webkit-text-decoration:underline;text-decoration:underline;}/*!sc*/
+.jGdQwA .information .separator{margin-left:0.5rem;margin-right:0.5rem;}/*!sc*/
+@media (max-width:768px){.jGdQwA .information{font-size:0.875rem;}}/*!sc*/
+@media (max-width:768px){.jGdQwA{margin-bottom:0.75rem;}}/*!sc*/
+data-styled.g89[id="sc-fvxzrP"]{content:"jGdQwA,"}/*!sc*/
+.eYeYLy{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;}/*!sc*/
+data-styled.g90[id="sc-fbyfCU"]{content:"eYeYLy,"}/*!sc*/
+.FTZwa{font-size:1.125rem;color:var(--text1);-webkit-transition:color 0.125s ease-in;transition:color 0.125s ease-in;line-height:1.7;-webkit-letter-spacing:-0.004em;-moz-letter-spacing:-0.004em;-ms-letter-spacing:-0.004em;letter-spacing:-0.004em;word-break:keep-all;word-wrap:break-word;}/*!sc*/
+.FTZwa ul b,.FTZwa ol b,.FTZwa p b{font-weight:400;}/*!sc*/
+.FTZwa ul code,.FTZwa ol code,.FTZwa p code{background:var(--bg-inline-code);padding:0.2em 0.4em;font-size:85%;border-radius:3px;}/*!sc*/
+.FTZwa ul a code,.FTZwa ol a code,.FTZwa p a code{color:var(--primary1);}/*!sc*/
+.FTZwa a{color:var(--primary1);-webkit-text-decoration:none;text-decoration:none;}/*!sc*/
+.FTZwa a:hover{color:var(--primary1);-webkit-text-decoration:underline;text-decoration:underline;}/*!sc*/
+.FTZwa code{font-family:'Fira Mono',source-code-pro,Menlo,Monaco,Consolas, 'Courier New',monospace;}/*!sc*/
+.FTZwa hr{border:none;height:1px;width:100%;background:var(--border3);margin-top:2rem;margin-bottom:2rem;}/*!sc*/
+.FTZwa p img{display:block;margin:0 auto;max-width:100%;margin-top:3rem;margin-bottom:3rem;}/*!sc*/
+.FTZwa h1{font-size:2.5rem;}/*!sc*/
+.FTZwa h2{font-size:2rem;}/*!sc*/
+.FTZwa h3{font-size:1.5rem;}/*!sc*/
+.FTZwa h4{font-size:1.125rem;}/*!sc*/
+.FTZwa h1,.FTZwa h2,.FTZwa h3,.FTZwa h4{line-height:1.5;margin-bottom:1rem;}/*!sc*/
+.FTZwa p + h1,.FTZwa p + h2,.FTZwa p + h3,.FTZwa p + h4{margin-top:2.5rem;}/*!sc*/
+@media (max-width:768px){.FTZwa{font-size:1rem;}.FTZwa h1{font-size:2.25rem;}.FTZwa h2{font-size:1.75rem;}.FTZwa h3{font-size:1.25rem;}.FTZwa h4{font-size:1rem;}.FTZwa h1,.FTZwa h2,.FTZwa h3,.FTZwa h4{margin-bottom:0.75rem;}.FTZwa p + h1,.FTZwa p + h2,.FTZwa p + h3,.FTZwa p + h4{margin-top:2rem;}}/*!sc*/
+.FTZwa blockquote{margin-top:2rem;margin-bottom:2rem;border-left:4px solid var(--primary2);border-top-right-radius:4px;border-bottom-right-radius:4px;background:var(--bg-element2);margin-left:0;margin-right:0;padding:1rem;padding-left:2rem;color:var(--text1);}/*!sc*/
+.FTZwa blockquote ul,.FTZwa blockquote ol{padding-left:1rem;}/*!sc*/
+.FTZwa blockquote *:first-child{margin-top:0;}/*!sc*/
+.FTZwa blockquote *:last-child{margin-bottom:0;}/*!sc*/
+data-styled.g93[id="sc-bXTejn"]{content:"FTZwa,"}/*!sc*/
+.bzHCOc.atom-one pre{background:var(--prism-bg);}/*!sc*/
+.bzHCOc.atom-one code[class*='language-'],.bzHCOc.atom-one pre[class*='language-']{color:var(--prism-default-text);background:none;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none;}/*!sc*/
+.bzHCOc.atom-one pre[class*='language-']::-moz-selection,.bzHCOc.atom-one pre[class*='language-'] ::-moz-selection,.bzHCOc.atom-one code[class*='language-']::-moz-selection,.bzHCOc.atom-one code[class*='language-'] ::-moz-selection{text-shadow:none;background:var(--prism-selection-bg);}/*!sc*/
+.bzHCOc.atom-one pre[class*='language-']::selection,.bzHCOc.atom-one pre[class*='language-'] ::selection,.bzHCOc.atom-one code[class*='language-']::selection,.bzHCOc.atom-one code[class*='language-'] ::selection{text-shadow:none;background:var(--prism-selection-bg);}/*!sc*/
+@media print{.bzHCOc.atom-one code[class*='language-'],.bzHCOc.atom-one pre[class*='language-']{text-shadow:none;}}/*!sc*/
+.bzHCOc.atom-one pre[class*='language-']{padding:1em;margin:0.5em 0;overflow:auto;}/*!sc*/
+.bzHCOc.atom-one:not(pre) > code[class*='language-'],.bzHCOc.atom-one pre[class*='language-']{background:var(--prism-code-block-bg);}/*!sc*/
+.bzHCOc.atom-one:not(pre) > code[class*='language-']{padding:0.1em;border-radius:0.3em;white-space:normal;}/*!sc*/
+.bzHCOc.atom-one .token.comment,.bzHCOc.atom-one .token.prolog,.bzHCOc.atom-one .token.doctype,.bzHCOc.atom-one .token.cdata{color:var(--prism-code-1);}/*!sc*/
+.bzHCOc.atom-one .token.punctuation{color:var(--prism-code-2);}/*!sc*/
+.bzHCOc.atom-one .token.selector,.bzHCOc.atom-one .token.tag{color:var(--prism-code-3);}/*!sc*/
+.bzHCOc.atom-one .token.property,.bzHCOc.atom-one .token.boolean,.bzHCOc.atom-one .token.number,.bzHCOc.atom-one .token.constant,.bzHCOc.atom-one .token.symbol,.bzHCOc.atom-one .token.attr-name,.bzHCOc.atom-one .token.deleted{color:var(--prism-code-4);}/*!sc*/
+.bzHCOc.atom-one .token.string,.bzHCOc.atom-one .token.char,.bzHCOc.atom-one .token.attr-value,.bzHCOc.atom-one .token.builtin,.bzHCOc.atom-one .token.inserted{color:var(--prism-code-6);}/*!sc*/
+.bzHCOc.atom-one .token.operator,.bzHCOc.atom-one .token.entity,.bzHCOc.atom-one .token.url,.bzHCOc.atom-one .language-css .token.string,.bzHCOc.atom-one .style .token.string{color:var(--prism-code-5);}/*!sc*/
+.bzHCOc.atom-one .token.atrule,.bzHCOc.atom-one .token.keyword{color:var(--prism-code-7);}/*!sc*/
+.bzHCOc.atom-one .token.function{color:var(--prism-code-8);}/*!sc*/
+.bzHCOc.atom-one .token.regex,.bzHCOc.atom-one .token.important,.bzHCOc.atom-one .token.variable{color:var(--prism-code-9);}/*!sc*/
+.bzHCOc.atom-one .token.important,.bzHCOc.atom-one .token.bold{font-weight:bold;}/*!sc*/
+.bzHCOc.atom-one .token.italic{font-style:italic;}/*!sc*/
+.bzHCOc.atom-one .token.entity{cursor:help;}/*!sc*/
+.bzHCOc.atom-one pre.line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber;}/*!sc*/
+.bzHCOc.atom-one pre.line-numbers > code{position:relative;}/*!sc*/
+.bzHCOc.atom-one .line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:0;font-size:100%;left:-3.8em;width:3em;-webkit-letter-spacing:-1px;-moz-letter-spacing:-1px;-ms-letter-spacing:-1px;letter-spacing:-1px;border-right:0;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;}/*!sc*/
+.bzHCOc.atom-one .line-numbers-rows > span{pointer-events:none;display:block;counter-increment:linenumber;}/*!sc*/
+.bzHCOc.atom-one .line-numbers-rows > span:before{content:counter(linenumber);color:var(--prism-line-number);display:block;padding-right:0.8em;text-align:right;}/*!sc*/
+.bzHCOc.github code,.bzHCOc.github code[class*='language-'],.bzHCOc.github pre[class*='language-']{color:#24292e;}/*!sc*/
+.bzHCOc.github pre{color:#24292e;background:#f6f8fa;}/*!sc*/
+.bzHCOc.github .token.function{color:#005cc5;}/*!sc*/
+.bzHCOc.github .token.comment,.bzHCOc.github .token.prolog,.bzHCOc.github .token.doctype,.bzHCOc.github .token.cdata{color:#969896;}/*!sc*/
+.bzHCOc.github .token.punctuation{color:#24292e;}/*!sc*/
+.bzHCOc.github .token.string{color:#032f62;}/*!sc*/
+.bzHCOc.github .token.atrule,.bzHCOc.github .token.attr-value{color:#183691;}/*!sc*/
+.bzHCOc.github .token.property,.bzHCOc.github .token.tag{color:#63a35c;}/*!sc*/
+.bzHCOc.github .token.boolean,.bzHCOc.github .token.number{color:#0086b3;}/*!sc*/
+.bzHCOc.github .token.selector,.bzHCOc.github .token.attr-name,.bzHCOc.github .token.attr-value .punctuation:first-child,.bzHCOc.github .token.keyword,.bzHCOc.github .token.regex,.bzHCOc.github .token.important{color:#d73a49;}/*!sc*/
+.bzHCOc.github .token.operator,.bzHCOc.github .token.entity,.bzHCOc.github .token.url,.bzHCOc.github .language-css{color:#d73a49;}/*!sc*/
+.bzHCOc.github .token.entity{cursor:help;}/*!sc*/
+.bzHCOc.github .namespace{opacity:0.7;}/*!sc*/
+.bzHCOc.monokai code[class*='language-'],.bzHCOc.monokai pre[class*='language-']{color:#f8f8f2;text-shadow:0 1px rgba(0,0,0,0.3);}/*!sc*/
+.bzHCOc.monokai:not(pre) > code[class*='language-'],.bzHCOc.monokai pre[class*='language-']{background:#272822;}/*!sc*/
+.bzHCOc.monokai pre{color:#f8f8f2;text-shadow:0 1px rgba(0,0,0,0.3);background:#272822;}/*!sc*/
+.bzHCOc.monokai .token.comment,.bzHCOc.monokai .token.prolog,.bzHCOc.monokai .token.doctype,.bzHCOc.monokai .token.cdata{color:#778090;}/*!sc*/
+.bzHCOc.monokai .token.punctuation{color:#f8f8f2;}/*!sc*/
+.bzHCOc.monokai .namespace{opacity:0.7;}/*!sc*/
+.bzHCOc.monokai .token.property,.bzHCOc.monokai .token.tag,.bzHCOc.monokai .token.constant,.bzHCOc.monokai .token.symbol,.bzHCOc.monokai .token.deleted{color:#f92672;}/*!sc*/
+.bzHCOc.monokai .token.boolean,.bzHCOc.monokai .token.number{color:#ae81ff;}/*!sc*/
+.bzHCOc.monokai .token.selector,.bzHCOc.monokai .token.attr-name,.bzHCOc.monokai .token.string,.bzHCOc.monokai .token.char,.bzHCOc.monokai .token.builtin,.bzHCOc.monokai .token.inserted{color:#a6e22e;}/*!sc*/
+.bzHCOc.monokai .token.operator,.bzHCOc.monokai .token.entity,.bzHCOc.monokai .token.url,.bzHCOc.monokai .language-css .token.string,.bzHCOc.monokai .style .token.string,.bzHCOc.monokai .token.variable{color:#f8f8f2;}/*!sc*/
+.bzHCOc.monokai .token.atrule,.bzHCOc.monokai .token.attr-value,.bzHCOc.monokai .token.function{color:#e6db74;}/*!sc*/
+.bzHCOc.monokai .token.keyword{color:#f92672;}/*!sc*/
+.bzHCOc.monokai .token.regex,.bzHCOc.monokai .token.important{color:#fd971f;}/*!sc*/
+.bzHCOc.monokai .token.important,.bzHCOc.monokai .token.bold{font-weight:bold;}/*!sc*/
+.bzHCOc.monokai .token.italic{font-style:italic;}/*!sc*/
+.bzHCOc.monokai .token.entity{cursor:help;}/*!sc*/
+.bzHCOc.dracula code[class*='language-'],.bzHCOc.dracula pre[class*='language-']{color:#ccc;background:rgb(40,41,54);}/*!sc*/
+.bzHCOc.dracula pre[class*='language-']::-moz-selection,.bzHCOc.dracula pre[class*='language-'] ::-moz-selection,.bzHCOc.dracula code[class*='language-']::-moz-selection,.bzHCOc.dracula code[class*='language-'] ::-moz-selection{text-shadow:none;background-color:#5a5f80;}/*!sc*/
+.bzHCOc.dracula pre[class*='language-']::selection,.bzHCOc.dracula pre[class*='language-'] ::selection,.bzHCOc.dracula code[class*='language-']::selection,.bzHCOc.dracula code[class*='language-'] ::selection{text-shadow:none;background-color:#5a5f80;}/*!sc*/
+.bzHCOc.dracula:not(pre) > code[class*='language-']{border-radius:0.3em;white-space:normal;}/*!sc*/
+.bzHCOc.dracula pre{color:#ccc;background:rgb(40,41,54);}/*!sc*/
+.bzHCOc.dracula .limit-300{height:300px !important;}/*!sc*/
+.bzHCOc.dracula .limit-400{height:400px !important;}/*!sc*/
+.bzHCOc.dracula .limit-500{height:500px !important;}/*!sc*/
+.bzHCOc.dracula .limit-600{height:600px !important;}/*!sc*/
+.bzHCOc.dracula .limit-700{height:700px !important;}/*!sc*/
+.bzHCOc.dracula .limit-800{height:800px !important;}/*!sc*/
+.bzHCOc.dracula .token.comment{color:rgba(98,114,164,1);}/*!sc*/
+.bzHCOc.dracula .token.prolog{color:rgba(207,207,194,1);}/*!sc*/
+.bzHCOc.dracula .token.tag{color:rgba(220,104,170,1);}/*!sc*/
+.bzHCOc.dracula .token.entity{color:rgba(139,233,253,1);}/*!sc*/
+.bzHCOc.dracula .token.atrule{color:rgba(98,239,117,1);}/*!sc*/
+.bzHCOc.dracula .token.url{color:rgba(102,217,239,1);}/*!sc*/
+.bzHCOc.dracula .token.selector{color:rgba(207,207,194,1);}/*!sc*/
+.bzHCOc.dracula .token.string{color:rgba(241,250,140,1);}/*!sc*/
+.bzHCOc.dracula .token.property{color:rgba(255,184,108,1);}/*!sc*/
+.bzHCOc.dracula .token.important{color:rgba(255,121,198,1);font-weight:bold;}/*!sc*/
+.bzHCOc.dracula .token.punctuation{color:rgba(230,219,116,1);}/*!sc*/
+.bzHCOc.dracula .token.number{color:rgba(189,147,249,1);}/*!sc*/
+.bzHCOc.dracula .token.function{color:rgba(80,250,123,1);}/*!sc*/
+.bzHCOc.dracula .token.class-name{color:rgba(255,184,108,1);}/*!sc*/
+.bzHCOc.dracula .token.keyword{color:rgba(255,121,198,1);}/*!sc*/
+.bzHCOc.dracula .token.boolean{color:rgba(255,184,108,1);}/*!sc*/
+.bzHCOc.dracula .token.operator{color:rgba(139,233,253,1);}/*!sc*/
+.bzHCOc.dracula .token.char{color:rgba(255,135,157,1);}/*!sc*/
+.bzHCOc.dracula .token.regex{color:rgba(80,250,123,1);}/*!sc*/
+.bzHCOc.dracula .token.variable{color:rgba(80,250,123,1);}/*!sc*/
+.bzHCOc.dracula .token.constant{color:rgba(255,184,108,1);}/*!sc*/
+.bzHCOc.dracula .token.symbol{color:rgba(255,184,108,1);}/*!sc*/
+.bzHCOc.dracula .token.builtin{color:rgba(255,121,198,1);}/*!sc*/
+.bzHCOc.dracula .token.attr-value{color:#7ec699;}/*!sc*/
+.bzHCOc.dracula .token.deleted{color:#e2777a;}/*!sc*/
+.bzHCOc.dracula .token.namespace{color:#e2777a;}/*!sc*/
+.bzHCOc.dracula .token.bold{font-weight:bold;}/*!sc*/
+.bzHCOc.dracula .token.italic{font-style:italic;}/*!sc*/
+.bzHCOc.dracula .token{color:#ff79c6;}/*!sc*/
+.bzHCOc.dracula .langague-cpp .token.string{color:#8be9fd;}/*!sc*/
+.bzHCOc.dracula .langague-c .token.string{color:#8be9fd;}/*!sc*/
+.bzHCOc.dracula .language-css .token.selector{color:rgba(80,250,123,1);}/*!sc*/
+.bzHCOc.dracula .language-css .token.property{color:rgba(255,184,108,1);}/*!sc*/
+.bzHCOc.dracula .language-java span.token.class-name{color:#8be9fd;}/*!sc*/
+.bzHCOc.dracula .language-java .token.class-name{color:#8be9fd;}/*!sc*/
+.bzHCOc.dracula .language-markup .token.attr-value{color:rgba(102,217,239,1);}/*!sc*/
+.bzHCOc.dracula .language-markup .token.tag{color:rgba(80,250,123,1);}/*!sc*/
+.bzHCOc.dracula .language-objectivec .token.property{color:#66d9ef;}/*!sc*/
+.bzHCOc.dracula .language-objectivec .token.string{color:#50fa7b;}/*!sc*/
+.bzHCOc.dracula .language-php .token.boolean{color:#8be9fd;}/*!sc*/
+.bzHCOc.dracula .language-php .token.function{color:#ff79c6;}/*!sc*/
+.bzHCOc.dracula .language-php .token.keyword{color:#66d9ef;}/*!sc*/
+.bzHCOc.dracula .language-ruby .token.symbol{color:#8be9fd;}/*!sc*/
+.bzHCOc.dracula .language-ruby .token.class-name{color:#cfcfc2;}/*!sc*/
+.bzHCOc.dracula pre.line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber;}/*!sc*/
+.bzHCOc.dracula pre.line-numbers > code{position:relative;white-space:inherit;}/*!sc*/
+.bzHCOc.dracula .line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:0;font-size:100%;left:-3.8em;width:3em;-webkit-letter-spacing:-1px;-moz-letter-spacing:-1px;-ms-letter-spacing:-1px;letter-spacing:-1px;border-right:1px solid #999;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;}/*!sc*/
+.bzHCOc.dracula .line-numbers-rows > span{pointer-events:none;display:block;counter-increment:linenumber;}/*!sc*/
+.bzHCOc.dracula .line-numbers-rows > span:before{content:counter(linenumber);color:#999;display:block;padding-right:0.8em;text-align:right;}/*!sc*/
+.bzHCOc.dracula div.code-toolbar{position:relative;}/*!sc*/
+.bzHCOc.dracula div.code-toolbar > .toolbar{position:absolute;top:0.3em;right:0.2em;-webkit-transition:opacity 0.3s ease-in-out;transition:opacity 0.3s ease-in-out;opacity:0;}/*!sc*/
+.bzHCOc.dracula div.code-toolbar:hover > .toolbar{opacity:1;}/*!sc*/
+.bzHCOc.dracula div.code-toolbar > .toolbar .toolbar-item{display:inline-block;padding-right:20px;}/*!sc*/
+.bzHCOc.dracula div.code-toolbar > .toolbar a{cursor:pointer;}/*!sc*/
+.bzHCOc.dracula div.code-toolbar > .toolbar button{background:none;border:0;color:inherit;font:inherit;line-height:normal;overflow:visible;padding:0;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;}/*!sc*/
+.bzHCOc.dracula div.code-toolbar > .toolbar a,.bzHCOc.dracula div.code-toolbar > .toolbar button,.bzHCOc.dracula div.code-toolbar > .toolbar span{color:#ccc;font-size:0.8em;padding:0.5em;background:rgba(98,114,164,1);border-radius:0.5em;}/*!sc*/
+.bzHCOc.dracula div.code-toolbar > .toolbar a:hover,.bzHCOc.dracula div.code-toolbar > .toolbar a:focus,.bzHCOc.dracula div.code-toolbar > .toolbar button:hover,.bzHCOc.dracula div.code-toolbar > .toolbar button:focus,.bzHCOc.dracula div.code-toolbar > .toolbar span:hover,.bzHCOc.dracula div.code-toolbar > .toolbar span:focus{color:inherit;-webkit-text-decoration:none;text-decoration:none;background-color:var(--verde);}/*!sc*/
+.bzHCOc pre{font-family:'Fira Mono',source-code-pro,Menlo,Monaco,Consolas, 'Courier New',monospace;font-size:0.875rem;padding:1rem;border-radius:4px;line-height:1.5;overflow-x:auto;-webkit-letter-spacing:0px;-moz-letter-spacing:0px;-ms-letter-spacing:0px;letter-spacing:0px;}/*!sc*/
+@media (max-width:768px){.bzHCOc pre{font-size:0.75rem;padding:0.75rem;}}/*!sc*/
+.bzHCOc img{max-width:100%;height:auto;display:block;margin-top:1.5rem;margin-bottom:1.5rem;}/*!sc*/
+.bzHCOc iframe:not([id^='google_ads']){width:768px;height:430px;max-width:100%;background:black;display:block;margin:auto;border:none;border-radius:4px;overflow:hidden;}/*!sc*/
+.bzHCOc .twitter-wrapper{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-pack:center;-webkit-justify-content:center;-ms-flex-pack:center;justify-content:center;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;border-left:none;background:none;padding:none;}/*!sc*/
+.bzHCOc table{min-width:40%;max-width:100%;border:1px solid var(--border2);border-collapse:collapse;font-size:0.875rem;}/*!sc*/
+.bzHCOc table thead > tr > th{border-bottom:4px solid var(--border2);}/*!sc*/
+.bzHCOc table th,.bzHCOc table td{word-break:break-word;padding:0.5rem;}/*!sc*/
+.bzHCOc table td + td,.bzHCOc table th + th{border-left:1px solid var(--border2);}/*!sc*/
+.bzHCOc table tr:nth-child(even){background:var(--bg-element2);}/*!sc*/
+.bzHCOc table tr:nth-child(odd){background:var(--bg-page1);}/*!sc*/
+.bzHCOc .katex-mathml{display:none;}/*!sc*/
+data-styled.g94[id="sc-eGRUor"]{content:"bzHCOc,"}/*!sc*/
+.bfzjcP{width:768px;margin:0 auto;margin-top:5rem;}/*!sc*/
+@media (max-width:1024px){.bfzjcP{padding-left:1rem;padding-right:1rem;}}/*!sc*/
+@media (max-width:768px){.bfzjcP{width:100%;}}/*!sc*/
+data-styled.g96[id="sc-dFtzxp"]{content:"bfzjcP,"}/*!sc*/
+.cgYvDI{margin-top:3rem;color:var(--text1);}/*!sc*/
+.cgYvDI h4{font-size:1.125rem;line-height:1.5;font-weight:600;margin-bottom:1rem;}/*!sc*/
+@media (max-width:768px){.cgYvDI{padding-left:1rem;padding-right:1rem;}}/*!sc*/
+data-styled.g97[id="sc-brSvTw"]{content:"cgYvDI,"}/*!sc*/
+.BdYrx > .buttons-wrapper{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-pack:end;-webkit-justify-content:flex-end;-ms-flex-pack:end;justify-content:flex-end;}/*!sc*/
+data-styled.g99[id="sc-evcjhq"]{content:"BdYrx,"}/*!sc*/
+.fQjmlN{resize:none;padding:1rem;padding-bottom:1.5rem;outline:none;border:1px solid var(--border4);margin-bottom:1.5rem;width:100%;border-radius:4px;min-height:6.125rem;font-size:1rem;color:var(--text1);line-height:1.75;background:var(--bg-element1);}/*!sc*/
+.fQjmlN::-webkit-input-placeholder{color:var(--text3);}/*!sc*/
+.fQjmlN::-moz-placeholder{color:var(--text3);}/*!sc*/
+.fQjmlN:-ms-input-placeholder{color:var(--text3);}/*!sc*/
+.fQjmlN::placeholder{color:var(--text3);}/*!sc*/
+@media (max-width:768px){.fQjmlN{margin-bottom:1rem;}}/*!sc*/
+data-styled.g100[id="sc-fHeRUh"]{content:"fQjmlN,"}/*!sc*/
+.dDifDS{margin-top:2.5rem;}/*!sc*/
+data-styled.g111[id="sc-dVNjXY"]{content:"dDifDS,"}/*!sc*/
+.dpmQGl{margin-top:3rem;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;}/*!sc*/
+@media (max-width:768px){.dpmQGl{-webkit-flex-direction:column-reverse;-ms-flex-direction:column-reverse;flex-direction:column-reverse;padding-left:1rem;padding-right:1rem;}}/*!sc*/
+data-styled.g127[id="sc-fIosxK"]{content:"dpmQGl,"}/*!sc*/
+.bVYpNI{min-width:0;-webkit-flex:1;-ms-flex:1;flex:1;}/*!sc*/
+.sc-gyElHZ + .sc-gyElHZ{margin-left:3rem;}/*!sc*/
+@media (max-width:768px){.bVYpNI{-webkit-flex:initial;-ms-flex:initial;flex:initial;width:100%;}.sc-gyElHZ + .sc-gyElHZ{margin-left:0;margin-bottom:1.5rem;}}/*!sc*/
+data-styled.g128[id="sc-gyElHZ"]{content:"bVYpNI,"}/*!sc*/
+@media (max-width:1024px){.kTQxVU{padding-left:1rem;padding-right:1rem;}}/*!sc*/
+data-styled.g129[id="sc-gjNHFA"]{content:"kTQxVU,"}/*!sc*/
+.gPzODR{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-pack:justify;-webkit-justify-content:space-between;-ms-flex-pack:justify;justify-content:space-between;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;}/*!sc*/
+.gPzODR .left{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;}/*!sc*/
+@media (max-width:768px){.gPzODR .left{-webkit-flex-direction:column;-ms-flex-direction:column;flex-direction:column;}}/*!sc*/
+.gPzODR img{display:block;width:8rem;height:8rem;border-radius:50%;object-fit:cover;box-shadow:0 0 4px 0 rgba(0,0,0,0.06);}/*!sc*/
+@media (max-width:768px){.gPzODR img{width:5rem;height:5rem;}}/*!sc*/
+data-styled.g130[id="sc-fmciRz"]{content:"gPzODR,"}/*!sc*/
+.yXXbT{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-flex-direction:column;-ms-flex-direction:column;flex-direction:column;-webkit-box-pack:center;-webkit-justify-content:center;-ms-flex-pack:center;justify-content:center;margin-left:1rem;margin-right:1rem;}/*!sc*/
+.yXXbT .name{font-size:1.5rem;line-height:1.5;font-weight:bold;color:var(--text1);}/*!sc*/
+.yXXbT .name a{color:inherit;-webkit-text-decoration:none;text-decoration:none;}/*!sc*/
+.yXXbT .name a:hover{color:var(--text1);-webkit-text-decoration:underline;text-decoration:underline;}/*!sc*/
+.yXXbT .description{white-space:pre-wrap;font-size:1.125rem;line-height:1.5;margin-top:0.25rem;color:var(--text2);-webkit-letter-spacing:-0.004em;-moz-letter-spacing:-0.004em;-ms-letter-spacing:-0.004em;letter-spacing:-0.004em;}/*!sc*/
+@media (max-width:768px){.yXXbT{margin-left:0;margin-top:1rem;}.yXXbT .name{font-size:1.125rem;}.yXXbT .description{margin-top:0.5rem;font-size:0.875rem;-webkit-letter-spacing:-0.004em;-moz-letter-spacing:-0.004em;-ms-letter-spacing:-0.004em;letter-spacing:-0.004em;}}/*!sc*/
+data-styled.g131[id="sc-eXlEPa"]{content:"yXXbT,"}/*!sc*/
+.hbZRXU{background:var(--bg-element3);width:100%;height:1px;margin-top:2rem;margin-bottom:1.5rem;}/*!sc*/
+@media (max-width:768px){.hbZRXU{margin-top:1rem;margin-bottom:1rem;}}/*!sc*/
+data-styled.g132[id="sc-iFMAIt"]{content:"hbZRXU,"}/*!sc*/
+.koQQwu{color:var(--text3);display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;}/*!sc*/
+.koQQwu svg{cursor:pointer;width:2rem;height:2rem;}/*!sc*/
+.koQQwu svg:hover{color:var(--text1);}/*!sc*/
+@media (max-width:768px){.koQQwu svg{width:1.5rem;height:1.5rem;}}/*!sc*/
+.koQQwu a{color:inherit;display:block;}/*!sc*/
+.koQQwu a + a,.koQQwu a + svg{margin-left:1rem;}/*!sc*/
+data-styled.g133[id="sc-iqVWFU"]{content:"koQQwu,"}/*!sc*/
+.efeYel{margin-top:5.5rem;}/*!sc*/
+.efeYel h1{padding-right:2rem;font-size:3.75rem;margin-top:0;margin-bottom:2rem;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;}/*!sc*/
+.efeYel .subinfo{font-size:1rem;}/*!sc*/
+.efeYel .tags{font-size:2rem;margin-top:0.875rem;}/*!sc*/
+.efeYel .tags .tag-skeleton + .tag-skeleton{margin-left:0.5rem;}/*!sc*/
+.efeYel .series{margin-top:2rem;}/*!sc*/
+.efeYel .thumbnail{margin-top:2rem;padding-top:52.35%;position:relative;}/*!sc*/
+.efeYel .thumbnail .thumbnail-skeleton{position:absolute;top:0;left:0;width:100%;height:100%;}/*!sc*/
+.efeYel .contents{margin-top:5rem;}/*!sc*/
+.efeYel .contents .line{margin-bottom:0.75rem;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;font-size:1.125rem;}/*!sc*/
+.efeYel .contents .lines + .lines{margin-top:3rem;}/*!sc*/
+@media (max-width:1024px){.efeYel{margin-top:2rem;}.efeYel h1{font-size:2.25rem;}.efeYel .subinfo{font-size:0.875rem;}.efeYel .tags{font-size:1.5rem;}}/*!sc*/
+data-styled.g136[id="sc-dwsnSq"]{content:"efeYel,"}/*!sc*/
+@media (max-width:768px){.kaTEDx{padding-left:1rem;padding-right:1rem;}}/*!sc*/
+data-styled.g137[id="sc-jtXEFf"]{content:"kaTEDx,"}/*!sc*/
+.gyXrCE{display:none;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;background:var(--bg-element1);border:1px solid var(--border2);padding-left:0.75rem;padding-right:0.75rem;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;height:1.5rem;border-radius:0.75rem;outline:none;}/*!sc*/
+.gyXrCE svg{width:0.75rem;height:0.75rem;margin-right:0.75rem;color:var(--text3);}/*!sc*/
+.gyXrCE span{font-size:0.75rem;font-weight:bold;color:var(--text3);}/*!sc*/
+@media (max-width:1024px){.gyXrCE{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;margin-left:0.5rem;}}/*!sc*/
+data-styled.g138[id="sc-eldieg"]{content:"gyXrCE,"}/*!sc*/
+.iIZjji{width:96px;height:32px;font-size:16px;}/*!sc*/
+@media (max-width:1024px){.iIZjji{width:80px;height:24px;font-size:14px;}}/*!sc*/
+@media (max-width:425px){.iIZjji{width:72px;font-size:12px;}}/*!sc*/
+.iIZjji .button{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;box-shadow:none;-webkit-align-items:center;-webkit-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;-ms-flex-pack:center;justify-content:center;background-color:var(--bg-element1);cursor:pointer;border-radius:16px;font-weight:700;width:100%;height:100%;white-space:nowrap;outline:none;font-size:16px;}/*!sc*/
+@media (max-width:768px){.iIZjji .button{font-size:14px;}}/*!sc*/
+@media (max-width:425px){.iIZjji .button{font-size:12px;}}/*!sc*/
+.iIZjji .follow-button{color:var(--primary1);border:1px solid var(--primary1);}/*!sc*/
+.iIZjji .unfollow-button{color:var(--bg-element6);border:1px solid var(--bg-element6);}/*!sc*/
+data-styled.g143[id="sc-avest"]{content:"iIZjji,"}/*!sc*/
+.bksdVp{margin-top:16rem;margin-bottom:6rem;}/*!sc*/
+@media (max-width:1024px){.bksdVp{margin-top:8rem;margin-bottom:3rem;}}/*!sc*/
+@media (max-width:768px){.bksdVp{margin-top:2rem;}}/*!sc*/
+data-styled.g146[id="sc-djWRfJ"]{content:"bksdVp,"}/*!sc*/
+@-webkit-keyframes gsdBxV{0%{opacity:0.5;}50%{opacity:1;}100%{opacity:0.5;}}/*!sc*/
+@keyframes gsdBxV{0%{opacity:0.5;}50%{opacity:1;}100%{opacity:0.5;}}/*!sc*/
+data-styled.g147[id="sc-keyframes-gsdBxV"]{content:"gsdBxV,"}/*!sc*/
+body{background:var(--bg-page2);}/*!sc*/
+data-styled.g148[id="sc-global-iqNrnJ2"]{content:"sc-global-iqNrnJ2,"}/*!sc*/
+body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",나눔고딕,"Nanum Gothic","Noto Sans KR","Noto Sans CJK KR",arial,돋움,Dotum,Tahoma,Geneva,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;color:var(--text1);box-sizing:border-box;}/*!sc*/
+*{box-sizing:inherit;}/*!sc*/
+code{font-family:'Fira Mono',source-code-pro,Menlo,Monaco,Consolas,'Courier New', monospace;}/*!sc*/
+input,button,textarea{font-family:inherit;}/*!sc*/
+html,body,#root{height:100%;}/*!sc*/
+body{--bg-page1:#F8F9FA;--bg-page2:#FFFFFF;--bg-element1:#FFFFFF;--bg-element2:#F8F9FA;--bg-element3:#E9ECEF;--bg-element4:#DEE2E6;--bg-element5:#212529;--bg-element6:#343A40;--bg-element7:#FFFFFF;--bg-element8:#FBFDFC;--bg-invert:#1E1E1E;--bg-inline-code:#E9ECEF;--bg-tag:#F8F9FA;--text1:#212529;--text2:#495057;--text3:#868E96;--text4:#CED4DA;--border1:#343A40;--border2:#ADB5BD;--border3:#DEE2E6;--border4:#F1F3F5;--primary1:#12B886;--primary2:#20C997;--destructive1:#FF6B6B;--destructive2:#FF8787;--button-text:#FFFFFF;--slight-layer:rgba(0,0,0,0.05);--opaque-layer:rgba(249,249,249,0.85);--editor-footer:#FFFFFF;--prism-bg:#fbfcfd;--prism-default-text:#24292e;--prism-selection-bg:rgba(0,0,0,0.15);--prism-code-block-bg:#fbfcfd;--prism-code-1:#969896;--prism-code-2:#24292e;--prism-code-3:#a626a4;--prism-code-4:#63a35c;--prism-code-5:#0184bc;--prism-code-6:#50a14f;--prism-code-7:#a626a4;--prism-code-8:#005cc5;--prism-code-9:#a626a4;--prism-line-number:#585c63;}/*!sc*/
+@media (prefers-color-scheme:dark){body{--bg-page1:#121212;--bg-page2:#121212;--bg-element1:#1E1E1E;--bg-element2:#1E1E1E;--bg-element3:#252525;--bg-element4:#2E2E2E;--bg-element5:#F1F3F5;--bg-element6:#F8F9FA;--bg-element7:#252525;--bg-element8:#0c0c0c;--bg-invert:#FFFFFF;--bg-inline-code:#363636;--bg-tag:#252525;--text1:#ECECEC;--text2:#D9D9D9;--text3:#ACACAC;--text4:#595959;--border1:#E0E0E0;--border2:#A0A0A0;--border3:#4D4D4D;--border4:#2A2A2A;--primary1:#96F2D7;--primary2:#63E6BE;--destructive1:#FFC9C9;--destructive2:#FFA8A8;--button-text:#121212;--slight-layer:rgba(255,255,255,0.1);--opaque-layer:rgba(0,0,0,0.85);--editor-footer:#2E2E2E;--prism-bg:#1E1E1E;--prism-default-text:#e0e6f1;--prism-selection-bg:#383e49;--prism-code-block-bg:#1e1e1e;--prism-code-1:#7c858d;--prism-code-2:#abb2bf;--prism-code-3:#e06c75;--prism-code-4:#d19a66;--prism-code-5:#98c379;--prism-code-6:#56b6c2;--prism-code-7:#c678dd;--prism-code-8:#61afef;--prism-code-9:#c678dd;--prism-line-number:#5c6370;}}/*!sc*/
+body[data-theme='light']{--bg-page1:#F8F9FA;--bg-page2:#FFFFFF;--bg-element1:#FFFFFF;--bg-element2:#F8F9FA;--bg-element3:#E9ECEF;--bg-element4:#DEE2E6;--bg-element5:#212529;--bg-element6:#343A40;--bg-element7:#FFFFFF;--bg-element8:#FBFDFC;--bg-invert:#1E1E1E;--bg-inline-code:#E9ECEF;--bg-tag:#F8F9FA;--text1:#212529;--text2:#495057;--text3:#868E96;--text4:#CED4DA;--border1:#343A40;--border2:#ADB5BD;--border3:#DEE2E6;--border4:#F1F3F5;--primary1:#12B886;--primary2:#20C997;--destructive1:#FF6B6B;--destructive2:#FF8787;--button-text:#FFFFFF;--slight-layer:rgba(0,0,0,0.05);--opaque-layer:rgba(249,249,249,0.85);--editor-footer:#FFFFFF;--prism-bg:#fbfcfd;--prism-default-text:#24292e;--prism-selection-bg:rgba(0,0,0,0.15);--prism-code-block-bg:#fbfcfd;--prism-code-1:#969896;--prism-code-2:#24292e;--prism-code-3:#a626a4;--prism-code-4:#63a35c;--prism-code-5:#0184bc;--prism-code-6:#50a14f;--prism-code-7:#a626a4;--prism-code-8:#005cc5;--prism-code-9:#a626a4;--prism-line-number:#585c63;}/*!sc*/
+body[data-theme='dark']{--bg-page1:#121212;--bg-page2:#121212;--bg-element1:#1E1E1E;--bg-element2:#1E1E1E;--bg-element3:#252525;--bg-element4:#2E2E2E;--bg-element5:#F1F3F5;--bg-element6:#F8F9FA;--bg-element7:#252525;--bg-element8:#0c0c0c;--bg-invert:#FFFFFF;--bg-inline-code:#363636;--bg-tag:#252525;--text1:#ECECEC;--text2:#D9D9D9;--text3:#ACACAC;--text4:#595959;--border1:#E0E0E0;--border2:#A0A0A0;--border3:#4D4D4D;--border4:#2A2A2A;--primary1:#96F2D7;--primary2:#63E6BE;--destructive1:#FFC9C9;--destructive2:#FFA8A8;--button-text:#121212;--slight-layer:rgba(255,255,255,0.1);--opaque-layer:rgba(0,0,0,0.85);--editor-footer:#2E2E2E;--prism-bg:#1E1E1E;--prism-default-text:#e0e6f1;--prism-selection-bg:#383e49;--prism-code-block-bg:#1e1e1e;--prism-code-1:#7c858d;--prism-code-2:#abb2bf;--prism-code-3:#e06c75;--prism-code-4:#d19a66;--prism-code-5:#98c379;--prism-code-6:#56b6c2;--prism-code-7:#c678dd;--prism-code-8:#61afef;--prism-code-9:#c678dd;--prism-line-number:#5c6370;}/*!sc*/
+data-styled.g151[id="sc-global-gYCCRU2"]{content:"sc-global-gYCCRU2,"}/*!sc*/
+body{background:var(--bg-page2);}/*!sc*/
+data-styled.g152[id="sc-global-iqNrnJ3"]{content:"sc-global-iqNrnJ3,"}/*!sc*/
+body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",나눔고딕,"Nanum Gothic","Noto Sans KR","Noto Sans CJK KR",arial,돋움,Dotum,Tahoma,Geneva,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;color:var(--text1);box-sizing:border-box;}/*!sc*/
+*{box-sizing:inherit;}/*!sc*/
+code{font-family:'Fira Mono',source-code-pro,Menlo,Monaco,Consolas,'Courier New', monospace;}/*!sc*/
+input,button,textarea{font-family:inherit;}/*!sc*/
+html,body,#root{height:100%;}/*!sc*/
+body{--bg-page1:#F8F9FA;--bg-page2:#FFFFFF;--bg-element1:#FFFFFF;--bg-element2:#F8F9FA;--bg-element3:#E9ECEF;--bg-element4:#DEE2E6;--bg-element5:#212529;--bg-element6:#343A40;--bg-element7:#FFFFFF;--bg-element8:#FBFDFC;--bg-invert:#1E1E1E;--bg-inline-code:#E9ECEF;--bg-tag:#F8F9FA;--text1:#212529;--text2:#495057;--text3:#868E96;--text4:#CED4DA;--border1:#343A40;--border2:#ADB5BD;--border3:#DEE2E6;--border4:#F1F3F5;--primary1:#12B886;--primary2:#20C997;--destructive1:#FF6B6B;--destructive2:#FF8787;--button-text:#FFFFFF;--slight-layer:rgba(0,0,0,0.05);--opaque-layer:rgba(249,249,249,0.85);--editor-footer:#FFFFFF;--prism-bg:#fbfcfd;--prism-default-text:#24292e;--prism-selection-bg:rgba(0,0,0,0.15);--prism-code-block-bg:#fbfcfd;--prism-code-1:#969896;--prism-code-2:#24292e;--prism-code-3:#a626a4;--prism-code-4:#63a35c;--prism-code-5:#0184bc;--prism-code-6:#50a14f;--prism-code-7:#a626a4;--prism-code-8:#005cc5;--prism-code-9:#a626a4;--prism-line-number:#585c63;}/*!sc*/
+@media (prefers-color-scheme:dark){body{--bg-page1:#121212;--bg-page2:#121212;--bg-element1:#1E1E1E;--bg-element2:#1E1E1E;--bg-element3:#252525;--bg-element4:#2E2E2E;--bg-element5:#F1F3F5;--bg-element6:#F8F9FA;--bg-element7:#252525;--bg-element8:#0c0c0c;--bg-invert:#FFFFFF;--bg-inline-code:#363636;--bg-tag:#252525;--text1:#ECECEC;--text2:#D9D9D9;--text3:#ACACAC;--text4:#595959;--border1:#E0E0E0;--border2:#A0A0A0;--border3:#4D4D4D;--border4:#2A2A2A;--primary1:#96F2D7;--primary2:#63E6BE;--destructive1:#FFC9C9;--destructive2:#FFA8A8;--button-text:#121212;--slight-layer:rgba(255,255,255,0.1);--opaque-layer:rgba(0,0,0,0.85);--editor-footer:#2E2E2E;--prism-bg:#1E1E1E;--prism-default-text:#e0e6f1;--prism-selection-bg:#383e49;--prism-code-block-bg:#1e1e1e;--prism-code-1:#7c858d;--prism-code-2:#abb2bf;--prism-code-3:#e06c75;--prism-code-4:#d19a66;--prism-code-5:#98c379;--prism-code-6:#56b6c2;--prism-code-7:#c678dd;--prism-code-8:#61afef;--prism-code-9:#c678dd;--prism-line-number:#5c6370;}}/*!sc*/
+body[data-theme='light']{--bg-page1:#F8F9FA;--bg-page2:#FFFFFF;--bg-element1:#FFFFFF;--bg-element2:#F8F9FA;--bg-element3:#E9ECEF;--bg-element4:#DEE2E6;--bg-element5:#212529;--bg-element6:#343A40;--bg-element7:#FFFFFF;--bg-element8:#FBFDFC;--bg-invert:#1E1E1E;--bg-inline-code:#E9ECEF;--bg-tag:#F8F9FA;--text1:#212529;--text2:#495057;--text3:#868E96;--text4:#CED4DA;--border1:#343A40;--border2:#ADB5BD;--border3:#DEE2E6;--border4:#F1F3F5;--primary1:#12B886;--primary2:#20C997;--destructive1:#FF6B6B;--destructive2:#FF8787;--button-text:#FFFFFF;--slight-layer:rgba(0,0,0,0.05);--opaque-layer:rgba(249,249,249,0.85);--editor-footer:#FFFFFF;--prism-bg:#fbfcfd;--prism-default-text:#24292e;--prism-selection-bg:rgba(0,0,0,0.15);--prism-code-block-bg:#fbfcfd;--prism-code-1:#969896;--prism-code-2:#24292e;--prism-code-3:#a626a4;--prism-code-4:#63a35c;--prism-code-5:#0184bc;--prism-code-6:#50a14f;--prism-code-7:#a626a4;--prism-code-8:#005cc5;--prism-code-9:#a626a4;--prism-line-number:#585c63;}/*!sc*/
+body[data-theme='dark']{--bg-page1:#121212;--bg-page2:#121212;--bg-element1:#1E1E1E;--bg-element2:#1E1E1E;--bg-element3:#252525;--bg-element4:#2E2E2E;--bg-element5:#F1F3F5;--bg-element6:#F8F9FA;--bg-element7:#252525;--bg-element8:#0c0c0c;--bg-invert:#FFFFFF;--bg-inline-code:#363636;--bg-tag:#252525;--text1:#ECECEC;--text2:#D9D9D9;--text3:#ACACAC;--text4:#595959;--border1:#E0E0E0;--border2:#A0A0A0;--border3:#4D4D4D;--border4:#2A2A2A;--primary1:#96F2D7;--primary2:#63E6BE;--destructive1:#FFC9C9;--destructive2:#FFA8A8;--button-text:#121212;--slight-layer:rgba(255,255,255,0.1);--opaque-layer:rgba(0,0,0,0.85);--editor-footer:#2E2E2E;--prism-bg:#1E1E1E;--prism-default-text:#e0e6f1;--prism-selection-bg:#383e49;--prism-code-block-bg:#1e1e1e;--prism-code-1:#7c858d;--prism-code-2:#abb2bf;--prism-code-3:#e06c75;--prism-code-4:#d19a66;--prism-code-5:#98c379;--prism-code-6:#56b6c2;--prism-code-7:#c678dd;--prism-code-8:#61afef;--prism-code-9:#c678dd;--prism-line-number:#5c6370;}/*!sc*/
+data-styled.g153[id="sc-global-gYCCRU3"]{content:"sc-global-gYCCRU3,"}/*!sc*/
+body{background:var(--bg-page2);}/*!sc*/
+data-styled.g154[id="sc-global-iqNrnJ4"]{content:"sc-global-iqNrnJ4,"}/*!sc*/
+body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",나눔고딕,"Nanum Gothic","Noto Sans KR","Noto Sans CJK KR",arial,돋움,Dotum,Tahoma,Geneva,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;color:var(--text1);box-sizing:border-box;}/*!sc*/
+*{box-sizing:inherit;}/*!sc*/
+code{font-family:'Fira Mono',source-code-pro,Menlo,Monaco,Consolas,'Courier New', monospace;}/*!sc*/
+input,button,textarea{font-family:inherit;}/*!sc*/
+html,body,#root{height:100%;}/*!sc*/
+body{--bg-page1:#F8F9FA;--bg-page2:#FFFFFF;--bg-element1:#FFFFFF;--bg-element2:#F8F9FA;--bg-element3:#E9ECEF;--bg-element4:#DEE2E6;--bg-element5:#212529;--bg-element6:#343A40;--bg-element7:#FFFFFF;--bg-element8:#FBFDFC;--bg-invert:#1E1E1E;--bg-inline-code:#E9ECEF;--bg-tag:#F8F9FA;--text1:#212529;--text2:#495057;--text3:#868E96;--text4:#CED4DA;--border1:#343A40;--border2:#ADB5BD;--border3:#DEE2E6;--border4:#F1F3F5;--primary1:#12B886;--primary2:#20C997;--destructive1:#FF6B6B;--destructive2:#FF8787;--button-text:#FFFFFF;--slight-layer:rgba(0,0,0,0.05);--opaque-layer:rgba(249,249,249,0.85);--editor-footer:#FFFFFF;--prism-bg:#fbfcfd;--prism-default-text:#24292e;--prism-selection-bg:rgba(0,0,0,0.15);--prism-code-block-bg:#fbfcfd;--prism-code-1:#969896;--prism-code-2:#24292e;--prism-code-3:#a626a4;--prism-code-4:#63a35c;--prism-code-5:#0184bc;--prism-code-6:#50a14f;--prism-code-7:#a626a4;--prism-code-8:#005cc5;--prism-code-9:#a626a4;--prism-line-number:#585c63;}/*!sc*/
+@media (prefers-color-scheme:dark){body{--bg-page1:#121212;--bg-page2:#121212;--bg-element1:#1E1E1E;--bg-element2:#1E1E1E;--bg-element3:#252525;--bg-element4:#2E2E2E;--bg-element5:#F1F3F5;--bg-element6:#F8F9FA;--bg-element7:#252525;--bg-element8:#0c0c0c;--bg-invert:#FFFFFF;--bg-inline-code:#363636;--bg-tag:#252525;--text1:#ECECEC;--text2:#D9D9D9;--text3:#ACACAC;--text4:#595959;--border1:#E0E0E0;--border2:#A0A0A0;--border3:#4D4D4D;--border4:#2A2A2A;--primary1:#96F2D7;--primary2:#63E6BE;--destructive1:#FFC9C9;--destructive2:#FFA8A8;--button-text:#121212;--slight-layer:rgba(255,255,255,0.1);--opaque-layer:rgba(0,0,0,0.85);--editor-footer:#2E2E2E;--prism-bg:#1E1E1E;--prism-default-text:#e0e6f1;--prism-selection-bg:#383e49;--prism-code-block-bg:#1e1e1e;--prism-code-1:#7c858d;--prism-code-2:#abb2bf;--prism-code-3:#e06c75;--prism-code-4:#d19a66;--prism-code-5:#98c379;--prism-code-6:#56b6c2;--prism-code-7:#c678dd;--prism-code-8:#61afef;--prism-code-9:#c678dd;--prism-line-number:#5c6370;}}/*!sc*/
+body[data-theme='light']{--bg-page1:#F8F9FA;--bg-page2:#FFFFFF;--bg-element1:#FFFFFF;--bg-element2:#F8F9FA;--bg-element3:#E9ECEF;--bg-element4:#DEE2E6;--bg-element5:#212529;--bg-element6:#343A40;--bg-element7:#FFFFFF;--bg-element8:#FBFDFC;--bg-invert:#1E1E1E;--bg-inline-code:#E9ECEF;--bg-tag:#F8F9FA;--text1:#212529;--text2:#495057;--text3:#868E96;--text4:#CED4DA;--border1:#343A40;--border2:#ADB5BD;--border3:#DEE2E6;--border4:#F1F3F5;--primary1:#12B886;--primary2:#20C997;--destructive1:#FF6B6B;--destructive2:#FF8787;--button-text:#FFFFFF;--slight-layer:rgba(0,0,0,0.05);--opaque-layer:rgba(249,249,249,0.85);--editor-footer:#FFFFFF;--prism-bg:#fbfcfd;--prism-default-text:#24292e;--prism-selection-bg:rgba(0,0,0,0.15);--prism-code-block-bg:#fbfcfd;--prism-code-1:#969896;--prism-code-2:#24292e;--prism-code-3:#a626a4;--prism-code-4:#63a35c;--prism-code-5:#0184bc;--prism-code-6:#50a14f;--prism-code-7:#a626a4;--prism-code-8:#005cc5;--prism-code-9:#a626a4;--prism-line-number:#585c63;}/*!sc*/
+body[data-theme='dark']{--bg-page1:#121212;--bg-page2:#121212;--bg-element1:#1E1E1E;--bg-element2:#1E1E1E;--bg-element3:#252525;--bg-element4:#2E2E2E;--bg-element5:#F1F3F5;--bg-element6:#F8F9FA;--bg-element7:#252525;--bg-element8:#0c0c0c;--bg-invert:#FFFFFF;--bg-inline-code:#363636;--bg-tag:#252525;--text1:#ECECEC;--text2:#D9D9D9;--text3:#ACACAC;--text4:#595959;--border1:#E0E0E0;--border2:#A0A0A0;--border3:#4D4D4D;--border4:#2A2A2A;--primary1:#96F2D7;--primary2:#63E6BE;--destructive1:#FFC9C9;--destructive2:#FFA8A8;--button-text:#121212;--slight-layer:rgba(255,255,255,0.1);--opaque-layer:rgba(0,0,0,0.85);--editor-footer:#2E2E2E;--prism-bg:#1E1E1E;--prism-default-text:#e0e6f1;--prism-selection-bg:#383e49;--prism-code-block-bg:#1e1e1e;--prism-code-1:#7c858d;--prism-code-2:#abb2bf;--prism-code-3:#e06c75;--prism-code-4:#d19a66;--prism-code-5:#98c379;--prism-code-6:#56b6c2;--prism-code-7:#c678dd;--prism-code-8:#61afef;--prism-code-9:#c678dd;--prism-line-number:#5c6370;}/*!sc*/
+data-styled.g155[id="sc-global-gYCCRU4"]{content:"sc-global-gYCCRU4,"}/*!sc*/
+</style><link data-chunk="main" rel="preload" as="style" href="https://static.velog.io/static/css/main.e7869632.chunk.css"/><link data-chunk="main" rel="preload" as="style" href="https://static.velog.io/static/css/20.5dbdccff.chunk.css"/><link data-chunk="main" rel="preload" as="script" href="https://static.velog.io/static/js/runtime-main.624815d4.js"/><link data-chunk="main" rel="preload" as="script" href="https://static.velog.io/static/js/20.72815531.chunk.js"/><link data-chunk="main" rel="preload" as="script" href="https://static.velog.io/static/js/main.5303a5fa.chunk.js"/><link data-chunk="pages-velog-VelogPage" rel="preload" as="script" href="https://static.velog.io/static/js/pages-velog-VelogPage.f0cc9b56.chunk.js"/><link data-chunk="PostPage" rel="preload" as="script" href="https://static.velog.io/static/js/0.5f05d8e8.chunk.js"/><link data-chunk="PostPage" rel="preload" as="script" href="https://static.velog.io/static/js/23.c782abe5.chunk.js"/><link data-chunk="PostPage" rel="preload" as="script" href="https://static.velog.io/static/js/1.c2610806.chunk.js"/><link data-chunk="PostPage" rel="preload" as="script" href="https://static.velog.io/static/js/PostPage.05dd7823.chunk.js"/><link data-chunk="main" rel="stylesheet" href="https://static.velog.io/static/css/20.5dbdccff.chunk.css"/><link data-chunk="main" rel="stylesheet" href="https://static.velog.io/static/css/main.e7869632.chunk.css"/><link rel="shortcut icon" href="https://static.velog.io/favicon.ico"/><link rel="apple-touch-icon" sizes="152x152" href="https://static.velog.io/favicons/apple-icon-152x152.png"/><link rel="icon" sizes="32x32" href="https://static.velog.io/favicons/favicon-32x32.png"/><link rel="icon" sizes="96x96" href="https://static.velog.io/favicons/favicon-96x96.png"/><link rel="icon" sizes="16x16" href="https://static.velog.io/favicons/favicon-16x16.png"/><meta name="viewport" content="width=device-width, initial-scale=1"/><script async="" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5574866530496701" crossorigin="anonymous"></script><script async="" src="https://www.googletagmanager.com/gtag/js?id=G-8D0MD2S4PK"></script><script>window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+          
+            gtag('config', 'G-8D0MD2S4PK');</script><script async="" src="https://cdn.fuseplatform.net/publift/tags/2/4158/fuse.js"></script><script defer="" src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onAppReady"></script></head><body><div id="fuse-sidebar"></div><div id="root"><div class="__jazzbar false false" style="width:0%"></div><div class="sc-dPiLbb sc-bBHHxi kTIDXm"><div class="sc-bBHxTw jEdNvQ"><div class="sc-fFeiMQ cQvXTx sc-iJKOTD hrgwyc"><div class="sc-kfPuZi ddFdew"><a href="https://velog.io/" class="sc-egiyK cyyZlI sc-fKVqWL kdLiUF"><svg width="192" height="192" viewBox="0 0 192 192" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M24 0H168C181.255 0 192 10.7451 192 24V168C192 181.255 181.255 192 168 192H24C10.7451 192 0 181.255 0 168V24C0 10.7451 10.7451 0 24 0ZM49 57.9199V65.48H67L80.6799 142.52L98.5 141.26C116.02 119.06 127.84 102.44 133.96 91.3999C140.2 80.24 143.32 70.9399 143.32 63.5C143.32 59.0601 142 55.7 139.36 53.4199C136.84 51.1399 133.66 50 129.82 50C122.62 50 116.62 53.0601 111.82 59.1799C116.5 62.3 119.68 64.8799 121.36 66.9199C123.16 68.8401 124.06 71.4199 124.06 74.6599C124.06 80.0601 122.44 86.1799 119.2 93.02C116.08 99.8601 112.66 105.92 108.94 111.2C106.54 114.56 103.48 118.7 99.76 123.62L88.0601 57.2C87.1001 52.3999 84.1001 50 79.0601 50C76.78 50 72.3999 50.96 65.9199 52.8799C59.4399 54.6799 53.8 56.3601 49 57.9199Z" fill="currentColor"></path></svg></a><a href="https://velog.io/@jihaeee/posts" class="sc-egiyK cyyZlI user-logo"><span>jihaeee.log</span></a></div><div class="sc-giYglK gHrJRn"><a href="https://velog.io/notifications" class="sc-egiyK cyyZlI sc-cxpSdN pAGEY"><svg width="24" height="24" viewBox="0 0 24 24"><g id="Icon_Notification"><path id="notifications" d="M4 19V17H6V10C6 8.61667 6.41667 7.3875 7.25 6.3125C8.08333 5.2375 9.16667 4.53333 10.5 4.2V3.5C10.5 3.08333 10.6458 2.72917 10.9375 2.4375C11.2292 2.14583 11.5833 2 12 2C12.4167 2 12.7708 2.14583 13.0625 2.4375C13.3542 2.72917 13.5 3.08333 13.5 3.5V4.2C14.8333 4.53333 15.9167 5.2375 16.75 6.3125C17.5833 7.3875 18 8.61667 18 10V17H20V19H4ZM12 22C11.45 22 10.9792 21.8042 10.5875 21.4125C10.1958 21.0208 10 20.55 10 20H14C14 20.55 13.8042 21.0208 13.4125 21.4125C13.0208 21.8042 12.55 22 12 22ZM8 17H16V10C16 8.9 15.6083 7.95833 14.825 7.175C14.0417 6.39167 13.1 6 12 6C10.9 6 9.95833 6.39167 9.175 7.175C8.39167 7.95833 8 8.9 8 10V17Z" fill="currentColor"></path></g></svg></a><a class="sc-iwjdpV glTvbH" href="/search?username=jihaeee"><svg width="24" height="24" viewBox="0 0 24 24"><g id="Icon_Search"><path id="search" d="M19.3256 20.7122L13.5174 14.9041C13.0116 15.3227 12.4231 15.6495 11.752 15.8847C11.0801 16.1205 10.3692 16.2384 9.61919 16.2384C7.77035 16.2384 6.20477 15.5972 4.92244 14.3149C3.64081 13.0333 3 11.468 3 9.61919C3 7.77035 3.63663 6.20477 4.90988 4.92244C6.18314 3.64081 7.74419 3 9.59302 3C11.4593 3 13.0336 3.64081 14.3159 4.92244C15.5976 6.20477 16.2384 7.77035 16.2384 9.61919C16.2384 10.3692 16.1208 11.0798 15.8857 11.7509C15.6499 12.4228 15.3227 13.0203 14.9041 13.5436L20.7384 19.3517C20.9128 19.5262 21 19.7442 21 20.0058C21 20.2674 20.9041 20.5029 20.7122 20.7122C20.5203 20.9041 20.2894 21 20.0194 21C19.7487 21 19.5174 20.9041 19.3256 20.7122ZM9.61919 14.2762C10.9099 14.2762 12.0087 13.8227 12.9157 12.9157C13.8227 12.0087 14.2762 10.9099 14.2762 9.61919C14.2762 8.31105 13.8227 7.20767 12.9157 6.30907C12.0087 5.41116 10.9099 4.96221 9.61919 4.96221C8.31105 4.96221 7.20802 5.41116 6.31012 6.30907C5.41151 7.20767 4.96221 8.31105 4.96221 9.61919C4.96221 10.9099 5.41151 12.0087 6.31012 12.9157C7.20802 13.8227 8.31105 14.2762 9.61919 14.2762Z" fill="currentColor"></path></g></svg></a><button color="darkGray" class="sc-bqiRlB fldlST">로그인</button></div></div></div><div style="margin-top:0;opacity:0" class="sc-cTAqQK bxsBRa"><div class="sc-bBHxTw jEdNvQ"><div class="sc-fFeiMQ cQvXTx sc-iJKOTD hrgwyc"><div class="sc-kfPuZi ddFdew"><a href="https://velog.io/" class="sc-egiyK cyyZlI sc-fKVqWL kdLiUF"><svg width="192" height="192" viewBox="0 0 192 192" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M24 0H168C181.255 0 192 10.7451 192 24V168C192 181.255 181.255 192 168 192H24C10.7451 192 0 181.255 0 168V24C0 10.7451 10.7451 0 24 0ZM49 57.9199V65.48H67L80.6799 142.52L98.5 141.26C116.02 119.06 127.84 102.44 133.96 91.3999C140.2 80.24 143.32 70.9399 143.32 63.5C143.32 59.0601 142 55.7 139.36 53.4199C136.84 51.1399 133.66 50 129.82 50C122.62 50 116.62 53.0601 111.82 59.1799C116.5 62.3 119.68 64.8799 121.36 66.9199C123.16 68.8401 124.06 71.4199 124.06 74.6599C124.06 80.0601 122.44 86.1799 119.2 93.02C116.08 99.8601 112.66 105.92 108.94 111.2C106.54 114.56 103.48 118.7 99.76 123.62L88.0601 57.2C87.1001 52.3999 84.1001 50 79.0601 50C76.78 50 72.3999 50.96 65.9199 52.8799C59.4399 54.6799 53.8 56.3601 49 57.9199Z" fill="currentColor"></path></svg></a><a href="https://velog.io/@jihaeee/posts" class="sc-egiyK cyyZlI user-logo"><span>jihaeee.log</span></a></div><div class="sc-giYglK gHrJRn"><a href="https://velog.io/notifications" class="sc-egiyK cyyZlI sc-cxpSdN pAGEY"><svg width="24" height="24" viewBox="0 0 24 24"><g id="Icon_Notification"><path id="notifications" d="M4 19V17H6V10C6 8.61667 6.41667 7.3875 7.25 6.3125C8.08333 5.2375 9.16667 4.53333 10.5 4.2V3.5C10.5 3.08333 10.6458 2.72917 10.9375 2.4375C11.2292 2.14583 11.5833 2 12 2C12.4167 2 12.7708 2.14583 13.0625 2.4375C13.3542 2.72917 13.5 3.08333 13.5 3.5V4.2C14.8333 4.53333 15.9167 5.2375 16.75 6.3125C17.5833 7.3875 18 8.61667 18 10V17H20V19H4ZM12 22C11.45 22 10.9792 21.8042 10.5875 21.4125C10.1958 21.0208 10 20.55 10 20H14C14 20.55 13.8042 21.0208 13.4125 21.4125C13.0208 21.8042 12.55 22 12 22ZM8 17H16V10C16 8.9 15.6083 7.95833 14.825 7.175C14.0417 6.39167 13.1 6 12 6C10.9 6 9.95833 6.39167 9.175 7.175C8.39167 7.95833 8 8.9 8 10V17Z" fill="currentColor"></path></g></svg></a><a class="sc-iwjdpV glTvbH" href="/search?username=jihaeee"><svg width="24" height="24" viewBox="0 0 24 24"><g id="Icon_Search"><path id="search" d="M19.3256 20.7122L13.5174 14.9041C13.0116 15.3227 12.4231 15.6495 11.752 15.8847C11.0801 16.1205 10.3692 16.2384 9.61919 16.2384C7.77035 16.2384 6.20477 15.5972 4.92244 14.3149C3.64081 13.0333 3 11.468 3 9.61919C3 7.77035 3.63663 6.20477 4.90988 4.92244C6.18314 3.64081 7.74419 3 9.59302 3C11.4593 3 13.0336 3.64081 14.3159 4.92244C15.5976 6.20477 16.2384 7.77035 16.2384 9.61919C16.2384 10.3692 16.1208 11.0798 15.8857 11.7509C15.6499 12.4228 15.3227 13.0203 14.9041 13.5436L20.7384 19.3517C20.9128 19.5262 21 19.7442 21 20.0058C21 20.2674 20.9041 20.5029 20.7122 20.7122C20.5203 20.9041 20.2894 21 20.0194 21C19.7487 21 19.5174 20.9041 19.3256 20.7122ZM9.61919 14.2762C10.9099 14.2762 12.0087 13.8227 12.9157 12.9157C13.8227 12.0087 14.2762 10.9099 14.2762 9.61919C14.2762 8.31105 13.8227 7.20767 12.9157 6.30907C12.0087 5.41116 10.9099 4.96221 9.61919 4.96221C8.31105 4.96221 7.20802 5.41116 6.31012 6.30907C5.41151 7.20767 4.96221 8.31105 4.96221 9.61919C4.96221 10.9099 5.41151 12.0087 6.31012 12.9157C7.20802 13.8227 8.31105 14.2762 9.61919 14.2762Z" fill="currentColor"></path></g></svg></a><button color="darkGray" class="sc-bqiRlB fldlST">로그인</button></div></div></div></div><div class="sc-TBWPX dXONqK sc-jQrDum fiOuRZ"><div class="head-wrapper"><h1>데이터를 넘기는 게 아니라 상태를 넘긴다: React Query SSR과 Hydration</h1><div class="sc-fvxzrP jGdQwA"><div class="information"><span class="username"><a href="https://velog.io/@jihaeee/posts" class="sc-egiyK cyyZlI">jihaeee</a></span><span class="separator">·</span><span>2026년 4월 8일</span></div><div class="sc-fbyfCU eYeYLy"><div data-testid="follow-btn" class="sc-avest iIZjji"><button class="follow-button button"><span>팔로우</span></button></div><button data-testid="like-btn" class="sc-eldieg gyXrCE"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M18 1l-6 4-6-4-6 5v7l12 10 12-10v-7z"></path></svg><span>1</span></button></div></div><div class="sc-cZMNgc bpMcZw"><a href="https://velog.io/tags/SSR" class="sc-egiyK cyyZlI sc-dtMgUX gISUXI">SSR</a><a href="https://velog.io/tags/hydration" class="sc-egiyK cyyZlI sc-dtMgUX gISUXI">hydration</a><a href="https://velog.io/tags/reactquery" class="sc-egiyK cyyZlI sc-dtMgUX gISUXI">reactquery</a><a href="https://velog.io/tags/tanstackQuery" class="sc-egiyK cyyZlI sc-dtMgUX gISUXI">tanstackQuery</a></div><div class="sc-jIkXHa loMAkm"><h2><a href="/@jihaeee/series/Nextjs">Nextjs</a></h2><svg width="32" height="48" fill="currentColor" viewBox="0 0 32 48" class="series-corner-image"><path fill="currentColor" d="M32 0H0v48h.163l16-16L32 47.836V0z"></path></svg><div class="sc-hmjpVf EuzLS"><div class="sc-jOxtWs byLNvf"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"></path></svg>목록 보기</div><div class="sc-ZOtfp fOdzda"><div class="series-number">1<!-- -->/<!-- -->1</div><div class="sc-eLwHnm bsYDCu"><button disabled="" class="sc-bTfYFJ jSfrkj"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></svg></button><button disabled="" class="sc-bTfYFJ jSfrkj"><svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></div></div></div></div></div></div><div class="sc-dFtzxp bfzjcP"><div class="sc-bXTejn FTZwa"><div class="sc-eGRUor bzHCOc atom-one"><p>Next.js를 쓰다 보면 한 번쯤 이런 생각이 든다.<br />
+"HTML이 이미 완성돼서 오네?" 🫢</p>
+<p>그게 바로 <strong>SSR(Server Side Rendering)</strong>의 특징이다.<br />
+서버에서 데이터를 미리 준비해서, 빈 화면이 아니라 <strong>꽉 찬 HTML</strong>을 보내준다.  덕분에 사용자는 로딩 없이 빠르게 화면을 볼 수 있고,  검색 엔진(SEO)도 콘텐츠를 온전히 읽을 수 있다.</p>
+<p><img src="https://velog.velcdn.com/images/jihaeee/post/08b2cfe6-1bf6-486f-8cb4-4197725d3a3a/image.png" /></p>
+<p>그런데 여기서 문제 하나.... 🤔</p>
+<p>👉 "React Query는 클라이언트에서 쓰는 거 아니야?"</p>
+<p>React Query는 기본적으로 브라우저(Client)에서 데이터를 페칭하고 관리하는 데 특화되어 있기 때문에 이걸 서버(Next.js) 환경에서 '제대로' 쓰려면 중간에 한 가지 연결 고리가 필요하다.</p>
+<p>그게 바로 오늘 알아볼 <strong>Hydration 패턴</strong>이다.</p>
+<hr />
+<h2 id="1-왜-ssr-환경에서-tanstack-query가-까다로울까">1. 왜 SSR 환경에서 TanStack Query가 까다로울까?</h2>
+<p>React Query는 기본적으로 <strong>클라이언트 캐시를 기반으로 동작하는 CSR(Client Side Rendering) 라이브러리</strong>이다. 이 특성 때문에 Next.js와 같은 SSR 환경에서 그대로 사용할 경우 다음과 같은 문제가 발생한다.</p>
+<ol>
+<li>
+<p><strong>데이터 불일치</strong><br />
+서버에서 이미 데이터를 가져와 HTML을 생성했음에도, 클라이언트에서 다시 <code>loading</code> 상태가 발생하며 데이터를 재요청하게 된다.  이는 SSR의 장점인 빠른 초기 렌더링을 저해한다.</p>
+</li>
+<li>
+<p><strong>직렬화(Serialization) 문제</strong><br />
+서버의 Query Cache는 복잡한 객체 구조이기 때문에, 이를 클라이언트로 전달하기 위해서는 JSON 형태로 직렬화하는 과정이 필요하다.</p>
+</li>
+</ol>
+<p>이러한 문제의 근본 원인은  <strong>서버에서 생성된 데이터와 클라이언트의 QueryClient 캐시가 서로 분리되어 있기 때문</strong>이다.</p>
+<p>💡 이 문제를 해결하는 방법이 바로 <strong>Hydration 패턴</strong>이다.<br />
+Hydration은 서버에서 생성된 캐시 상태를 클라이언트로 전달하고, 이를 다시 복원하여  <strong>서버와 클라이언트가 동일한 상태를 공유하도록 만든다.</strong></p>
+<hr />
+<h2 id="2-dehydration--hydration">2. Dehydration &amp; Hydration</h2>
+<p>가장 중요한 포인트는  <strong>데이터가 아니라 캐시(QueryClient)의 상태를 통째로 옮기는 것</strong>인데 이는 단순한 데이터 전달이 아닌  <strong>서버와 클라이언트가 동일한 상태를 공유하도록 만드는 과정</strong>이다</p>
+<h3 id="-dehydration-탈수">🔹 Dehydration (탈수)</h3>
+<p>서버에서 prefetch된 Query Cache를 클라이언트로 전달할 수 있도록 <strong>JSON 형태로 직렬화</strong>하는 과정</p>
+<pre><code class="language-ts"><span class="token keyword">const</span> dehydratedState <span class="token operator">=</span> <span class="token function">dehydrate</span><span class="token punctuation">(</span>queryClient<span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre>
+<ul>
+<li>QueryClient 내부 캐시를 “이동 가능한 형태”로 변환한다</li>
+<li>서버 메모리에 있는 상태를 클라이언트로 넘기기 위한 준비 단계</li>
+</ul>
+<h3 id="-hydration-수분-공급">🔹 Hydration (수분 공급)</h3>
+<p>서버에서 전달된 JSON 데이터를 <strong>클라이언트의 QueryClient 캐시에 다시 주입</strong>하는 과정</p>
+<pre><code class="language-tsx"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span><span class="token class-name">HydrationBoundary</span></span> <span class="token attr-name">state</span><span class="token script language-javascript"><span class="token script-punctuation punctuation">=</span><span class="token punctuation">{</span>dehydratedState<span class="token punctuation">}</span></span><span class="token punctuation">&gt;</span></span>
+  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span><span class="token class-name">App</span></span> <span class="token punctuation">/&gt;</span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span><span class="token class-name">HydrationBoundary</span></span><span class="token punctuation">&gt;</span></span></code></pre>
+<ul>
+<li>서버에서 만든 캐시 상태를 그대로 복원한다</li>
+<li>클라이언트에서도 서버와 동일한 cache를 사용하게 된다</li>
+</ul>
+<p>이 과정을 통해 다음과 같은 이점을 얻을 수 있다</p>
+<ol>
+<li><strong>중복 요청 방지</strong>: 서버에서 가져온 데이터를 클라이언트에서 다시 요청하지 않는다</li>
+<li><strong>Zero-Loading</strong>: 초기 렌더링 시 <code>loading</code> 없이 즉시 데이터를 사용할 수 있다</li>
+</ol>
+<blockquote>
+<p>결론적으로 SSR의 빠른 초기 렌더링과 React Query의 캐싱 전략을 동시에 활용할 수 있게 되는 것! 🚀</p>
+</blockquote>
+<hr />
+<h2 id="3-구현-nextjs-app-router-기준">3. 구현 (Next.js App Router 기준)</h2>
+<p>이제 실제로 <strong>서버 → 클라이언트로 상태를 넘기는 전체 흐름</strong>을 구현해보자</p>
+<h3 id="️-전체-흐름">🛠️ 전체 흐름</h3>
+<ol>
+<li>서버에서 <code>QueryClient</code> 생성  </li>
+<li>데이터 <code>prefetch</code>  </li>
+<li>캐시를 <code>dehydrate</code>  </li>
+<li>클라이언트에서 <code>hydrate</code>  </li>
+<li><code>useQuery</code>로 캐시 데이터 그대로 사용</li>
+</ol>
+<br />
+<h3 id="①-queryclient-싱글톤-설정-클라이언트">① QueryClient 싱글톤 설정 (클라이언트)</h3>
+<p>클라이언트에서는 <code>QueryClient</code>를 <strong>싱글톤으로 유지</strong>해야  페이지를 이동해도 캐시가 날아가지 않고 유지된다</p>
+<pre><code class="language-tsx"><span class="token comment">// app/providers.tsx</span>
+<span class="token string">'use client'</span>
+
+<span class="token keyword">import</span> <span class="token punctuation">{</span> QueryClient<span class="token punctuation">,</span> QueryClientProvider <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'@tanstack/react-query'</span>
+<span class="token keyword">import</span> <span class="token punctuation">{</span> useState <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'react'</span>
+
+<span class="token keyword">export</span> <span class="token keyword">default</span> <span class="token keyword">function</span> <span class="token function">Providers</span><span class="token punctuation">(</span><span class="token parameter"><span class="token punctuation">{</span> children <span class="token punctuation">}</span><span class="token punctuation">:</span> <span class="token punctuation">{</span> children<span class="token punctuation">:</span> React<span class="token punctuation">.</span>ReactNode <span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token keyword">const</span> <span class="token punctuation">[</span>queryClient<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">useState</span><span class="token punctuation">(</span>
+    <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span>
+      <span class="token keyword">new</span> <span class="token class-name">QueryClient</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+        defaultOptions<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+          queries<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+            <span class="token comment">// 서버와 클라이언트 간 데이터 재요청을 줄이기 위한 핵심 설정</span>
+            staleTime<span class="token punctuation">:</span> <span class="token number">60</span> <span class="token operator">*</span> <span class="token number">1000</span><span class="token punctuation">,</span>
+          <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+      <span class="token punctuation">}</span><span class="token punctuation">)</span>
+  <span class="token punctuation">)</span>
+
+  <span class="token keyword">return</span> <span class="token punctuation">(</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span><span class="token class-name">QueryClientProvider</span></span> <span class="token attr-name">client</span><span class="token script language-javascript"><span class="token script-punctuation punctuation">=</span><span class="token punctuation">{</span>queryClient<span class="token punctuation">}</span></span><span class="token punctuation">&gt;</span></span>
+      <span class="token punctuation">{</span>children<span class="token punctuation">}</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span><span class="token class-name">QueryClientProvider</span></span><span class="token punctuation">&gt;</span></span>
+  <span class="token punctuation">)</span>
+<span class="token punctuation">}</span></code></pre>
+<ul>
+<li>클라이언트는 한 번 만든 캐시를 계속 재사용한다</li>
+<li><strong>주의</strong>: <code>staleTime</code>이 없으면 hydration 직후 클라이언트에서 바로 refetch가 발생할 수 있다</li>
+</ul>
+<h3 id="②-서버-컴포넌트에서-prefetch--dehydrate">② 서버 컴포넌트에서 Prefetch + Dehydrate</h3>
+<p>서버에서는 요청마다 새로운 <code>QueryClient</code>를 생성하고, 데이터를 <strong>"미리 준비"</strong>한다</p>
+<pre><code class="language-tsx"><span class="token comment">// app/book/[id]/page.tsx</span>
+<span class="token keyword">import</span> <span class="token punctuation">{</span> dehydrate<span class="token punctuation">,</span> HydrationBoundary<span class="token punctuation">,</span> QueryClient <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'@tanstack/react-query'</span>
+<span class="token keyword">import</span> BookDetail <span class="token keyword">from</span> <span class="token string">'@/components/BookDetail'</span>
+
+<span class="token keyword">export</span> <span class="token keyword">default</span> <span class="token keyword">async</span> <span class="token keyword">function</span> <span class="token function">Page</span><span class="token punctuation">(</span><span class="token parameter"><span class="token punctuation">{</span> params<span class="token punctuation">:</span> <span class="token punctuation">{</span> id <span class="token punctuation">}</span> <span class="token punctuation">}</span><span class="token punctuation">:</span> <span class="token punctuation">{</span> params<span class="token punctuation">:</span> <span class="token punctuation">{</span> id<span class="token punctuation">:</span> <span class="token builtin">string</span> <span class="token punctuation">}</span> <span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token keyword">const</span> queryClient <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">QueryClient</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+
+  <span class="token comment">// 1. 서버에서 데이터 prefetch</span>
+  <span class="token keyword">await</span> queryClient<span class="token punctuation">.</span><span class="token function">prefetchQuery</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+    queryKey<span class="token punctuation">:</span> <span class="token punctuation">[</span><span class="token string">'book'</span><span class="token punctuation">,</span> id<span class="token punctuation">]</span><span class="token punctuation">,</span>
+    <span class="token function-variable function">queryFn</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token function">fetchBookById</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span><span class="token punctuation">,</span>
+  <span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+  <span class="token keyword">return</span> <span class="token punctuation">(</span>
+    <span class="token comment">// 2. 캐시 상태를 압축(dehydrate)해서 클라이언트로 전달</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span><span class="token class-name">HydrationBoundary</span></span> <span class="token attr-name">state</span><span class="token script language-javascript"><span class="token script-punctuation punctuation">=</span><span class="token punctuation">{</span><span class="token function">dehydrate</span><span class="token punctuation">(</span>queryClient<span class="token punctuation">)</span><span class="token punctuation">}</span></span><span class="token punctuation">&gt;</span></span>
+      <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span><span class="token class-name">BookDetail</span></span> <span class="token attr-name">id</span><span class="token script language-javascript"><span class="token script-punctuation punctuation">=</span><span class="token punctuation">{</span>id<span class="token punctuation">}</span></span> <span class="token punctuation">/&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span><span class="token class-name">HydrationBoundary</span></span><span class="token punctuation">&gt;</span></span>
+  <span class="token punctuation">)</span>
+<span class="token punctuation">}</span></code></pre>
+<ul>
+<li>서버는 데이터 Fetching을 담당하고, 클라이언트는 그 결과를 그대로 재사용하게 된다</li>
+</ul>
+<h3 id="③-클라이언트-컴포넌트에서-usequery">③ 클라이언트 컴포넌트에서 useQuery</h3>
+<p>클라이언트에서는 아무 일도 없었던 것처럼 <code>useQuery</code>를 사용하는데 이미 캐시가 채워져 있기 때문에 <strong>로딩 없이 즉시 렌더링</strong>된다</p>
+<pre><code class="language-tsx"><span class="token comment">// components/BookDetail.tsx</span>
+<span class="token string">'use client'</span>
+
+<span class="token keyword">import</span> <span class="token punctuation">{</span> useQuery <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'@tanstack/react-query'</span>
+
+<span class="token keyword">export</span> <span class="token keyword">default</span> <span class="token keyword">function</span> <span class="token function">BookDetail</span><span class="token punctuation">(</span><span class="token parameter"><span class="token punctuation">{</span> id <span class="token punctuation">}</span><span class="token punctuation">:</span> <span class="token punctuation">{</span> id<span class="token punctuation">:</span> <span class="token builtin">string</span> <span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token keyword">const</span> <span class="token punctuation">{</span> data <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token function">useQuery</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+    queryKey<span class="token punctuation">:</span> <span class="token punctuation">[</span><span class="token string">'book'</span><span class="token punctuation">,</span> id<span class="token punctuation">]</span><span class="token punctuation">,</span>
+    <span class="token function-variable function">queryFn</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token function">fetchBookById</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span><span class="token punctuation">,</span>
+  <span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+  <span class="token keyword">return</span> <span class="token punctuation">(</span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span><span class="token punctuation">&gt;</span></span>
+      <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>h1</span><span class="token punctuation">&gt;</span></span><span class="token punctuation">{</span>data<span class="token operator">?</span><span class="token punctuation">.</span>title<span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>h1</span><span class="token punctuation">&gt;</span></span>
+      <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>p</span><span class="token punctuation">&gt;</span></span><span class="token punctuation">{</span>data<span class="token operator">?</span><span class="token punctuation">.</span>description<span class="token punctuation">}</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>p</span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+  <span class="token punctuation">)</span>
+<span class="token punctuation">}</span></code></pre>
+<ul>
+<li><code>isLoading</code> 없이 바로 데이터 사용이 가능하다</li>
+<li><strong>주의</strong>: <code>queryKey</code>가 서버의 <code>prefetchQuery</code>와 반드시 동일해야 한다!</li>
+</ul>
+<br />
+<h3 id="-전체-흐름-요약">🔥 전체 흐름 요약</h3>
+<ol>
+<li><strong>[서버]</strong> <code>prefetchQuery</code> → 캐시(Cache) 생성</li>
+<li><strong>[서버]</strong> <code>dehydrate</code> → 데이터를 JSON으로 압축 변환</li>
+<li><strong>[클라이언트]</strong> <code>hydrate</code> → 압축된 데이터를 캐시로 복원</li>
+<li><strong>[클라이언트]</strong> <code>useQuery</code> → 네트워크 요청 없이 즉시 데이터 사용</li>
+</ol>
+<blockquote>
+<p><strong>"서버에서 데이터를 미리 준비하고, 클라이언트는 그걸 그대로 이어받는다!"</strong> 🤝</p>
+</blockquote>
+<hr />
+<h2 id="4-왜-이-방식을-선택했는가">4. 왜 이 방식을 선택했는가?</h2>
+<h3 id="-압도적인-사용자-경험-ux">🚀 압도적인 사용자 경험 (UX)</h3>
+<p>사용자가 링크를 클릭하자마자 '로딩 중...' 화면 없이 완성된 페이지를 보게 되기 때문에 CSR 대비 압도적인 <strong>TTV(Time to View)</strong>를 가진다.</p>
+<h3 id="-강력한-seo">🔍 강력한 SEO</h3>
+<p>Next.js의 핵심 가치인 <strong>"데이터가 채워진 HTML을 초기 렌더링에서 제공하는 것"</strong>을 만족시킨다.  CSR의 유연함을 유지하면서도 SEO를 함께 고려할 수 있는 최고의 합의점 아닐까?</p>
+<h3 id="️-props-drilling-해방">🛠️ Props Drilling 해방</h3>
+<p>기존에는 서버에서 받은 데이터를 하위 컴포넌트로 전달하기 위해 Props를 계속 내려줘야 했지만<br />
+이 방식을 사용하면 <code>queryKey</code>만 일치하면 어느 컴포넌트에서든 캐시에 <strong>직접 접근</strong>할 수 있다.</p>
+<h3 id="-데이터-무결성">💎 데이터 무결성</h3>
+<p>여러 컴포넌트가 동일한 데이터를 필요로 할 때,  공유된 Query Cache를 기반으로 동일한 데이터를 참조하게 된다. 이로 인해 중복 요청 없이 데이터가 한 곳에서 관리되며,  애플리케이션 전반에서 데이터의 무결성과 동기성이 자연스럽게 유지된다.</p>
+<hr />
+<h2 id="5-서버가-관리하는-것은-결과가-아닌-상태">5. 서버가 관리하는 것은 결과가 아닌 '상태'</h2>
+<p>React Query는 SSR 환경에서 단순히 API 결과값(JSON)만 전달하는 도구가 아니다.<br />
+핵심은  <strong>서버의 Query Cache 상태 자체를 클라이언트로 전달한다는 점</strong>에 있다.</p>
+<h4 id="1-관심사의-분리">1. 관심사의 분리</h4>
+<p>개발자는 '이 데이터를 어디에서 가져올지'를 고민하기보다,  동일한 queryKey를 기준으로  <strong>'어떤 데이터를 어떻게 보여줄지'</strong>에 집중할 수 있다.</p>
+<h4 id="2-상태-기반-데이터-흐름">2. 상태 기반 데이터 흐름</h4>
+<p>서버에서 prefetch된 데이터는 클라이언트에서 hydrate되며,  즉시 사용할 수 있는 캐시 상태로 복원되는데 이 상태는 이후의 백그라운드 refetch, 캐시 무효화 등  React Query의 모든 데이터 관리 흐름에 자연스럽게 연결된다.</p>
+<h3 id="-결국-hydration-패턴은">🚀 결국 Hydration 패턴은</h3>
+<p>단순히 초기 렌더링 속도를 개선하는 것을 넘어,  <strong>서버와 클라이언트가 동일한 상태를 공유하도록 만드는 방식</strong>이라고 할 수 있다. 이제 더 이상  서버냐 클라이언트냐 고민할 필요 없다.</p>
+<p>그냥… 같은 상태를 쓰면 된다 😎</p>
+<hr />
+<p><strong>참고 문서:</strong></p>
+<ul>
+<li><a href="https://tanstack.com/query/latest/docs/framework/react/guides/ssr">TanStack Query 공식 문서 - SSR 가이드</a></li>
+<li><a href="https://tech.kakaopay.com/post/react-query-2/">카카오페이 기술 블로그 - React Query와 SSR</a></li>
+</ul></div></div></div><div class="sc-TBWPX dXONqK sc-djWRfJ bksdVp"><div class="sc-gjNHFA kTQxVU"><div class="sc-fmciRz gPzODR"><div class="left"><a href="https://velog.io/@jihaeee/posts" class="sc-egiyK cyyZlI"><img src="https://velog.velcdn.com/images/jihaeee/profile/0a550bf0-68e1-4fe3-bc27-43bea5dced99/image.jpeg" alt="profile"/></a><div class="sc-eXlEPa yXXbT"><div class="name"><a href="https://velog.io/@jihaeee/posts" class="sc-egiyK cyyZlI">jihaeee</a></div><div class="description">개발은 어려워</div></div></div><div class="right"><div data-testid="follow-btn" class="sc-avest iIZjji"><button class="follow-button button"><span>팔로우</span></button></div></div></div><div class="sc-iFMAIt hbZRXU"></div><div class="sc-iqVWFU koQQwu"></div></div></div><div class="sc-TBWPX dXONqK sc-fIosxK dpmQGl"><div class="sc-gyElHZ bVYpNI"></div><div class="sc-gyElHZ bVYpNI"></div></div><div class="sc-TBWPX dXONqK sc-brSvTw cgYvDI"><h4>0<!-- -->개의 댓글</h4><div class="sc-gIDmLj"><div class="sc-evcjhq BdYrx"><textarea placeholder="댓글을 작성하세요" class="sc-fHeRUh fQjmlN" style="height:0"></textarea><div class="buttons-wrapper"><button color="teal" class="sc-jrQzAO hSMJOX">댓글 <!-- -->작성</button></div></div><div class="sc-dVNjXY dDifDS"><div class="sc-xiLah"></div></div></div></div></div><div class="Toastify"></div></div><script>window.__APOLLO_STATE__={"ROOT_QUERY":{"auth":null,"velog_config({\"username\":\"jihaeee\"})":{"type":"id","generated":true,"id":"$ROOT_QUERY.velog_config({\"username\":\"jihaeee\"})","typename":"VelogConfig"},"post({\"url_slug\":\"데이터를-넘기는-게-아니라-상태를-넘긴다-React-Query-SSR과-Hydration-kn22v47h\",\"username\":\"jihaeee\"})":{"type":"id","generated":false,"id":"Post:5906674e-f20c-4114-b16f-cbde6a5ada9b","typename":"Post"}},"$ROOT_QUERY.velog_config({\"username\":\"jihaeee\"})":{"title":null,"logo_image":null,"__typename":"VelogConfig"},"Post:5906674e-f20c-4114-b16f-cbde6a5ada9b":{"id":"5906674e-f20c-4114-b16f-cbde6a5ada9b","title":"데이터를 넘기는 게 아니라 상태를 넘긴다: React Query SSR과 Hydration","released_at":"2026-04-08T07:58:57.672Z","updated_at":"2026-08-17T14:51:56.370Z","tags":{"type":"json","json":["SSR","hydration","reactquery","tanstackQuery"]},"body":"\n\nNext.js를 쓰다 보면 한 번쯤 이런 생각이 든다.\n \"HTML이 이미 완성돼서 오네?\" 🫢\n\n그게 바로 **SSR(Server Side Rendering)**의 특징이다.\n서버에서 데이터를 미리 준비해서, 빈 화면이 아니라 **꽉 찬 HTML**을 보내준다.  덕분에 사용자는 로딩 없이 빠르게 화면을 볼 수 있고,  검색 엔진(SEO)도 콘텐츠를 온전히 읽을 수 있다.\n\n![](https://velog.velcdn.com/images/jihaeee/post/08b2cfe6-1bf6-486f-8cb4-4197725d3a3a/image.png)\n\n\n그런데 여기서 문제 하나.... 🤔\n\n👉 \"React Query는 클라이언트에서 쓰는 거 아니야?\"\n\n\nReact Query는 기본적으로 브라우저(Client)에서 데이터를 페칭하고 관리하는 데 특화되어 있기 때문에 이걸 서버(Next.js) 환경에서 '제대로' 쓰려면 중간에 한 가지 연결 고리가 필요하다.\n\n그게 바로 오늘 알아볼 **Hydration 패턴**이다.\n\n\n\n---\n\n## 1. 왜 SSR 환경에서 TanStack Query가 까다로울까?\n\nReact Query는 기본적으로 **클라이언트 캐시를 기반으로 동작하는 CSR(Client Side Rendering) 라이브러리**이다. 이 특성 때문에 Next.js와 같은 SSR 환경에서 그대로 사용할 경우 다음과 같은 문제가 발생한다.\n\n1. **데이터 불일치**  \n   서버에서 이미 데이터를 가져와 HTML을 생성했음에도, 클라이언트에서 다시 `loading` 상태가 발생하며 데이터를 재요청하게 된다.  이는 SSR의 장점인 빠른 초기 렌더링을 저해한다.\n\n2. **직렬화(Serialization) 문제**  \n   서버의 Query Cache는 복잡한 객체 구조이기 때문에, 이를 클라이언트로 전달하기 위해서는 JSON 형태로 직렬화하는 과정이 필요하다.\n\n이러한 문제의 근본 원인은  **서버에서 생성된 데이터와 클라이언트의 QueryClient 캐시가 서로 분리되어 있기 때문**이다.\n\n💡 이 문제를 해결하는 방법이 바로 **Hydration 패턴**이다.  \nHydration은 서버에서 생성된 캐시 상태를 클라이언트로 전달하고, 이를 다시 복원하여  **서버와 클라이언트가 동일한 상태를 공유하도록 만든다.**\n\n---\n\n## 2. Dehydration & Hydration\n\n가장 중요한 포인트는  **데이터가 아니라 캐시(QueryClient)의 상태를 통째로 옮기는 것**인데 이는 단순한 데이터 전달이 아닌  **서버와 클라이언트가 동일한 상태를 공유하도록 만드는 과정**이다\n\n\n### 🔹 Dehydration (탈수)\n\n서버에서 prefetch된 Query Cache를 클라이언트로 전달할 수 있도록 **JSON 형태로 직렬화**하는 과정\n\n```ts\nconst dehydratedState = dehydrate(queryClient);\n```\n\n* QueryClient 내부 캐시를 “이동 가능한 형태”로 변환한다\n* 서버 메모리에 있는 상태를 클라이언트로 넘기기 위한 준비 단계\n\n### 🔹 Hydration (수분 공급)\n\n서버에서 전달된 JSON 데이터를 **클라이언트의 QueryClient 캐시에 다시 주입**하는 과정\n\n```tsx\n\u003cHydrationBoundary state={dehydratedState}>\n  \u003cApp />\n\u003c/HydrationBoundary>\n```\n\n* 서버에서 만든 캐시 상태를 그대로 복원한다\n* 클라이언트에서도 서버와 동일한 cache를 사용하게 된다\n\n\n\n이 과정을 통해 다음과 같은 이점을 얻을 수 있다\n\n1.  **중복 요청 방지**: 서버에서 가져온 데이터를 클라이언트에서 다시 요청하지 않는다\n2.  **Zero-Loading**: 초기 렌더링 시 `loading` 없이 즉시 데이터를 사용할 수 있다\n\n> 결론적으로 SSR의 빠른 초기 렌더링과 React Query의 캐싱 전략을 동시에 활용할 수 있게 되는 것! 🚀\n\n---\n\n\n## 3. 구현 (Next.js App Router 기준)\n\n이제 실제로 **서버 → 클라이언트로 상태를 넘기는 전체 흐름**을 구현해보자\n\n### 🛠️ 전체 흐름\n1. 서버에서 `QueryClient` 생성  \n2. 데이터 `prefetch`  \n3. 캐시를 `dehydrate`  \n4. 클라이언트에서 `hydrate`  \n5. `useQuery`로 캐시 데이터 그대로 사용\n\n\u003cbr/>\n\n\n### ① QueryClient 싱글톤 설정 (클라이언트)\n\n클라이언트에서는 `QueryClient`를 **싱글톤으로 유지**해야  페이지를 이동해도 캐시가 날아가지 않고 유지된다\n\n```tsx\n// app/providers.tsx\n'use client'\n\nimport { QueryClient, QueryClientProvider } from '@tanstack/react-query'\nimport { useState } from 'react'\n\nexport default function Providers({ children }: { children: React.ReactNode }) {\n  const [queryClient] = useState(\n    () =>\n      new QueryClient({\n        defaultOptions: {\n          queries: {\n            // 서버와 클라이언트 간 데이터 재요청을 줄이기 위한 핵심 설정\n            staleTime: 60 * 1000,\n          },\n        },\n      })\n  )\n\n  return (\n    \u003cQueryClientProvider client={queryClient}>\n      {children}\n    \u003c/QueryClientProvider>\n  )\n}\n```\n\n* 클라이언트는 한 번 만든 캐시를 계속 재사용한다\n* **주의**: `staleTime`이 없으면 hydration 직후 클라이언트에서 바로 refetch가 발생할 수 있다\n\n\n\n### ② 서버 컴포넌트에서 Prefetch + Dehydrate\n\n서버에서는 요청마다 새로운 `QueryClient`를 생성하고, 데이터를 **\"미리 준비\"**한다\n\n```tsx\n// app/book/[id]/page.tsx\nimport { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query'\nimport BookDetail from '@/components/BookDetail'\n\nexport default async function Page({ params: { id } }: { params: { id: string } }) {\n  const queryClient = new QueryClient()\n\n  // 1. 서버에서 데이터 prefetch\n  await queryClient.prefetchQuery({\n    queryKey: ['book', id],\n    queryFn: () => fetchBookById(id),\n  })\n\n  return (\n    // 2. 캐시 상태를 압축(dehydrate)해서 클라이언트로 전달\n    \u003cHydrationBoundary state={dehydrate(queryClient)}>\n      \u003cBookDetail id={id} />\n    \u003c/HydrationBoundary>\n  )\n}\n```\n\n* 서버는 데이터 Fetching을 담당하고, 클라이언트는 그 결과를 그대로 재사용하게 된다\n\n\n\n### ③ 클라이언트 컴포넌트에서 useQuery\n\n클라이언트에서는 아무 일도 없었던 것처럼 `useQuery`를 사용하는데 이미 캐시가 채워져 있기 때문에 **로딩 없이 즉시 렌더링**된다\n\n```tsx\n// components/BookDetail.tsx\n'use client'\n\nimport { useQuery } from '@tanstack/react-query'\n\nexport default function BookDetail({ id }: { id: string }) {\n  const { data } = useQuery({\n    queryKey: ['book', id],\n    queryFn: () => fetchBookById(id),\n  })\n\n  return (\n    \u003cdiv>\n      \u003ch1>{data?.title}\u003c/h1>\n      \u003cp>{data?.description}\u003c/p>\n    \u003c/div>\n  )\n}\n```\n\n* `isLoading` 없이 바로 데이터 사용이 가능하다\n* **주의**: `queryKey`가 서버의 `prefetchQuery`와 반드시 동일해야 한다!\n\n\u003cbr/>\n\n### 🔥 전체 흐름 요약\n\n1.  **[서버]** `prefetchQuery` → 캐시(Cache) 생성\n2.  **[서버]** `dehydrate` → 데이터를 JSON으로 압축 변환\n3.  **[클라이언트]** `hydrate` → 압축된 데이터를 캐시로 복원\n4.  **[클라이언트]** `useQuery` → 네트워크 요청 없이 즉시 데이터 사용\n\n> **\"서버에서 데이터를 미리 준비하고, 클라이언트는 그걸 그대로 이어받는다!\"** 🤝\n\n---\n\n## 4. 왜 이 방식을 선택했는가? \n\n### 🚀 압도적인 사용자 경험 (UX)\n사용자가 링크를 클릭하자마자 '로딩 중...' 화면 없이 완성된 페이지를 보게 되기 때문에 CSR 대비 압도적인 **TTV(Time to View)**를 가진다.\n\n### 🔍 강력한 SEO\nNext.js의 핵심 가치인 **\"데이터가 채워진 HTML을 초기 렌더링에서 제공하는 것\"**을 만족시킨다.  CSR의 유연함을 유지하면서도 SEO를 함께 고려할 수 있는 최고의 합의점 아닐까?\n\n### 🛠️ Props Drilling 해방\n기존에는 서버에서 받은 데이터를 하위 컴포넌트로 전달하기 위해 Props를 계속 내려줘야 했지만\n이 방식을 사용하면 `queryKey`만 일치하면 어느 컴포넌트에서든 캐시에 **직접 접근**할 수 있다.\n\n### 💎 데이터 무결성\n여러 컴포넌트가 동일한 데이터를 필요로 할 때,  공유된 Query Cache를 기반으로 동일한 데이터를 참조하게 된다. 이로 인해 중복 요청 없이 데이터가 한 곳에서 관리되며,  애플리케이션 전반에서 데이터의 무결성과 동기성이 자연스럽게 유지된다.\n\n---\n\n## 5. 서버가 관리하는 것은 결과가 아닌 '상태'\n\nReact Query는 SSR 환경에서 단순히 API 결과값(JSON)만 전달하는 도구가 아니다.\n핵심은  **서버의 Query Cache 상태 자체를 클라이언트로 전달한다는 점**에 있다.\n\n\n\n\n#### 1. 관심사의 분리\n개발자는 '이 데이터를 어디에서 가져올지'를 고민하기보다,  동일한 queryKey를 기준으로  **'어떤 데이터를 어떻게 보여줄지'**에 집중할 수 있다.\n\n\n\n#### 2. 상태 기반 데이터 흐름\n서버에서 prefetch된 데이터는 클라이언트에서 hydrate되며,  즉시 사용할 수 있는 캐시 상태로 복원되는데 이 상태는 이후의 백그라운드 refetch, 캐시 무효화 등  React Query의 모든 데이터 관리 흐름에 자연스럽게 연결된다.\n\n\n\n### 🚀 결국 Hydration 패턴은\n\n단순히 초기 렌더링 속도를 개선하는 것을 넘어,  **서버와 클라이언트가 동일한 상태를 공유하도록 만드는 방식**이라고 할 수 있다. 이제 더 이상  서버냐 클라이언트냐 고민할 필요 없다.\n\n그냥… 같은 상태를 쓰면 된다 😎\n\n\n---\n\n**참고 문서:**\n- [TanStack Query 공식 문서 - SSR 가이드](https://tanstack.com/query/latest/docs/framework/react/guides/ssr)\n- [카카오페이 기술 블로그 - React Query와 SSR](https://tech.kakaopay.com/post/react-query-2/)","short_description":"SSR로 이미 데이터를 준비했는데 왜 다시 fetch할까?  \nHydration 패턴으로 서버와 클라이언트의 상태를 이어보자.","is_markdown":true,"is_private":false,"is_temp":false,"thumbnail":"https://velog.velcdn.com/images/jihaeee/post/08b2cfe6-1bf6-486f-8cb4-4197725d3a3a/image.png","comments_count":0,"url_slug":"데이터를-넘기는-게-아니라-상태를-넘긴다-React-Query-SSR과-Hydration-kn22v47h","likes":1,"liked":false,"user":{"type":"id","generated":false,"id":"User:2821ab8a-5291-45a6-bd24-3a02670a9e10","typename":"User"},"comments":[],"__typename":"Post","series":{"type":"id","generated":false,"id":"Series:2c2edc21-0cf2-4939-b992-9bc3b85301c4","typename":"Series"},"linked_posts":{"type":"id","generated":true,"id":"$Post:5906674e-f20c-4114-b16f-cbde6a5ada9b.linked_posts","typename":"LinkedPosts"}},"User:2821ab8a-5291-45a6-bd24-3a02670a9e10":{"id":"2821ab8a-5291-45a6-bd24-3a02670a9e10","username":"jihaeee","is_followed":false,"profile":{"type":"id","generated":false,"id":"UserProfile:9da07641-4fc4-4aae-bbb2-957c4e09a484","typename":"UserProfile"},"velog_config":{"type":"id","generated":true,"id":"$User:2821ab8a-5291-45a6-bd24-3a02670a9e10.velog_config","typename":"VelogConfig"},"__typename":"User"},"UserProfile:9da07641-4fc4-4aae-bbb2-957c4e09a484":{"id":"9da07641-4fc4-4aae-bbb2-957c4e09a484","display_name":"jihaeee","thumbnail":"https://velog.velcdn.com/images/jihaeee/profile/0a550bf0-68e1-4fe3-bc27-43bea5dced99/image.jpeg","short_bio":"개발은 어려워","profile_links":{"type":"json","json":{}},"__typename":"UserProfile"},"$User:2821ab8a-5291-45a6-bd24-3a02670a9e10.velog_config":{"title":null,"__typename":"VelogConfig"},"Series:2c2edc21-0cf2-4939-b992-9bc3b85301c4":{"id":"2c2edc21-0cf2-4939-b992-9bc3b85301c4","name":"Nextjs","url_slug":"Nextjs","series_posts":[{"type":"id","generated":false,"id":"SeriesPost:39347b6b-24a6-4866-aa22-e2e710229ad7","typename":"SeriesPost"}],"__typename":"Series"},"SeriesPost:39347b6b-24a6-4866-aa22-e2e710229ad7":{"id":"39347b6b-24a6-4866-aa22-e2e710229ad7","post":{"type":"id","generated":false,"id":"Post:5906674e-f20c-4114-b16f-cbde6a5ada9b","typename":"Post"},"__typename":"SeriesPost"},"$Post:5906674e-f20c-4114-b16f-cbde6a5ada9b.linked_posts":{"previous":null,"next":null,"__typename":"LinkedPosts"}};</script><script>window.__REDUX_STATE__={"core":{"layer":false,"auth":{"visible":false,"mode":"LOGIN"},"user":null,"popup":{"visible":false,"title":"","message":""}},"write":{"mode":"MARKDOWN","markdown":"","title":"","html":"","tags":[],"publish":false,"textBody":"","defaultDescription":"","description":"","isPrivate":false,"urlSlug":"","thumbnail":null,"editSeries":false,"selectedSeries":null,"postId":null,"isTemp":false,"initialTitle":"","initialBody":""},"header":{"custom":true,"userLogo":{"title":null,"logo_image":null},"username":"jihaeee"},"post":{"id":null},"error":{"errorType":null},"scroll":{"main":0,"user/posts":0},"home":{"timeframe":"week"},"darkMode":{"theme":"default","systemTheme":"not-ready"}};</script><script id="__LOADABLE_REQUIRED_CHUNKS__" type="application/json">[18,0,23,1,3]</script><script id="__LOADABLE_REQUIRED_CHUNKS___ext" type="application/json">{"namedChunks":["pages-velog-VelogPage","PostPage"]}</script><script async="" data-chunk="main" src="https://static.velog.io/static/js/runtime-main.624815d4.js"></script><script async="" data-chunk="main" src="https://static.velog.io/static/js/20.72815531.chunk.js"></script><script async="" data-chunk="main" src="https://static.velog.io/static/js/main.5303a5fa.chunk.js"></script><script async="" data-chunk="pages-velog-VelogPage" src="https://static.velog.io/static/js/pages-velog-VelogPage.f0cc9b56.chunk.js"></script><script async="" data-chunk="PostPage" src="https://static.velog.io/static/js/0.5f05d8e8.chunk.js"></script><script async="" data-chunk="PostPage" src="https://static.velog.io/static/js/23.c782abe5.chunk.js"></script><script async="" data-chunk="PostPage" src="https://static.velog.io/static/js/1.c2610806.chunk.js"></script><script async="" data-chunk="PostPage" src="https://static.velog.io/static/js/PostPage.05dd7823.chunk.js"></script></body></html>

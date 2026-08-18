@@ -61,7 +61,12 @@ public class ProjectService {
     }
 
     public List<ProjectResponse> getAll(Long generationId, ProjectCategory category) {
-        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        // 1. 기수 내림차순 -> 2. 시작일 내림차순 -> 3. 이름(title) 오름차순
+        Sort sort = Sort.by(
+                Sort.Order.desc("generation.number"),
+                Sort.Order.desc("startDate"),
+                Sort.Order.asc("title")
+        );
 
         List<Project> projects;
         if (generationId != null && category != null) {

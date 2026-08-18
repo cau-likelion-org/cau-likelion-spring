@@ -38,7 +38,8 @@ public class SessionController {
         return ResponseEntity.ok(sessionService.getSession(id));
     }
 
-    @Operation(summary = "세션 리스트 조회", description = "파트명 / 기수 번호로 필터링할 수 있습니다. 둘 다 생략하면 전체 세션을 조회합니다.")
+    @Operation(summary = "세션 리스트 조회", description = "파트명 / 기수 번호로 필터링할 수 있습니다. 둘 다 생략하면 전체 세션을 조회합니다. "
+            + "정렬 기준은 기수 내림차순 -> 세션 날짜 내림차순 -> 이름(title) 오름차순입니다 (기수로 필터링된 경우 해당 기준은 정렬에서 제외).")
     @GetMapping
     public ResponseEntity<List<SessionListResponseDto>> getSessionList(
             @Parameter(description = "파트명 (예: 백엔드)") @RequestParam(required = false) String partName,

@@ -4,6 +4,7 @@ import com.example.cau_likelion_spring.blog.domain.Blog;
 import com.example.cau_likelion_spring.blog.domain.BlogCategory;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Schema(description = "블로그 응답")
@@ -36,6 +37,9 @@ public record BlogResponse(
         @Schema(description = "원문 블로그 URL (클릭 시 이 URL로 바로 이동)")
         String url,
 
+        @Schema(description = "원문 작성일 (스크래핑됨, 찾지 못하면 null)")
+        LocalDate publishedDate,
+
         @Schema(description = "업로드 일시")
         LocalDateTime createdAt
 ) {
@@ -51,6 +55,7 @@ public record BlogResponse(
                 blog.getSummary(),
                 blog.getWriter(),
                 blog.getUrl(),
+                blog.getPublishedDate(),
                 blog.getCreatedAt()
         );
     }

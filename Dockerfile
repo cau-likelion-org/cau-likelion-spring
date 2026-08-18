@@ -26,4 +26,8 @@ COPY --from=builder /app/build/libs/*.jar app.jar
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-Duser.timezone=Asia/Seoul", "-jar", "app.jar"]
+# 컨테이너 메모리 한도(docker-compose.prod.yml의 mem_limit)보다 항상 작게 유지해야 함 -
+# 힙(-Xmx) 밖에서 쓰는 메타스페이스/스레드 스택/AWS SDK 통신 버퍼 등을 위한 여유를 남겨둔다.
+# 이 상한이 없으면 JVM이 계속 늘어나다 컨테이너 한도를 넘겨 리눅스 OOM Killer에 의해
+# 프로세스가 예외 없이 강제 종료될 수 있다 (애플리케이션 레벨의 정상적인 OutOfMemoryError로 막기 위함).
+ENTRYPOINT ["java", "-Xmx400m", "-Duser.timezone=Asia/Seoul", "-jar", "app.jar"]

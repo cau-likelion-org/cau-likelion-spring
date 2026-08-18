@@ -8,8 +8,6 @@ import java.util.List;
 
 public interface RecruitmentSubscriberRepository extends JpaRepository<RecruitmentSubscriber, Long> {
 
-    boolean existsByEmail(String email);
-
     List<RecruitmentSubscriber> findAllByInterestParts_NameOrderByRegisteredAtDesc(String interestPartName);
 
     @Query("SELECT DISTINCT p.name FROM RecruitmentSubscriber s JOIN s.interestParts p ORDER BY p.name")

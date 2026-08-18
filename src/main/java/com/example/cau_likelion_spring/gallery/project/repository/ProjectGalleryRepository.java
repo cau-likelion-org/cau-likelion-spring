@@ -8,11 +8,15 @@ import java.util.List;
 
 public interface ProjectGalleryRepository extends JpaRepository<ProjectGallery, Long> {
 
-    List<ProjectGallery> findAllByOrderByStartDateDesc();
+    // 전체 조회 (필터 없음): 기수 내림차순 -> 시작일 내림차순 -> 이름 오름차순
+    List<ProjectGallery> findAllByOrderByGeneration_NumberDescStartDateDescTitleAsc();
 
-    List<ProjectGallery> findByGeneration_NumberOrderByStartDateDesc(Integer generationNumber);
+    // 기수로만 필터링된 조회: 기수는 이미 고정이라 정렬에서 제외, 시작일 내림차순 -> 이름 오름차순
+    List<ProjectGallery> findByGeneration_NumberOrderByStartDateDescTitleAsc(Integer generationNumber);
 
-    List<ProjectGallery> findByCategoryOrderByStartDateDesc(ProjectCategory category);
+    // 프로젝트 구분으로만 필터링된 조회: 기수 내림차순 -> 시작일 내림차순 -> 이름 오름차순
+    List<ProjectGallery> findByCategoryOrderByGeneration_NumberDescStartDateDescTitleAsc(ProjectCategory category);
 
-    List<ProjectGallery> findByGeneration_NumberAndCategoryOrderByStartDateDesc(Integer generationNumber, ProjectCategory category);
+    // 기수 + 프로젝트 구분으로 필터링된 조회: 기수는 이미 고정이라 정렬에서 제외, 시작일 내림차순 -> 이름 오름차순
+    List<ProjectGallery> findByGeneration_NumberAndCategoryOrderByStartDateDescTitleAsc(Integer generationNumber, ProjectCategory category);
 }

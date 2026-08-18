@@ -14,7 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -39,6 +41,7 @@ public class BlogService {
                 .summary(scraped.description())
                 .writer(request.writer())
                 .url(request.url())
+                .publishedDate(parsePublishedDate(scraped.publishedDate()))
                 .build());
 
         return BlogResponse.of(blog);
@@ -74,7 +77,7 @@ public class BlogService {
         BlogScrapingResponse scraped = blogScrapingService.scrape(request.url());
 
         blog.update(generation, scraped.title(), scraped.thumbnailUrl(), request.category(),
-                scraped.description(), request.writer(), request.url());
+                scraped.description(), request.writer(), request.url(), parsePublishedDate(scraped.publishedDate()));
 
         return BlogResponse.of(blog);
     }
@@ -82,6 +85,11 @@ public class BlogService {
     @Transactional
     public void delete(Long id) {
         blogRepository.delete(getBlog(id));
+    }
+
+    /** 스크래핑이 원문 작성일을 못 찾으면 null이 그대로 온다 (yyyy-MM-dd 포맷은 BlogScrapingService가 보장) */
+    private LocalDate parsePublishedDate(String publishedDate) {
+        return StringUtils.hasText(publishedDate) ? LocalDate.parse(publishedDate) : null;
     }
 
     private Blog getBlog(Long id) {

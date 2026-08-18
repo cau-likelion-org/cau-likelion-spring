@@ -24,7 +24,7 @@ public class ActivityController {
     private final ActivityService activityService;
 
     @Operation(summary = "활동 소개 생성", description = "imageUrl은 POST /api/files/ACTIVITY로 미리 업로드해 받은 URL을 담아 보냅니다. ADMIN 권한이 필요합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PostMapping
     public ResponseEntity<ActivityResponseDto> createActivity(
             @RequestBody @Valid ActivityRequestDto request) {
@@ -39,7 +39,7 @@ public class ActivityController {
 
     @Operation(summary = "활동 소개 수정", description = "요청 바디로 전체 필드를 덮어씁니다 (부분 수정 아님). pageNavigation은 선택 항목입니다. "
             + "imageUrl은 항상 필수이며, 기존과 동일한 URL을 그대로 보내면 이미지를 유지하는 효과입니다. ADMIN 권한이 필요합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PutMapping("/{id}")
     public ResponseEntity<ActivityResponseDto> updateActivity(
             @Parameter(description = "활동 id") @PathVariable Long id,
@@ -48,7 +48,7 @@ public class ActivityController {
     }
 
     @Operation(summary = "활동 소개 삭제", description = "ADMIN 권한이 필요합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteActivity(@Parameter(description = "활동 id") @PathVariable Long id) {
         activityService.deleteActivity(id);

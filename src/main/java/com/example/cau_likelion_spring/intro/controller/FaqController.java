@@ -24,7 +24,7 @@ public class FaqController {
     private final FaqService faqService;
 
     @Operation(summary = "FAQ 생성", description = "ADMIN 권한이 필요합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PostMapping
     public ResponseEntity<FaqResponseDto> createFaq(@Valid @RequestBody FaqRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(faqService.createFaq(request));
@@ -37,7 +37,7 @@ public class FaqController {
     }
 
     @Operation(summary = "FAQ 수정", description = "요청 바디로 전체 필드를 덮어씁니다 (부분 수정 아님). answer는 최대 1000자입니다. ADMIN 권한이 필요합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PutMapping("/{id}")
     public ResponseEntity<FaqResponseDto> updateFaq(
             @Parameter(description = "FAQ id") @PathVariable Long id,
@@ -46,7 +46,7 @@ public class FaqController {
     }
 
     @Operation(summary = "FAQ 삭제", description = "ADMIN 권한이 필요합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFaq(@Parameter(description = "FAQ id") @PathVariable Long id) {
         faqService.deleteFaq(id);

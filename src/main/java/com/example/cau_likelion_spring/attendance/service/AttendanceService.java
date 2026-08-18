@@ -122,11 +122,13 @@ public class AttendanceService {
                 .toList();
     }
 
-    @PreAuthorize("hasRole('STAFF')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     public List<MemberAttendanceResponse> getPartAttendances(Long staffMemberId) {
         Member staff = getMember(staffMemberId);
 
-        List<Member> babyLions = memberRepository.findByPart_IdAndRole(staff.getPart().getId(), MemberRole.BABY_LION);
+        List<Member> babyLions = staff.getRole() == MemberRole.PRESIDENT
+                ? memberRepository.findByRole(MemberRole.BABY_LION)
+                : memberRepository.findByPart_IdAndRole(staff.getPart().getId(), MemberRole.BABY_LION);
         return buildMemberAttendanceResponses(babyLions);
     }
 
@@ -154,7 +156,7 @@ public class AttendanceService {
                 .toList();
     }
 
-    @PreAuthorize("hasAnyRole('STAFF', 'PRESIDENT')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     @Transactional
     public List<AttendanceStatusResponse> updateAttendanceStatuses(Long memberId, AttendanceStatusBatchUpdateRequest request) {
         Member requester = getMember(memberId);
@@ -175,7 +177,8 @@ public class AttendanceService {
                         "존재하지 않는 출결 기록입니다. id=" + item.detailAttendanceId()));
 
         boolean isSamePart = detailAttendance.getMember().getPart().getId().equals(requester.getPart().getId());
-        if (requester.getRole() == MemberRole.STAFF && !isSamePart) {
+        boolean scopedToOwnPart = requester.getRole() == MemberRole.STAFF || requester.getRole() == MemberRole.ADMIN;
+        if (scopedToOwnPart && !isSamePart) {
             throw new CustomException(ErrorCode.FORBIDDEN, "본인 파트의 아기사자만 수정할 수 있습니다.");
         }
 

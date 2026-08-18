@@ -96,7 +96,7 @@ public class MemberController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 구성원 또는 파트"),
             @ApiResponse(responseCode = "409", description = "이미 가입된 이메일")
     })
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PutMapping("/{id}")
     public ResponseEntity<MemberResponse> update(
             @Parameter(description = "구성원 ID", required = true) @PathVariable Long id,
@@ -114,7 +114,7 @@ public class MemberController {
             @ApiResponse(responseCode = "403", description = "관리자 권한 없음, 또는 PRESIDENT/ADMIN 권한의 구성원은 삭제 불가"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 구성원")
     })
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @Parameter(description = "구성원 ID", required = true) @PathVariable Long id) {

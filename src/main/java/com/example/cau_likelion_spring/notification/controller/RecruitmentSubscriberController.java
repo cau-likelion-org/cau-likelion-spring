@@ -57,7 +57,7 @@ public class RecruitmentSubscriberController {
                     + "중복 없이 반환하며, 신청자 명단이 바뀌면(신규 신청, 매년 3/1 초기화 등) 결과도 같이 바뀝니다. "
                     + "ADMIN 권한이 필요합니다.")
     @ApiResponse(responseCode = "200", description = "조회 성공")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @GetMapping("/interest-parts")
     public ResponseEntity<List<String>> getInterestPartNames() {
         return ResponseEntity.ok(recruitmentSubscriberService.getInterestPartNames());
@@ -67,7 +67,7 @@ public class RecruitmentSubscriberController {
             description = "공고 발송 대상을 선택하기 위한 구독자 목록입니다. interestPartName을 넘기면 해당 이름의 관심 파트를 "
                     + "선택한 구독자만 필터링합니다. ADMIN 권한이 필요합니다.")
     @ApiResponse(responseCode = "200", description = "조회 성공")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @GetMapping
     public ResponseEntity<List<RecruitmentSubscriberResponse>> getAll(
             @Parameter(description = "필터링할 관심 파트 이름", example = "Backend") @RequestParam(required = false) String interestPartName) {

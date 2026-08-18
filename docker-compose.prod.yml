@@ -5,6 +5,10 @@ services:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/cau-likelion-spring:latest
     container_name: chunghaha-backend
     restart: unless-stopped
+    # t3.micro(전체 RAM 1GB) 기준 - nginx/OS가 쓸 메모리를 보호하기 위한 컨테이너 상한.
+    # Dockerfile의 -Xmx400m보다 여유 있게 잡아, 힙 밖에서 쓰는 메모리(메타스페이스, 스레드 스택,
+    # AWS SDK 통신 버퍼 등)까지 감안한 값이다.
+    mem_limit: 700m
     ports:
       # 외부(0.0.0.0)에는 안 열림 - 보안그룹에서도 8080은 막혀있고,
       # nginx가 localhost:8080으로만 접근해서 내부용으로 충분함

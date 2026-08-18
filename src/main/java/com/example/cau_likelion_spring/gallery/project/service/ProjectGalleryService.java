@@ -36,13 +36,13 @@ public class ProjectGalleryService {
         List<ProjectGallery> projectGalleries;
 
         if (generationNumber != null && category != null) {
-            projectGalleries = projectGalleryRepository.findByGeneration_NumberAndCategoryOrderByStartDateDesc(generationNumber, category);
+            projectGalleries = projectGalleryRepository.findByGeneration_NumberAndCategoryOrderByStartDateDescTitleAsc(generationNumber, category);
         } else if (generationNumber != null) {
-            projectGalleries = projectGalleryRepository.findByGeneration_NumberOrderByStartDateDesc(generationNumber);
+            projectGalleries = projectGalleryRepository.findByGeneration_NumberOrderByStartDateDescTitleAsc(generationNumber);
         } else if (category != null) {
-            projectGalleries = projectGalleryRepository.findByCategoryOrderByStartDateDesc(category);
+            projectGalleries = projectGalleryRepository.findByCategoryOrderByGeneration_NumberDescStartDateDescTitleAsc(category);
         } else {
-            projectGalleries = projectGalleryRepository.findAllByOrderByStartDateDesc();
+            projectGalleries = projectGalleryRepository.findAllByOrderByGeneration_NumberDescStartDateDescTitleAsc();
         }
 
         return projectGalleries.stream()

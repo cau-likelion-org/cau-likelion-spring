@@ -25,7 +25,8 @@ public class ProjectGalleryController {
 
     private final ProjectGalleryService projectGalleryService;
 
-    @Operation(summary = "프로젝트 게시물 목록 조회", description = "기수 번호 / 프로젝트 구분으로 필터링할 수 있습니다. 둘 다 생략하면 전체를 시작일 최신순으로 조회합니다.")
+    @Operation(summary = "프로젝트 게시물 목록 조회", description = "기수 번호 / 프로젝트 구분으로 필터링할 수 있습니다. "
+            + "정렬 기준은 기수 내림차순 -> 시작일 내림차순 -> 이름(title) 오름차순입니다 (기수로 필터링된 경우 해당 기준은 정렬에서 제외).")
     @GetMapping
     public ResponseEntity<List<ProjectGalleryListResponse>> getList(
             @Parameter(description = "기수 번호 (예: 13)") @RequestParam(required = false) Integer generationNumber,

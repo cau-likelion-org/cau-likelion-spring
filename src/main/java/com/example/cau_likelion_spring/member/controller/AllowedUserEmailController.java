@@ -23,7 +23,7 @@ public class AllowedUserEmailController {
     private final AllowedUserEmailService allowedUserEmailService;
 
     @Operation(summary = "예비 회원 목록 조회", description = "특정 기수에 등록된 예비 회원(아직 가입 안 한) 목록을 조회합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @GetMapping
     public ResponseEntity<List<AllowedUserEmailResponse>> getList(
             @Parameter(description = "기수 id", required = true) @RequestParam Long generationId) {
@@ -32,7 +32,7 @@ public class AllowedUserEmailController {
 
     @Operation(summary = "예비 회원 일괄 저장", description = "관리자 화면의 \"저장\" 클릭 시, 그 시점에 화면에 보이는 목록 전체를 그대로 전달합니다. "
             + "id가 없으면 신규 생성, 있으면 수정, 기존에 있었지만 이번 요청에 없는 항목은 삭제됩니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PutMapping
     public ResponseEntity<List<AllowedUserEmailResponse>> sync(
             @Parameter(description = "기수 id", required = true) @RequestParam Long generationId,

@@ -41,7 +41,7 @@ public class RecruitmentTextController {
             @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 구독자 ID 포함")
     })
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PostMapping
     public ResponseEntity<RecruitmentTextResponse> create(@Valid @RequestBody RecruitmentTextRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(recruitmentTextService.create(request));
@@ -50,7 +50,7 @@ public class RecruitmentTextController {
     @Operation(summary = "모집 공고 목록 조회",
             description = "등록된 모집 공고 목록을 예정 전송일시 오름차순으로 조회합니다. ADMIN 권한이 필요합니다.")
     @ApiResponse(responseCode = "200", description = "조회 성공")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @GetMapping
     public ResponseEntity<List<RecruitmentTextResponse>> getAll() {
         return ResponseEntity.ok(recruitmentTextService.getAll());
@@ -61,7 +61,7 @@ public class RecruitmentTextController {
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 공고")
     })
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @GetMapping("/{id}")
     public ResponseEntity<RecruitmentTextResponse> getById(
             @Parameter(description = "공고 ID", required = true) @PathVariable Long id) {
@@ -77,7 +77,7 @@ public class RecruitmentTextController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 공고 또는 구독자 ID 포함"),
             @ApiResponse(responseCode = "409", description = "이미 발송이 시작되어 수정 불가")
     })
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PutMapping("/{id}")
     public ResponseEntity<RecruitmentTextResponse> update(
             @Parameter(description = "공고 ID", required = true) @PathVariable Long id,
@@ -94,7 +94,7 @@ public class RecruitmentTextController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 공고"),
             @ApiResponse(responseCode = "409", description = "재전송할 실패 대상이 없음")
     })
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PostMapping("/{id}/resend")
     public ResponseEntity<RecruitmentTextResponse> resend(
             @Parameter(description = "공고 ID", required = true) @PathVariable Long id) {
@@ -110,7 +110,7 @@ public class RecruitmentTextController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 공고"),
             @ApiResponse(responseCode = "409", description = "이미 발송이 시작되어 취소 불가")
     })
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PostMapping("/{id}/cancel")
     public ResponseEntity<Void> cancel(
             @Parameter(description = "공고 ID", required = true) @PathVariable Long id) {

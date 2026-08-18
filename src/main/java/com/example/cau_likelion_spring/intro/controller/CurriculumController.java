@@ -24,7 +24,7 @@ public class CurriculumController {
     private final CurriculumService curriculumService;
 
     @Operation(summary = "커리큘럼 생성", description = "trackId는 필수이며, 존재하지 않는 트랙이면 404가 반환됩니다. ADMIN 권한이 필요합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PostMapping
     public ResponseEntity<CurriculumResponseDto> createCurriculum(
             @Valid @RequestBody CurriculumRequestDto request) {
@@ -38,7 +38,7 @@ public class CurriculumController {
     }
 
     @Operation(summary = "커리큘럼 수정", description = "요청 바디로 전체 필드를 덮어씁니다 (부분 수정 아님). trackId도 필수입니다. ADMIN 권한이 필요합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PutMapping("/{id}")
     public ResponseEntity<CurriculumResponseDto> updateCurriculum(
             @Parameter(description = "커리큘럼 id") @PathVariable Long id,
@@ -47,7 +47,7 @@ public class CurriculumController {
     }
 
     @Operation(summary = "커리큘럼 삭제", description = "ADMIN 권한이 필요합니다.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCurriculum(@Parameter(description = "커리큘럼 id") @PathVariable Long id) {
         curriculumService.deleteCurriculum(id);

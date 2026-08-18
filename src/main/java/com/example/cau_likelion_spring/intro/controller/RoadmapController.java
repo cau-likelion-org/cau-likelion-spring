@@ -33,7 +33,7 @@ public class RoadmapController {
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
             @ApiResponse(responseCode = "403", description = "권한 없음")
     })
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PostMapping
     public ResponseEntity<RoadmapResponseDto> addRoadmap(@RequestBody @Valid RoadmapRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(roadmapService.addRoadmap(request));

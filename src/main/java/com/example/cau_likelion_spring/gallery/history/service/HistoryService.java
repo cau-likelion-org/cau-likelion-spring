@@ -44,7 +44,7 @@ public class HistoryService {
     }
 
     @Transactional
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     public HistoryDetailResponse create(HistoryCreateRequest request) {
         Generation generation = getGeneration(request.generationId());
 
@@ -63,7 +63,7 @@ public class HistoryService {
     }
 
     @Transactional
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     public HistoryDetailResponse update(Long id, HistoryUpdateRequest request) {
         History history = getHistory(id);
         Generation generation = getGeneration(request.generationId());
@@ -95,7 +95,7 @@ public class HistoryService {
     }
 
     @Transactional
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     public void delete(Long id) {
         History history = getHistory(id);
         s3Uploader.deleteByUrl(history.getThumbnailUrl());

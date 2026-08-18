@@ -47,6 +47,10 @@ import java.util.stream.Collectors;
 /**
  * 운영진(STAFF)/관리자(ADMIN)의 (본인 소속 파트 한정) 과제 생성/수정/삭제/개별 마감일 관리 및
  * 파트원 과제 제출 현황 조회·평가, 회장(PRESIDENT)/관리자(ADMIN)의 파트별 과제 목록 조회 서비스.
+ * PRESIDENT는 STAFF/ADMIN과 달리 본인 소속 파트 제한 없이 모든 파트의 과제를 조회/관리할 수 있다
+ * (assignmentId로 대상이 특정되는 조회/수정/삭제/마감일 변경/제출 이력/평가에 한함. 본인 파트 기준으로
+ * 목록을 집계하는 create/getMyAssignmentsForStaff/getWeeklyStatusForStaff/getSubmissionStatusForStaff는
+ * 대상 파트를 특정할 방법이 없어 PRESIDENT에게는 적용되지 않으며, 파트별 목록 조회는 {@link #getAssignmentsForPresident}를 사용한다).
  */
 @Service
 @RequiredArgsConstructor
@@ -67,7 +71,7 @@ public class AssignmentService {
      * 한 주차에 개별 과제 1개 이상을 한 번에 생성한다 (생성 페이지에서 +로 여러 개를 모아 한 번에 저장하는 흐름).
      * ADMIN도 STAFF와 동일하게 본인 소속 파트에 한해 생성할 수 있다.
      */
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     @Transactional
     public List<AssignmentResponse> create(Long staffMemberId, AssignmentCreateRequest request) {
         Part part = getStaffPart(staffMemberId);
@@ -88,12 +92,12 @@ public class AssignmentService {
                 .toList();
     }
 
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     public AssignmentResponse getById(Long staffMemberId, Long assignmentId) {
         return AssignmentResponse.of(getOwnedAssignment(staffMemberId, assignmentId));
     }
 
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     @Transactional
     public AssignmentResponse update(Long staffMemberId, Long assignmentId, AssignmentUpdateRequest request) {
         Assignment assignment = getOwnedAssignment(staffMemberId, assignmentId);
@@ -107,7 +111,7 @@ public class AssignmentService {
      * 과제 삭제. 이전에 제출된 과제(AssignmentSubmit)와 그에 딸린 파일/알림 이력도 함께 삭제된다.
      * (수정과 달리 삭제는 제출 이력을 보존하지 않음)
      */
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     @Transactional
     public void delete(Long staffMemberId, Long assignmentId) {
         Assignment assignment = getOwnedAssignment(staffMemberId, assignmentId);
@@ -126,7 +130,7 @@ public class AssignmentService {
      * 정시/지각 판정 모두 Assignment.endDate 대신 이 개별 마감일 기준으로 계산된다. 이미 개별 마감일이
      * 있으면 값을 덮어쓰고, 없으면 새로 생성한다 (아기사자 1명당 과제 1개에 최대 1건).
      */
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     @Transactional
     public List<AssignmentIndividualDeadlineResponse> updateIndividualDeadlines(Long staffMemberId, Long assignmentId,
                                                                                   AssignmentIndividualDeadlineRequest request) {
@@ -170,7 +174,7 @@ public class AssignmentService {
      * 운영진이 보는 본인 파트 과제 목록(주차별). 과제마다 파트원 전체를 대상으로 최신 제출 기준
      * 제출전/미제출/승인대기/지각제출/승인완료 인원 수를 함께 집계해서 보여준다.
      */
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     public List<AssignmentStaffSummaryResponse.WeekGroup> getMyAssignmentsForStaff(Long staffMemberId) {
         Part part = getStaffPart(staffMemberId);
         return getAssignmentsByPart(part);
@@ -190,7 +194,7 @@ public class AssignmentService {
      * 운영진이 보는 본인 파트 아기사자 1명의 특정 주차 종합 상태. 그 주차에 개별 과제가 여러 개면 상태들을
      * 우선순위(제출전 > 승인반려 > 승인대기 > 미제출 > 지각제출 > 승인완료)로 판단해 상태 하나로 합친다.
      */
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     public AssignmentMemberWeeklyStatusResponse getWeeklyStatusForStaff(Long staffMemberId, Long targetMemberId, Integer week) {
         Part staffPart = getStaffPart(staffMemberId);
         Member babyLion = getMember(targetMemberId);
@@ -219,12 +223,14 @@ public class AssignmentService {
      * 한 번도 제출하지 않은 파트원도 "제출전"/"미제출" 상태로 빈 이력과 함께 포함된다.
      * 과제 자체의 제목/설명/마감기한도 함께 내려준다.
      */
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     public AssignmentStaffSubmissionHistoryResponse getSubmissionsForStaff(Long staffMemberId, Long assignmentId) {
         Assignment assignment = getAssignment(assignmentId);
-        Part staffPart = getStaffPart(staffMemberId);
-        if (!assignment.getPart().getId().equals(staffPart.getId())) {
-            throw new CustomException(ErrorCode.ASSIGNMENT_PART_MISMATCH, "본인 파트의 과제만 관리할 수 있습니다. assignmentId=" + assignmentId);
+        if (!isPresident(staffMemberId)) {
+            Part staffPart = getStaffPart(staffMemberId);
+            if (!assignment.getPart().getId().equals(staffPart.getId())) {
+                throw new CustomException(ErrorCode.ASSIGNMENT_PART_MISMATCH, "본인 파트의 과제만 관리할 수 있습니다. assignmentId=" + assignmentId);
+            }
         }
 
         List<Member> babyLions = memberRepository.findByPart_IdAndRole(assignment.getPart().getId(), MemberRole.BABY_LION);
@@ -262,7 +268,7 @@ public class AssignmentService {
      * 운영진이 보는 본인 파트 과제별 파트원 전체 제출 현황(주차별로 묶임). 화면에서 주차 → 개별 과제 → 아기사자별
      * 내역(이름/최종 제출 시각/제출물/상태/리뷰 운영진 이름) 순으로 펼쳐 보여주고, 평가 버튼에 필요한 submitId도 함께 내려준다.
      */
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     public List<AssignmentStaffDetailResponse.WeekGroup> getSubmissionStatusForStaff(Long staffMemberId) {
         Part part = getStaffPart(staffMemberId);
 
@@ -292,15 +298,17 @@ public class AssignmentService {
      * 이후면 '지각제출'로 표시되고(AssignmentSubmitDisplayStatusCalculator가 계산), 반려는 시점과 무관하게 '승인반려'로 표시된다.
      * 평가하면 reviewMember/approvalDate가 갱신된다.
      */
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     @Transactional
     public AssignmentSubmitResponse evaluate(Long staffMemberId, Long assignmentId, Long submitId,
                                               AssignmentSubmitEvaluateRequest request) {
         Assignment assignment = getAssignment(assignmentId);
-        Part staffPart = getStaffPart(staffMemberId);
         Member staff = getMember(staffMemberId);
-        if (!assignment.getPart().getId().equals(staffPart.getId())) {
-            throw new CustomException(ErrorCode.ASSIGNMENT_PART_MISMATCH, "본인 파트의 과제만 관리할 수 있습니다. assignmentId=" + assignmentId);
+        if (staff.getRole() != MemberRole.PRESIDENT) {
+            Part staffPart = getStaffPart(staffMemberId);
+            if (!assignment.getPart().getId().equals(staffPart.getId())) {
+                throw new CustomException(ErrorCode.ASSIGNMENT_PART_MISMATCH, "본인 파트의 과제만 관리할 수 있습니다. assignmentId=" + assignmentId);
+            }
         }
 
         AssignmentSubmit submit = getSubmit(submitId);
@@ -457,14 +465,22 @@ public class AssignmentService {
     }
 
     private Assignment getOwnedAssignment(Long staffMemberId, Long assignmentId) {
-        Part staffPart = getStaffPart(staffMemberId);
         Assignment assignment = getAssignment(assignmentId);
 
+        if (isPresident(staffMemberId)) {
+            return assignment;
+        }
+
+        Part staffPart = getStaffPart(staffMemberId);
         if (!assignment.getPart().getId().equals(staffPart.getId())) {
             throw new CustomException(ErrorCode.ASSIGNMENT_PART_MISMATCH, "본인 파트의 과제만 관리할 수 있습니다. assignmentId=" + assignmentId);
         }
 
         return assignment;
+    }
+
+    private boolean isPresident(Long memberId) {
+        return getMember(memberId).getRole() == MemberRole.PRESIDENT;
     }
 
     private Assignment getAssignment(Long id) {

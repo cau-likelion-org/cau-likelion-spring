@@ -34,7 +34,7 @@ public class ProjectExposureController {
             @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "404", description = "요청에 존재하지 않는 프로젝트 id가 포함됨")
     })
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PutMapping("/exposure")
     public ResponseEntity<List<ProjectResponse>> updateExposure(
             @RequestBody @Valid ExposedProjectsRequest request) {

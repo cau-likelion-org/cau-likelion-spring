@@ -48,7 +48,7 @@ public class RecruitmentTextController {
     }
 
     @Operation(summary = "모집 공고 목록 조회",
-            description = "등록된 모집 공고 목록을 예정 전송일시 오름차순으로 조회합니다. ADMIN 권한이 필요합니다.")
+            description = "등록된 모집 공고 목록을 예정 전송일시 내림차순으로 조회합니다. ADMIN 권한이 필요합니다.")
     @ApiResponse(responseCode = "200", description = "조회 성공")
     @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @GetMapping

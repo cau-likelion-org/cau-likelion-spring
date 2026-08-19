@@ -22,6 +22,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Set;
@@ -62,16 +64,29 @@ public class S3Uploader {
         byte[] content = resizeIfNeeded(file, domain, extension);
 
         String key = domain.getFolder() + "/" + UUID.randomUUID() + "." + extension;
-        ObjectMetadata metadata = ObjectMetadata.builder()
-                .contentType(file.getContentType())
-                .build();
+        ObjectMetadata.Builder metadataBuilder = ObjectMetadata.builder()
+                .contentType(file.getContentType());
+        if (domain.isForceDownload()) {
+            metadataBuilder.contentDisposition(buildAttachmentContentDisposition(file.getOriginalFilename()));
+        }
 
         try {
-            S3Resource resource = s3Template.upload(bucket, key, new ByteArrayInputStream(content), metadata);
+            S3Resource resource = s3Template.upload(bucket, key, new ByteArrayInputStream(content), metadataBuilder.build());
             return resource.getURL().toString();
         } catch (IOException e) {
             throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
         }
+    }
+
+    /**
+     * 브라우저가 (이미지 포함) 항상 다운로드하도록 Content-Disposition을 만든다.
+     * 한글 등 비-ASCII 파일명은 filename 속성에 그대로 넣으면 헤더가 깨지므로,
+     * ASCII로만 이뤄진 fallback(filename)과 RFC 5987로 인코딩한 원본(filename*)을 함께 싣는다.
+     */
+    private String buildAttachmentContentDisposition(String originalFilename) {
+        String asciiFallback = originalFilename.replaceAll("[^\\x20-\\x7E]", "_").replace("\"", "'");
+        String encoded = URLEncoder.encode(originalFilename, StandardCharsets.UTF_8).replace("+", "%20");
+        return "attachment; filename=\"" + asciiFallback + "\"; filename*=UTF-8''" + encoded;
     }
 
     /**

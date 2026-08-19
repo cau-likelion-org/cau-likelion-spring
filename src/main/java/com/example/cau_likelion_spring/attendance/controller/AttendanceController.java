@@ -47,6 +47,16 @@ public class AttendanceController {
         return ResponseEntity.status(HttpStatus.CREATED).body(attendanceService.createWeeklyAttendance(request));
     }
 
+    @Operation(summary = "출석부 목록 조회", description = "지금까지 생성된 출석부 목록을 날짜 최신순으로 조회합니다. PRESIDENT 권한이 필요합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음")
+    })
+    @GetMapping("/password")
+    public ResponseEntity<List<WeeklyAttendanceResponse>> getWeeklyAttendances() {
+        return ResponseEntity.ok(attendanceService.getWeeklyAttendances());
+    }
+
     @Operation(summary = "출석체크", description = "아기사자가 세션 당일 마이페이지에서 비밀번호 4자리를 입력해 출석 체크합니다. " +
             "세션 시작(19시) 5분 후까지는 출석, 이후 22시까지는 지각으로 처리됩니다. BABY_LION 권한이 필요합니다.")
     @ApiResponses({

@@ -76,6 +76,13 @@ public class AttendanceService {
         return WeeklyAttendanceResponse.from(weeklyAttendance);
     }
 
+    @PreAuthorize("hasRole('PRESIDENT')")
+    public List<WeeklyAttendanceResponse> getWeeklyAttendances() {
+        return weeklyAttendanceRepository.findAllByOrderByDateDesc().stream()
+                .map(WeeklyAttendanceResponse::from)
+                .toList();
+    }
+
     @PreAuthorize("hasRole('BABY_LION')")
     @Transactional
     public AttendanceStatusResponse checkAttendance(Long memberId, AttendanceCheckRequest request) {

@@ -50,7 +50,7 @@ public class RecruitmentTextService {
     }
 
     public List<RecruitmentTextResponse> getAll() {
-        Sort sort = Sort.by(Sort.Direction.ASC, "scheduledSendAt");
+        Sort sort = Sort.by(Sort.Direction.DESC, "scheduledSendAt");
         return recruitmentTextRepository.findAll(sort).stream()
                 .map(text -> {
                     TextCounts counts = countLogs(text);

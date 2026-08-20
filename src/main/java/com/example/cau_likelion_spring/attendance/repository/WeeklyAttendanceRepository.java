@@ -11,6 +11,8 @@ public interface WeeklyAttendanceRepository extends JpaRepository<WeeklyAttendan
 
     boolean existsByDate(LocalDate date);
 
+    boolean existsByWeekNumber(Integer weekNumber);
+
     Optional<WeeklyAttendance> findByDate(LocalDate date);
 
     List<WeeklyAttendance> findAllByOrderByDateDesc();

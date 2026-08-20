@@ -56,6 +56,10 @@ public class AttendanceService {
             throw new CustomException(ErrorCode.DUPLICATE_WEEKLY_ATTENDANCE,
                     "해당 날짜에 이미 출석부가 존재합니다. date=" + request.date());
         }
+        if (weeklyAttendanceRepository.existsByWeekNumber(request.weekNumber())) {
+            throw new CustomException(ErrorCode.DUPLICATE_WEEKLY_ATTENDANCE,
+                    "해당 주차의 출석부가 이미 존재합니다. weekNumber=" + request.weekNumber());
+        }
 
         WeeklyAttendance weeklyAttendance = weeklyAttendanceRepository.save(WeeklyAttendance.builder()
                 .date(request.date())

@@ -5,6 +5,8 @@ import com.example.cau_likelion_spring.member.dto.AllowedUserEmailSyncRequest;
 import com.example.cau_likelion_spring.member.service.AllowedUserEmailService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,13 @@ public class AllowedUserEmailController {
 
     @Operation(summary = "예비 회원 일괄 저장", description = "관리자 화면의 \"저장\" 클릭 시, 그 시점에 화면에 보이는 목록 전체를 그대로 전달합니다. "
             + "id가 없으면 신규 생성, 있으면 수정, 기존에 있었지만 이번 요청에 없는 항목은 삭제됩니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "저장 성공"),
+            @ApiResponse(responseCode = "400", description = "요청값 검증 실패 (이메일 형식 오류, 이름/이메일 누락 등). 공통 에러 포맷을 따르며, "
+                    + "errors[].field/value/reason에 어떤 항목이 왜 실패했는지 담겨 있습니다."),
+            @ApiResponse(responseCode = "409", description = "목록 안에 동일한 이메일이 중복으로 들어있는 경우. message에 어떤 이메일이 "
+                    + "중복인지 포함됩니다 (예: \"...email=[a@b.com]\").")
+    })
     @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PutMapping
     public ResponseEntity<List<AllowedUserEmailResponse>> sync(

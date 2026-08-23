@@ -45,10 +45,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 과제 생성/수정/삭제/개별 마감일 관리는 STAFF/ADMIN/PRESIDENT 모두 본인 소속 파트로 제한된다.
- * 반면 assignmentId로 대상이 특정되는 단건 조회({@link #getById})/제출 이력 조회({@link #getSubmissionsForStaff})는
- * ADMIN/PRESIDENT 모두 소속 파트 제한이 없고, 평가({@link #evaluate})는 아직 PRESIDENT에 한해서만
- * 소속 파트 제한이 없다(추후 ADMIN도 동일하게 정리 예정).
+ * 과제 생성/수정/삭제/개별 마감일 관리와 제출 평가({@link #evaluate})는 STAFF/ADMIN/PRESIDENT 모두
+ * 본인 소속 파트로 제한된다. 반면 assignmentId로 대상이 특정되는 단건 조회({@link #getById})/제출 이력
+ * 조회({@link #getSubmissionsForStaff})는 ADMIN/PRESIDENT 모두 소속 파트 제한이 없다.
  * 본인 파트 기준으로 목록을 집계하는 getMyAssignmentsForStaff/getWeeklyStatusForStaff/getSubmissionStatusForStaff는
  * 현재 STAFF/ADMIN/PRESIDENT 모두 본인 파트로 제한되며, 회장/관리자가 다른 파트 목록을 보려면
  * {@link #getAssignmentsForPresident}를 사용한다.
@@ -303,14 +302,8 @@ public class AssignmentService {
     @Transactional
     public AssignmentSubmitResponse evaluate(Long staffMemberId, Long assignmentId, Long submitId,
                                               AssignmentSubmitEvaluateRequest request) {
-        Assignment assignment = getAssignment(assignmentId);
+        Assignment assignment = getAssignmentInOwnPart(staffMemberId, assignmentId);
         Member staff = getMember(staffMemberId);
-        if (staff.getRole() != MemberRole.PRESIDENT) {
-            Part staffPart = getStaffPart(staffMemberId);
-            if (!assignment.getPart().getId().equals(staffPart.getId())) {
-                throw new CustomException(ErrorCode.ASSIGNMENT_PART_MISMATCH, "본인 파트의 과제만 관리할 수 있습니다. assignmentId=" + assignmentId);
-            }
-        }
 
         AssignmentSubmit submit = getSubmit(submitId);
         if (!submit.getAssignment().getId().equals(assignmentId)) {

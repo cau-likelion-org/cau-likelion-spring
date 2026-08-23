@@ -45,12 +45,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 운영진(STAFF)/관리자(ADMIN)의 (본인 소속 파트 한정) 과제 생성/수정/삭제/개별 마감일 관리 및
- * 파트원 과제 제출 현황 조회·평가, 회장(PRESIDENT)/관리자(ADMIN)의 파트별 과제 목록 조회 서비스.
- * PRESIDENT는 STAFF/ADMIN과 달리 본인 소속 파트 제한 없이 모든 파트의 과제를 조회/관리할 수 있다
- * (assignmentId로 대상이 특정되는 조회/수정/삭제/마감일 변경/제출 이력/평가에 한함. 본인 파트 기준으로
- * 목록을 집계하는 create/getMyAssignmentsForStaff/getWeeklyStatusForStaff/getSubmissionStatusForStaff는
- * 대상 파트를 특정할 방법이 없어 PRESIDENT에게는 적용되지 않으며, 파트별 목록 조회는 {@link #getAssignmentsForPresident}를 사용한다).
+ * 과제 생성/수정/삭제/개별 마감일 관리와 제출 평가({@link #evaluate})는 STAFF/ADMIN/PRESIDENT 모두
+ * 본인 소속 파트로 제한된다. 반면 조회 계열({@link #getById}, {@link #getSubmissionsForStaff},
+ * {@link #getMyAssignmentsForStaff}, {@link #getWeeklyStatusForStaff}, {@link #getSubmissionStatusForStaff})은
+ * STAFF는 본인 파트로 제한되고 ADMIN/PRESIDENT는 전체 파트를 조회할 수 있다.
  */
 @Service
 @RequiredArgsConstructor
@@ -100,7 +98,7 @@ public class AssignmentService {
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     @Transactional
     public AssignmentResponse update(Long staffMemberId, Long assignmentId, AssignmentUpdateRequest request) {
-        Assignment assignment = getOwnedAssignment(staffMemberId, assignmentId);
+        Assignment assignment = getAssignmentInOwnPart(staffMemberId, assignmentId);
 
         assignment.update(request.title(), request.detail(), request.endDate(), request.type());
 
@@ -114,7 +112,7 @@ public class AssignmentService {
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     @Transactional
     public void delete(Long staffMemberId, Long assignmentId) {
-        Assignment assignment = getOwnedAssignment(staffMemberId, assignmentId);
+        Assignment assignment = getAssignmentInOwnPart(staffMemberId, assignmentId);
 
         submissionFileRepository.findAllByAssignmentSubmit_Assignment(assignment)
                 .forEach(file -> s3Uploader.deleteByUrl(file.getFileUrl()));
@@ -134,7 +132,7 @@ public class AssignmentService {
     @Transactional
     public List<AssignmentIndividualDeadlineResponse> updateIndividualDeadlines(Long staffMemberId, Long assignmentId,
                                                                                   AssignmentIndividualDeadlineRequest request) {
-        Assignment assignment = getOwnedAssignment(staffMemberId, assignmentId);
+        Assignment assignment = getAssignmentInOwnPart(staffMemberId, assignmentId);
 
         List<Member> members = memberRepository.findAllById(request.memberIds());
         if (members.size() != request.memberIds().size()) {
@@ -176,6 +174,9 @@ public class AssignmentService {
      */
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     public List<AssignmentStaffSummaryResponse.WeekGroup> getMyAssignmentsForStaff(Long staffMemberId) {
+        if (isAdminOrPresident(staffMemberId)) {
+            return getAllPartsAssignments();
+        }
         Part part = getStaffPart(staffMemberId);
         return getAssignmentsByPart(part);
     }
@@ -196,14 +197,20 @@ public class AssignmentService {
      */
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     public AssignmentMemberWeeklyStatusResponse getWeeklyStatusForStaff(Long staffMemberId, Long targetMemberId, Integer week) {
-        Part staffPart = getStaffPart(staffMemberId);
         Member babyLion = getMember(targetMemberId);
-        if (babyLion.getPart() == null || !babyLion.getPart().getId().equals(staffPart.getId())) {
+        if (babyLion.getPart() == null) {
             throw new CustomException(ErrorCode.ASSIGNMENT_MEMBER_PART_MISMATCH,
                     "과제 파트에 속하지 않은 아기사자입니다. memberId=" + targetMemberId);
         }
+        if (!isAdminOrPresident(staffMemberId)) {
+            Part staffPart = getStaffPart(staffMemberId);
+            if (!babyLion.getPart().getId().equals(staffPart.getId())) {
+                throw new CustomException(ErrorCode.ASSIGNMENT_MEMBER_PART_MISMATCH,
+                        "과제 파트에 속하지 않은 아기사자입니다. memberId=" + targetMemberId);
+            }
+        }
 
-        List<Assignment> assignments = assignmentRepository.findAllByPart_IdAndWeekOrderByEndDateAsc(staffPart.getId(), week);
+        List<Assignment> assignments = assignmentRepository.findAllByPart_IdAndWeekOrderByEndDateAsc(babyLion.getPart().getId(), week);
         if (assignments.isEmpty()) {
             throw new CustomException(ErrorCode.ASSIGNMENT_NOT_FOUND, "해당 주차에 생성된 과제가 없습니다. week=" + week);
         }
@@ -226,7 +233,7 @@ public class AssignmentService {
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     public AssignmentStaffSubmissionHistoryResponse getSubmissionsForStaff(Long staffMemberId, Long assignmentId) {
         Assignment assignment = getAssignment(assignmentId);
-        if (!isPresident(staffMemberId)) {
+        if (!isAdminOrPresident(staffMemberId)) {
             Part staffPart = getStaffPart(staffMemberId);
             if (!assignment.getPart().getId().equals(staffPart.getId())) {
                 throw new CustomException(ErrorCode.ASSIGNMENT_PART_MISMATCH, "본인 파트의 과제만 관리할 수 있습니다. assignmentId=" + assignmentId);
@@ -270,6 +277,10 @@ public class AssignmentService {
      */
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     public List<AssignmentStaffDetailResponse.WeekGroup> getSubmissionStatusForStaff(Long staffMemberId) {
+        if (isAdminOrPresident(staffMemberId)) {
+            return getSubmissionStatusAcrossParts();
+        }
+
         Part part = getStaffPart(staffMemberId);
 
         List<Assignment> assignments = assignmentRepository.findAllByPart_IdOrderByWeekAscEndDateAsc(part.getId());
@@ -302,14 +313,8 @@ public class AssignmentService {
     @Transactional
     public AssignmentSubmitResponse evaluate(Long staffMemberId, Long assignmentId, Long submitId,
                                               AssignmentSubmitEvaluateRequest request) {
-        Assignment assignment = getAssignment(assignmentId);
+        Assignment assignment = getAssignmentInOwnPart(staffMemberId, assignmentId);
         Member staff = getMember(staffMemberId);
-        if (staff.getRole() != MemberRole.PRESIDENT) {
-            Part staffPart = getStaffPart(staffMemberId);
-            if (!assignment.getPart().getId().equals(staffPart.getId())) {
-                throw new CustomException(ErrorCode.ASSIGNMENT_PART_MISMATCH, "본인 파트의 과제만 관리할 수 있습니다. assignmentId=" + assignmentId);
-            }
-        }
 
         AssignmentSubmit submit = getSubmit(submitId);
         if (!submit.getAssignment().getId().equals(assignmentId)) {
@@ -354,6 +359,36 @@ public class AssignmentService {
         return assignmentsByWeek.entrySet().stream()
                 .map(entry -> toStaffWeekGroup(entry.getKey(), entry.getValue(), babyLions, statusLookup))
                 .toList();
+    }
+
+    /**
+     * ADMIN/PRESIDENT가 보는 전체 파트 과제 목록(주차별). 파트마다 소속 파트원이 다르므로
+     * 과제별로 자기 파트의 파트원 목록을 찾아 집계한다.
+     */
+    private List<AssignmentStaffSummaryResponse.WeekGroup> getAllPartsAssignments() {
+        List<Assignment> assignments = assignmentRepository.findAllByOrderByWeekAscEndDateAsc();
+        if (assignments.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, List<Member>> babyLionsByPartId = babyLionsByPartId();
+        StatusLookup statusLookup = buildStatusLookup(assignments);
+
+        Map<Integer, List<Assignment>> assignmentsByWeek = assignments.stream()
+                .collect(Collectors.groupingBy(Assignment::getWeek, LinkedHashMap::new, Collectors.toList()));
+
+        return assignmentsByWeek.entrySet().stream()
+                .map(entry -> new AssignmentStaffSummaryResponse.WeekGroup(entry.getKey(), entry.getValue().stream()
+                        .map(assignment -> toStaffSummary(assignment,
+                                babyLionsByPartId.getOrDefault(assignment.getPart().getId(), List.of()), statusLookup))
+                        .toList()))
+                .toList();
+    }
+
+    private Map<Long, List<Member>> babyLionsByPartId() {
+        return memberRepository.findByRole(MemberRole.BABY_LION).stream()
+                .filter(member -> member.getPart() != null)
+                .collect(Collectors.groupingBy(member -> member.getPart().getId()));
     }
 
     /**
@@ -408,6 +443,34 @@ public class AssignmentService {
 
         return new AssignmentStaffSummaryResponse(assignment.getId(), assignment.getTitle(), assignment.getEndDate(),
                 beforeSubmissionCount, missedCount, pendingReviewCount, lateSubmittedCount, approvedCount);
+    }
+
+    /**
+     * ADMIN/PRESIDENT가 보는 전체 파트 과제별 파트원 전체 제출 현황(주차별). getSubmissionStatusForStaff와
+     * 동일하지만 파트마다 소속 파트원이 다르므로 과제별로 자기 파트의 파트원 목록을 찾아 집계한다.
+     */
+    private List<AssignmentStaffDetailResponse.WeekGroup> getSubmissionStatusAcrossParts() {
+        List<Assignment> assignments = assignmentRepository.findAllByOrderByWeekAscEndDateAsc();
+        if (assignments.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, List<Member>> babyLionsByPartId = babyLionsByPartId();
+        StatusLookup statusLookup = buildStatusLookup(assignments);
+        Map<Long, List<SubmissionFile>> filesBySubmitId = groupFilesBySubmitId(
+                statusLookup.latestByAssignmentIdThenMemberId().values().stream()
+                        .flatMap(byMemberId -> byMemberId.values().stream())
+                        .toList());
+
+        Map<Integer, List<Assignment>> assignmentsByWeek = assignments.stream()
+                .collect(Collectors.groupingBy(Assignment::getWeek, LinkedHashMap::new, Collectors.toList()));
+
+        return assignmentsByWeek.entrySet().stream()
+                .map(entry -> new AssignmentStaffDetailResponse.WeekGroup(entry.getKey(), entry.getValue().stream()
+                        .map(assignment -> toStaffDetail(assignment,
+                                babyLionsByPartId.getOrDefault(assignment.getPart().getId(), List.of()), statusLookup, filesBySubmitId))
+                        .toList()))
+                .toList();
     }
 
     private AssignmentStaffDetailResponse.WeekGroup toStaffDetailWeekGroup(Integer week, List<Assignment> weekAssignments,
@@ -467,7 +530,7 @@ public class AssignmentService {
     private Assignment getOwnedAssignment(Long staffMemberId, Long assignmentId) {
         Assignment assignment = getAssignment(assignmentId);
 
-        if (isPresident(staffMemberId)) {
+        if (isAdminOrPresident(staffMemberId)) {
             return assignment;
         }
 
@@ -479,8 +542,23 @@ public class AssignmentService {
         return assignment;
     }
 
-    private boolean isPresident(Long memberId) {
-        return getMember(memberId).getRole() == MemberRole.PRESIDENT;
+    /**
+     * 과제 생성과 동일하게, 수정/삭제/개별 마감일 변경은 PRESIDENT도 예외 없이 본인 소속 파트의 과제만 대상으로 할 수 있다.
+     */
+    private Assignment getAssignmentInOwnPart(Long staffMemberId, Long assignmentId) {
+        Assignment assignment = getAssignment(assignmentId);
+
+        Part staffPart = getStaffPart(staffMemberId);
+        if (!assignment.getPart().getId().equals(staffPart.getId())) {
+            throw new CustomException(ErrorCode.ASSIGNMENT_PART_MISMATCH, "본인 파트의 과제만 관리할 수 있습니다. assignmentId=" + assignmentId);
+        }
+
+        return assignment;
+    }
+
+    private boolean isAdminOrPresident(Long memberId) {
+        MemberRole role = getMember(memberId).getRole();
+        return role == MemberRole.PRESIDENT || role == MemberRole.ADMIN;
     }
 
     private Assignment getAssignment(Long id) {

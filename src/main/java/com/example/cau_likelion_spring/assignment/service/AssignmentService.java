@@ -45,12 +45,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 운영진(STAFF)/관리자(ADMIN)의 (본인 소속 파트 한정) 과제 생성/수정/삭제/개별 마감일 관리 및
- * 파트원 과제 제출 현황 조회·평가, 회장(PRESIDENT)/관리자(ADMIN)의 파트별 과제 목록 조회 서비스.
- * PRESIDENT는 STAFF/ADMIN과 달리 본인 소속 파트 제한 없이 모든 파트의 과제를 조회/관리할 수 있다
- * (assignmentId로 대상이 특정되는 조회/수정/삭제/마감일 변경/제출 이력/평가에 한함. 본인 파트 기준으로
- * 목록을 집계하는 create/getMyAssignmentsForStaff/getWeeklyStatusForStaff/getSubmissionStatusForStaff는
- * 대상 파트를 특정할 방법이 없어 PRESIDENT에게는 적용되지 않으며, 파트별 목록 조회는 {@link #getAssignmentsForPresident}를 사용한다).
+ * 과제 생성/수정/삭제/개별 마감일 관리는 STAFF/ADMIN/PRESIDENT 모두 본인 소속 파트로 제한된다.
+ * 반면 assignmentId로 대상이 특정되는 단건 조회({@link #getById})/제출 이력 조회({@link #getSubmissionsForStaff})/
+ * 평가({@link #evaluate})는 PRESIDENT에 한해 소속 파트 제한이 없다(추후 ADMIN도 동일하게 정리 예정).
+ * 본인 파트 기준으로 목록을 집계하는 getMyAssignmentsForStaff/getWeeklyStatusForStaff/getSubmissionStatusForStaff는
+ * 현재 STAFF/ADMIN/PRESIDENT 모두 본인 파트로 제한되며, 회장/관리자가 다른 파트 목록을 보려면
+ * {@link #getAssignmentsForPresident}를 사용한다.
  */
 @Service
 @RequiredArgsConstructor
@@ -100,7 +100,7 @@ public class AssignmentService {
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     @Transactional
     public AssignmentResponse update(Long staffMemberId, Long assignmentId, AssignmentUpdateRequest request) {
-        Assignment assignment = getOwnedAssignment(staffMemberId, assignmentId);
+        Assignment assignment = getAssignmentInOwnPart(staffMemberId, assignmentId);
 
         assignment.update(request.title(), request.detail(), request.endDate(), request.type());
 
@@ -114,7 +114,7 @@ public class AssignmentService {
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     @Transactional
     public void delete(Long staffMemberId, Long assignmentId) {
-        Assignment assignment = getOwnedAssignment(staffMemberId, assignmentId);
+        Assignment assignment = getAssignmentInOwnPart(staffMemberId, assignmentId);
 
         submissionFileRepository.findAllByAssignmentSubmit_Assignment(assignment)
                 .forEach(file -> s3Uploader.deleteByUrl(file.getFileUrl()));
@@ -134,7 +134,7 @@ public class AssignmentService {
     @Transactional
     public List<AssignmentIndividualDeadlineResponse> updateIndividualDeadlines(Long staffMemberId, Long assignmentId,
                                                                                   AssignmentIndividualDeadlineRequest request) {
-        Assignment assignment = getOwnedAssignment(staffMemberId, assignmentId);
+        Assignment assignment = getAssignmentInOwnPart(staffMemberId, assignmentId);
 
         List<Member> members = memberRepository.findAllById(request.memberIds());
         if (members.size() != request.memberIds().size()) {
@@ -470,6 +470,20 @@ public class AssignmentService {
         if (isPresident(staffMemberId)) {
             return assignment;
         }
+
+        Part staffPart = getStaffPart(staffMemberId);
+        if (!assignment.getPart().getId().equals(staffPart.getId())) {
+            throw new CustomException(ErrorCode.ASSIGNMENT_PART_MISMATCH, "본인 파트의 과제만 관리할 수 있습니다. assignmentId=" + assignmentId);
+        }
+
+        return assignment;
+    }
+
+    /**
+     * 과제 생성과 동일하게, 수정/삭제/개별 마감일 변경은 PRESIDENT도 예외 없이 본인 소속 파트의 과제만 대상으로 할 수 있다.
+     */
+    private Assignment getAssignmentInOwnPart(Long staffMemberId, Long assignmentId) {
+        Assignment assignment = getAssignment(assignmentId);
 
         Part staffPart = getStaffPart(staffMemberId);
         if (!assignment.getPart().getId().equals(staffPart.getId())) {

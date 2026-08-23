@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -21,6 +22,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class GenerationService {
+
+    // 파트 정렬 우선순위 키워드 (공통 -> 기획 -> 디자인 -> 프론트 -> 백엔드).
+    // 기수마다 파트명이 자유 텍스트라("기획"/"디자인"이 따로일 때도, "기획디자인"으로 합쳐질 때도 있음)
+    // 정확히 일치가 아니라 포함(contains) 여부로 매칭한다. 여러 키워드를 동시에 포함하면(예: "기획디자인")
+    // 먼저 나오는 키워드 기준으로 정렬 위치가 정해진다. 아무 키워드도 안 걸리면 맨 뒤로 보낸다.
+    private static final List<String> PART_ORDER_KEYWORDS = List.of("공통", "기획", "디자인", "프론트", "백엔드");
 
     private final GenerationRepository generationRepository;
     private final PartRepository partRepository;
@@ -42,7 +49,7 @@ public class GenerationService {
                 .toList();
         List<Part> savedParts = partRepository.saveAll(parts);
 
-        return GenerationListResponseDto.of(savedGeneration, savedParts);
+        return GenerationListResponseDto.of(savedGeneration, sortPartsByCategory(savedParts));
     }
 
     public List<GenerationListResponseDto> getGenerationList() {
@@ -59,9 +66,28 @@ public class GenerationService {
         return generations.stream()
                 .map(generation -> GenerationListResponseDto.of(
                         generation,
-                        partsByGenerationId.getOrDefault(generation.getId(), List.of())
+                        sortPartsByCategory(partsByGenerationId.getOrDefault(generation.getId(), List.of()))
                 ))
                 .toList();
+    }
+
+    /**
+     * 파트 목록을 공통 -> 기획 -> 디자인 -> 프론트 -> 백엔드 순으로 정렬한다.
+     * 어떤 키워드에도 안 걸리는 파트는, 원래 순서를 유지한 채(안정 정렬) 정렬된 파트들 뒤에 위치한다.
+     */
+    private List<Part> sortPartsByCategory(List<Part> parts) {
+        return parts.stream()
+                .sorted(Comparator.comparingInt(this::resolvePartOrderPriority))
+                .toList();
+    }
+
+    private int resolvePartOrderPriority(Part part) {
+        for (int i = 0; i < PART_ORDER_KEYWORDS.size(); i++) {
+            if (part.getName().contains(PART_ORDER_KEYWORDS.get(i))) {
+                return i;
+            }
+        }
+        return Integer.MAX_VALUE;
     }
 
     /**

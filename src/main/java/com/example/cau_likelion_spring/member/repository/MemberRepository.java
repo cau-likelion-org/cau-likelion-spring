@@ -17,6 +17,8 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     List<Member> findByPart_IdAndRole(Long partId, MemberRole role);
 
+    List<Member> findByPart_IdInAndRole(List<Long> partIds, MemberRole role);
+
     List<Member> findByRole(MemberRole role);
 
     /** 이름/기수/파트/권한으로 구성원을 검색한다. 각 파라미터가 null이면 그 조건은 무시된다. */

@@ -39,9 +39,12 @@ public class BlogScrapingService {
     private static final int MIN_PARAGRAPH_LENGTH = 10;
     private static final int DESCRIPTION_PARAGRAPH_LIMIT = 3;
     private static final int DESCRIPTION_MAX_LENGTH = 150;
+    /** 네이버 등 일부 플랫폼은 og:description을 자체적으로 짧게(80자 내외) 잘라서 내려주므로, 이보다 짧으면 본문 크롤링으로 폴백한다 */
+    private static final int DESCRIPTION_MIN_LENGTH = 100;
 
     private static final String[] CONTENT_CONTAINER_SELECTORS = {
-            "article", "main", ".post-content", ".entry-content", "#content", ".article-body", "body"
+            "article", "main", ".post-content", ".entry-content", "#content", ".article-body",
+            ".se-main-container", "body"
     };
 
     private static final String[] DATE_META_SELECTORS = {
@@ -195,18 +198,35 @@ public class BlogScrapingService {
 
     private String extractDescription(Document doc) {
         String ogDescription = metaContent(doc, "meta[property=og:description]");
-        if (StringUtils.hasText(ogDescription)) {
+        if (isLongEnough(ogDescription)) {
             return ogDescription;
         }
         String twitterDescription = metaContent(doc, "meta[name=twitter:description]");
-        if (StringUtils.hasText(twitterDescription)) {
+        if (isLongEnough(twitterDescription)) {
             return twitterDescription;
         }
         String metaDescription = metaContent(doc, "meta[name=description]");
-        if (StringUtils.hasText(metaDescription)) {
+        if (isLongEnough(metaDescription)) {
             return metaDescription;
         }
-        return extractFirstParagraphs(doc);
+
+        String paragraphs = extractFirstParagraphs(doc);
+        if (StringUtils.hasText(paragraphs)) {
+            return paragraphs;
+        }
+
+        // 본문 크롤링도 실패했다면, 짧더라도 메타 설명 중 하나를 마지막 fallback으로 사용
+        if (StringUtils.hasText(ogDescription)) {
+            return ogDescription;
+        }
+        if (StringUtils.hasText(twitterDescription)) {
+            return twitterDescription;
+        }
+        return metaDescription;
+    }
+
+    private boolean isLongEnough(String text) {
+        return StringUtils.hasText(text) && text.length() >= DESCRIPTION_MIN_LENGTH;
     }
 
     private String extractFirstParagraphs(Document doc) {

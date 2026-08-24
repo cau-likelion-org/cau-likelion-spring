@@ -31,6 +31,7 @@ public class Blog extends BaseTimeEntity {
     @Column(nullable = false)
     private String title;
 
+    @Column(length = 1000)
     private String thumbnailUrl;
 
     @Enumerated(EnumType.STRING)

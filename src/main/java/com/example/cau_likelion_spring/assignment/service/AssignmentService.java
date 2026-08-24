@@ -11,7 +11,6 @@ import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadli
 import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadlineResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberSubmissionHistoryResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberSubmissionResponse;
-import com.example.cau_likelion_spring.assignment.dto.AssignmentMemberWeeklyStatusResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffDetailResponse;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentStaffSubmissionHistoryResponse;
@@ -47,7 +46,7 @@ import java.util.stream.Collectors;
 /**
  * 과제 생성/수정/삭제/개별 마감일 관리와 제출 평가({@link #evaluate})는 STAFF/ADMIN/PRESIDENT 모두
  * 본인 소속 파트로 제한된다. 반면 조회 계열({@link #getById}, {@link #getSubmissionsForStaff},
- * {@link #getMyAssignmentsForStaff}, {@link #getWeeklyStatusForStaff}, {@link #getSubmissionStatusForStaff})은
+ * {@link #getMyAssignmentsForStaff}, {@link #getSubmissionStatusForStaff})은
  * STAFF는 본인 파트로 제한되고 ADMIN/PRESIDENT는 전체 파트를 조회할 수 있다.
  */
 @Service
@@ -189,32 +188,6 @@ public class AssignmentService {
         Part part = getPart(partId);
         List<Assignment> assignments = assignmentRepository.findAllByPart_IdOrderByWeekAscEndDateAsc(part.getId());
         return toStaffSummaryWeekGroups(assignments);
-    }
-
-    /**
-     * 아기사자 1명의 특정 주차 종합 상태. STAFF는 본인 파트 소속 아기사자만, ADMIN/PRESIDENT는 파트 제한 없이 조회 가능하다.
-     * 그 주차에 개별 과제가 여러 개면 상태들을 우선순위(제출전 > 승인반려 > 승인대기 > 미제출 > 지각제출 > 승인완료)로 판단해 상태 하나로 합친다.
-     */
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
-    public AssignmentMemberWeeklyStatusResponse getWeeklyStatusForStaff(Long staffMemberId, Long targetMemberId, Integer week) {
-        Member babyLion = getMember(targetMemberId);
-        if (babyLion.getPart() == null || !isOwnPartOrAdminPresident(staffMemberId, babyLion.getPart().getId())) {
-            throw new CustomException(ErrorCode.ASSIGNMENT_MEMBER_PART_MISMATCH,
-                    "과제 파트에 속하지 않은 아기사자입니다. memberId=" + targetMemberId);
-        }
-
-        List<Assignment> assignments = assignmentRepository.findAllByPart_IdAndWeekOrderByEndDateAsc(babyLion.getPart().getId(), week);
-        if (assignments.isEmpty()) {
-            throw new CustomException(ErrorCode.ASSIGNMENT_NOT_FOUND, "해당 주차에 생성된 과제가 없습니다. week=" + week);
-        }
-
-        StatusLookup statusLookup = buildStatusLookup(assignments);
-        List<AssignmentSubmitDisplayStatus> statuses = assignments.stream()
-                .map(assignment -> statusLookup.statusOf(assignment, babyLion.getId()))
-                .toList();
-
-        AssignmentSubmitDisplayStatus weeklyStatus = AssignmentSubmitDisplayStatusCalculator.aggregateWeekly(statuses);
-        return new AssignmentMemberWeeklyStatusResponse(babyLion.getId(), babyLion.getName(), week, weeklyStatus);
     }
 
     /**

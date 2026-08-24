@@ -26,7 +26,10 @@ public record MemberResponse(
         String partName,
 
         @Schema(description = "기수 (소속 파트가 없으면 null)", example = "13")
-        Integer generationNumber
+        Integer generationNumber,
+
+        @Schema(description = "푸시 알림 수신 여부 (기기별 FCM 토큰과 별개로 계정에 저장되어 로그아웃해도 유지됨)", example = "true")
+        boolean pushEnabled
 ) {
 
     public static MemberResponse from(Member member) {
@@ -37,7 +40,8 @@ public record MemberResponse(
                 member.getRole(),
                 member.getPart() != null ? member.getPart().getId() : null,
                 member.getPart() != null ? member.getPart().getName() : null,
-                member.getPart() != null ? member.getPart().getGeneration().getNumber() : null
+                member.getPart() != null ? member.getPart().getGeneration().getNumber() : null,
+                member.isPushEnabled()
         );
     }
 }

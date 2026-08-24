@@ -38,6 +38,9 @@ public class AssignmentPushNotificationService {
     @Transactional
     public void sendEvaluationNotification(AssignmentSubmit submit) {
         Member member = submit.getSubmitMember();
+        if (!member.isPushEnabled()) {
+            return;
+        }
         List<FcmToken> fcmTokens = fcmTokenRepository.findAllByMember_Id(member.getId());
         if (fcmTokens.isEmpty()) {
             return;

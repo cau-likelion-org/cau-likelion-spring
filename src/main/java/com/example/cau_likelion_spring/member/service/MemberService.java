@@ -12,6 +12,7 @@ import com.example.cau_likelion_spring.member.domain.MemberRole;
 import com.example.cau_likelion_spring.member.dto.FcmTokenRequest;
 import com.example.cau_likelion_spring.member.dto.MemberResponse;
 import com.example.cau_likelion_spring.member.dto.MemberUpdateRequest;
+import com.example.cau_likelion_spring.member.dto.PushSettingRequest;
 import com.example.cau_likelion_spring.global.exception.CustomException;
 import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.global.util.S3Uploader;
@@ -67,6 +68,7 @@ public class MemberService {
     /**
      * 본인 기기의 FCM 토큰을 등록한다. 기기(브라우저)마다 별도로 등록되므로 여러 개를 동시에 가질 수 있다.
      * 이미 등록된 토큰이면(재등록/갱신) 그대로 유지되고, 다른 구성원이 쓰던 토큰이면(기기 재사용, 계정 전환) 이 구성원 소유로 옮겨진다.
+     * 계정의 푸시 알림 수신 설정(pushEnabled)도 함께 켜진다.
      */
     @Transactional
     public void registerFcmToken(Long memberId, FcmTokenRequest request) {
@@ -75,12 +77,29 @@ public class MemberService {
                 .orElseGet(() -> FcmToken.builder().member(member).token(request.fcmToken()).build());
         fcmToken.reassignTo(member);
         fcmTokenRepository.save(fcmToken);
+        member.enablePush();
     }
 
-    /** 본인 기기의 FCM 토큰을 삭제한다 (로그아웃 시 등). 등록돼 있지 않아도 조용히 넘어간다. */
+    /**
+     * 본인 기기의 FCM 토큰을 삭제한다 (로그아웃 시 등). 등록돼 있지 않아도 조용히 넘어간다.
+     * 이 기기의 토큰만 지워질 뿐 계정의 푸시 알림 수신 설정(pushEnabled)은 바뀌지 않으므로,
+     * 다시 로그인해 토큰을 재등록하면 이전 설정 그대로 알림을 받는다.
+     */
     @Transactional
     public void deleteFcmToken(Long memberId, FcmTokenRequest request) {
         fcmTokenRepository.deleteByMember_IdAndToken(memberId, request.fcmToken());
+    }
+
+    /** 계정의 푸시 알림 수신 여부를 사용자가 직접 켜고 끈다. 기기별 FCM 토큰과 별개로 로그아웃해도 유지된다. */
+    @Transactional
+    public MemberResponse updatePushSetting(Long memberId, PushSettingRequest request) {
+        Member member = getMember(memberId);
+        if (request.pushEnabled()) {
+            member.enablePush();
+        } else {
+            member.disablePush();
+        }
+        return MemberResponse.from(member);
     }
 
     /**

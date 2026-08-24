@@ -31,6 +31,10 @@ public class Member extends BaseTimeEntity {
     @JoinColumn(name = "part_id")
     private Part part;
 
+    /** 푸시 알림 수신 여부. 기기별 FCM 토큰과 별개로 계정에 귀속되는 설정이라 로그아웃해도 유지된다. */
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean pushEnabled = true;
+
     @Builder
     public Member(String name, String email, MemberRole role, Part part) {
         this.name = name;
@@ -44,5 +48,13 @@ public class Member extends BaseTimeEntity {
         this.email = email;
         this.role = role;
         this.part = part;
+    }
+
+    public void enablePush() {
+        this.pushEnabled = true;
+    }
+
+    public void disablePush() {
+        this.pushEnabled = false;
     }
 }

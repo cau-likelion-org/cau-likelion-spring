@@ -4,6 +4,7 @@ import com.example.cau_likelion_spring.member.domain.MemberRole;
 import com.example.cau_likelion_spring.member.dto.FcmTokenRequest;
 import com.example.cau_likelion_spring.member.dto.MemberResponse;
 import com.example.cau_likelion_spring.member.dto.MemberUpdateRequest;
+import com.example.cau_likelion_spring.member.dto.PushSettingRequest;
 import com.example.cau_likelion_spring.member.service.MemberService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -71,6 +72,22 @@ public class MemberController {
             @Valid @RequestBody FcmTokenRequest request) {
         memberService.deleteFcmToken(memberId, request);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "푸시 알림 수신 설정 변경",
+            description = "요청자 본인의 푸시 알림 수신 여부를 켜거나 끕니다. 기기별 FCM 토큰과 별개로 계정에 저장되는 설정이라, "
+                    + "로그아웃 후 다시 로그인해도 값이 유지됩니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "변경 성공"),
+            @ApiResponse(responseCode = "400", description = "요청값 검증 실패"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 요청"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 구성원")
+    })
+    @PatchMapping("/me/push-setting")
+    public ResponseEntity<MemberResponse> updatePushSetting(
+            @AuthenticationPrincipal Long memberId,
+            @Valid @RequestBody PushSettingRequest request) {
+        return ResponseEntity.ok(memberService.updatePushSetting(memberId, request));
     }
 
     @Operation(summary = "전체 구성원 조회",

@@ -63,4 +63,4 @@ attendance:
   session-start-hour: 19
   check-close-hour: 22
   late-grace-minutes: 5
-  absence-check-cron: "0 5 19 * * WED"
+  absence-check-cron: "0 0 22 * * WED"

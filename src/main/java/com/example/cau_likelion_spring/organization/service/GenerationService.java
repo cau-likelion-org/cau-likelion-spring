@@ -106,13 +106,4 @@ public class GenerationService {
         target.changeStatus(GenerationStatus.IN_ACTIVITY);
         // 영속 상태(더티 체킹)라 별도 save() 호출 불필요
     }
-
-    /**
-     * 현재 기수 판단 - status가 IN_ACTIVITY인 Generation을 반환
-     * 다른 도메인(session, assignment 등)에서 "현재 기수"가 필요할 때 이 메서드를 재사용하면 된다.
-     */
-    public Generation getCurrentGeneration() {
-        return generationRepository.findByStatus(GenerationStatus.IN_ACTIVITY)
-                .orElseThrow(() -> new CustomException(ErrorCode.CURRENT_GENERATION_NOT_FOUND, "현재 기수로 지정된 기수가 없습니다."));
-    }
 }

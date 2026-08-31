@@ -37,7 +37,7 @@ public class GenerationController {
         return ResponseEntity.ok(generationService.getGenerationList());
     }
 
-    @Operation(summary = "현재 기수 전환", description = "해당 id의 기수를 현재 기수(isCurrent=true)로 지정하고, 나머지 기수는 모두 isCurrent=false로 바뀝니다. ADMIN 권한이 필요합니다.")
+    @Operation(summary = "현재 기수 전환", description = "해당 id의 기수를 현재 활동 기수(status=IN_ACTIVITY)로 전환합니다. 기존에 활동 중이던 기수가 있다면 활동 후(status=AFTER_ACTIVITY) 상태로 바뀝니다. ADMIN 권한이 필요합니다.")
     @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PatchMapping("/{id}/current")
     public ResponseEntity<Void> changeCurrentGeneration(

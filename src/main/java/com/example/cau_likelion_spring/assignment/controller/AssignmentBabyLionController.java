@@ -33,7 +33,6 @@ public class AssignmentBabyLionController {
 
     private final AssignmentBabyLionService assignmentBabyLionService;
 
-    // 과제 목록 조회
     @Operation(summary = "내 과제 목록 조회 (주차별)",
             description = "로그인한 아기사자 본인 파트의 과제 목록을 주차별로 묶어서 조회합니다. "
                     + "week 파라미터를 주면 해당 주차만, 주지 않으면 전체 주차를 반환합니다. "
@@ -71,7 +70,6 @@ public class AssignmentBabyLionController {
         return ResponseEntity.ok(assignmentBabyLionService.getMySubmissionHistoryByWeek(memberId, week));
     }
 
-    // 과제 제출/수정/재제출 및 이력 조회
     @Operation(summary = "과제 제출/수정/재제출",
             description = "로그인한 아기사자 본인이 과제를 제출합니다. 최초 제출 이후에도 이 API를 그대로 호출합니다. "
                     + "제출 시각(submittedAt)은 항상 가장 최근 호출 시각으로 갱신됩니다. Assignment.type이 URL이면 url을, FILE이면 files를 채워야 합니다. "

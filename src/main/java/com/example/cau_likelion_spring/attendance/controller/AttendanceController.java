@@ -95,8 +95,8 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.getAllAttendances());
     }
 
-    @Operation(summary = "출결 상태 일괄 수정", description = "운영진/회장이 여러 아기사자의 출결 상태를 한 번에 수정합니다. " +
-            "결석 또는 공결로 변경할 때는 사유가 필수입니다. STAFF는 본인 파트 아기사자만, PRESIDENT는 전체 파트를 수정할 수 있습니다.")
+    @Operation(summary = "출결 상태 일괄 수정", description = "운영진/관리자/회장이 여러 아기사자의 출결 상태를 한 번에 수정합니다. " +
+            "결석 또는 공결로 변경할 때는 사유가 필수입니다. STAFF와 ADMIN은 본인 파트 아기사자만, PRESIDENT는 전체 파트를 수정할 수 있습니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "수정 성공"),
             @ApiResponse(responseCode = "400", description = "요청값 검증 실패 또는 결석/공결 사유 누락"),

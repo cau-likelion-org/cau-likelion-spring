@@ -37,7 +37,7 @@ public class Project extends BaseTimeEntity {
     @Lob
     private String tagline;
 
-    /** 서비스 요약 - TODO 추후 글자수 확정 */
+    /** 서비스 요약 */
     @Lob
     private String summary;
 

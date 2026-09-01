@@ -50,7 +50,7 @@ public class ProjectController {
         return ResponseEntity.ok(projectService.getAll(generationId, category));
     }
 
-    @Operation(summary = "(개발용) 프로젝트 단건 조회", description = "프로젝트 ID로 상세 정보를 조회합니다.")
+    @Operation(summary = "프로젝트 단건 조회", description = "프로젝트 ID로 상세 정보를 조회합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 프로젝트")

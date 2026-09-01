@@ -42,7 +42,6 @@ public class AssignmentController {
 
     private final AssignmentService assignmentService;
 
-    // 과제 목록/현황 조회
     @Operation(summary = "내 파트 생성된 과제 목록 조회 (주차별)",
             description = "로그인한 운영진이 본인 파트에 생성한 과제 목록을 주차별로 묶어서 조회합니다. "
                     + "개별 과제마다 과제명/마감기한과, 파트원 전체를 대상으로 최신 제출 기준 제출전/미제출/승인대기/지각제출/승인완료 인원 수를 함께 보여줍니다. "
@@ -89,7 +88,6 @@ public class AssignmentController {
         return ResponseEntity.ok(assignmentService.getSubmissionStatusForStaff(memberId));
     }
 
-    // 과제 생성/수정/삭제/개별 마감일 관리
     @Operation(summary = "과제 생성",
             description = "로그인한 운영진(또는 관리자)이 본인 소속 파트의 과제를 생성합니다. 파트는 요청으로 받지 않고 로그인한 사용자의 소속 파트로 자동 지정됩니다. "
                     + "한 주차에 개별 과제를 1개 이상 한 번에 생성할 수 있습니다 (생성 페이지의 + 버튼으로 여러 개 모아 한 번에 저장). "
@@ -175,7 +173,6 @@ public class AssignmentController {
         return ResponseEntity.noContent().build();
     }
 
-    // 파트원 제출 현황 조회 및 평가
     @Operation(summary = "파트원 전체 제출 이력 조회",
             description = "로그인한 운영진이 본인 파트원 전체의 과제 제출 이력을 조회합니다. 과제 자체의 제목/설명/마감기한과 함께, "
                     + "파트원별 제출 이력을 최신순으로 전부 내려줍니다 (반려 후 재제출처럼 같은 파트원이 같은 과제를 여러 번 제출했다면 그 이력이 모두 노출됨). "

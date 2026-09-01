@@ -48,7 +48,12 @@ public class BlogService {
     }
 
     public List<BlogResponse> getAll(Long generationId, BlogCategory category) {
-        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        // 원문 작성일 최신순. 스크래핑으로 작성일을 못 찾은 글(null)은 목록 맨 뒤로,
+        // 같은 작성일끼리는 제목 가나다순, 제목까지 같으면 업로드일(createdAt) 최신순으로 보조 정렬한다.
+        Sort sort = Sort.by(
+                Sort.Order.desc("publishedDate").nullsLast(),
+                Sort.Order.asc("title"),
+                Sort.Order.desc("createdAt"));
 
         List<Blog> blogs;
         if (generationId != null && category != null) {

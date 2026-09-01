@@ -94,7 +94,7 @@ public class BlogScrapingService {
 
     public BlogScrapingResponse scrape(String url) {
         validateUrl(url);
-        Document doc = fetchDocument(url);
+        Document doc = resolveContentDocument(fetchDocument(url), url);
 
         return new BlogScrapingResponse(
                 url,
@@ -127,6 +127,54 @@ public class BlogScrapingService {
                     .get();
         } catch (IOException e) {
             throw new CustomException(ErrorCode.BLOG_SCRAPING_FAILED, "블로그 페이지를 불러올 수 없습니다. url=" + url);
+        }
+    }
+
+    /**
+     * 네이버 PC 블로그처럼 실제 본문을 iframe(mainFrame) 안에 담아 내려주는 래퍼 페이지 대응.
+     * 래퍼는 head에 og 태그가 없어 모든 추출이 실패하므로, og:title이 없고 본문 iframe이 있으면
+     * 그 iframe 문서를 한 번 더 가져온다(최대 1홉). 무한 리다이렉트/서드파티 위젯 iframe을 피하기 위해
+     * iframe URL이 원본과 같은 호스트일 때만 따라간다. og:title이 있는 일반 페이지는 그대로 통과한다.
+     */
+    private Document resolveContentDocument(Document doc, String originalUrl) {
+        if (StringUtils.hasText(metaContent(doc, "meta[property=og:title]"))) {
+            return doc;
+        }
+
+        Element frame = doc.selectFirst("#mainFrame[src]");
+        if (frame == null) {
+            frame = doc.selectFirst("iframe[src], frame[src]");
+        }
+        if (frame == null) {
+            return doc;
+        }
+
+        String frameUrl = frame.absUrl("src");
+        if (!isSameHostHttpUrl(frameUrl, originalUrl)) {
+            return doc;
+        }
+
+        try {
+            return fetchDocument(frameUrl);
+        } catch (CustomException e) {
+            return doc;
+        }
+    }
+
+    private boolean isSameHostHttpUrl(String candidate, String originalUrl) {
+        if (!StringUtils.hasText(candidate)) {
+            return false;
+        }
+        try {
+            URI frameUri = new URI(candidate);
+            String scheme = frameUri.getScheme();
+            if (!("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))) {
+                return false;
+            }
+            return frameUri.getHost() != null
+                    && frameUri.getHost().equalsIgnoreCase(new URI(originalUrl).getHost());
+        } catch (URISyntaxException e) {
+            return false;
         }
     }
 

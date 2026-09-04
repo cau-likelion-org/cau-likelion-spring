@@ -2,12 +2,14 @@ package com.example.cau_likelion_spring.assignment.repository;
 
 import com.example.cau_likelion_spring.assignment.domain.Assignment;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmit;
+import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitStatus;
 import com.example.cau_likelion_spring.member.domain.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +23,19 @@ public interface AssignmentSubmitRepository extends JpaRepository<AssignmentSubm
     @Modifying
     @Query("UPDATE AssignmentSubmit s SET s.reviewMember = NULL WHERE s.reviewMember.id = :memberId")
     void clearReviewMemberById(@Param("memberId") Long memberId);
+
+    /**
+     * 평가(승인/반려) 결과를 벌크 UPDATE로 반영한다.
+     * 평가 관련 컬럼만 SET하고 updatedAt은 건드리지 않아, BaseTimeEntity의 JPA auditing(@LastModifiedDate)이
+     * 엔티티 저장 시 자동으로 updatedAt을 갱신하는 것을 우회한다 - updatedAt은 "제출 시각"이므로 평가로 바뀌면 안 된다.
+     */
+    @Modifying
+    @Query("UPDATE AssignmentSubmit s SET s.status = :status, s.reviewMember = :reviewMember, " +
+            "s.reviewerName = :reviewerName, s.approvalDate = :approvalDate, s.rejectionReason = :rejectionReason " +
+            "WHERE s.id = :id")
+    void applyEvaluation(@Param("id") Long id, @Param("status") AssignmentSubmitStatus status,
+                          @Param("reviewMember") Member reviewMember, @Param("reviewerName") String reviewerName,
+                          @Param("approvalDate") LocalDateTime approvalDate, @Param("rejectionReason") String rejectionReason);
 
     Optional<AssignmentSubmit> findFirstByAssignmentAndSubmitMemberOrderByCreatedAtDesc(
             Assignment assignment, Member submitMember);

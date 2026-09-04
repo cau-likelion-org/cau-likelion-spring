@@ -46,7 +46,7 @@ public final class AssignmentSubmitDisplayStatusCalculator {
         return switch (latest.getStatus()) {
             case REJECTED -> AssignmentSubmitDisplayStatus.REJECTED;
             case PENDING -> AssignmentSubmitDisplayStatus.PENDING_REVIEW;
-            case APPROVED -> latest.getCreatedAt().isAfter(endDate)
+            case APPROVED -> latest.getUpdatedAt().isAfter(endDate)
                     ? AssignmentSubmitDisplayStatus.LATE_SUBMITTED
                     : AssignmentSubmitDisplayStatus.APPROVED;
         };

@@ -5,6 +5,7 @@ import com.example.cau_likelion_spring.assignment.domain.AssignmentIndividualDea
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmit;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplayStatus;
 import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitDisplayStatusCalculator;
+import com.example.cau_likelion_spring.assignment.domain.AssignmentSubmitStatus;
 import com.example.cau_likelion_spring.assignment.domain.SubmissionFile;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentCreateRequest;
 import com.example.cau_likelion_spring.assignment.dto.AssignmentIndividualDeadlineRequest;
@@ -31,6 +32,7 @@ import com.example.cau_likelion_spring.global.util.S3Uploader;
 import com.example.cau_likelion_spring.member.repository.MemberRepository;
 import com.example.cau_likelion_spring.organization.domain.Part;
 import com.example.cau_likelion_spring.organization.repository.PartRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -63,6 +65,7 @@ public class AssignmentService {
     private final PartRepository partRepository;
     private final AssignmentPushNotificationService assignmentPushNotificationService;
     private final S3Uploader s3Uploader;
+    private final EntityManager entityManager;
 
     /**
      * 한 주차에 개별 과제 1개 이상을 한 번에 생성한다 (생성 페이지에서 +로 여러 개를 모아 한 번에 저장하는 흐름).
@@ -246,9 +249,9 @@ public class AssignmentService {
 
     /**
      * 제출을 승인/반려로 평가한다. STAFF/ADMIN/PRESIDENT 모두 본인 파트의 제출만 평가할 수 있다.
-     * 승인 시 제출 시각(createdAt)이 마감일 이전이면 '승인완료', 이후면 '지각제출'로 표시되고
+     * 승인 시 제출 시각(updatedAt)이 마감일 이전이면 '승인완료', 이후면 '지각제출'로 표시되고
      * (AssignmentSubmitDisplayStatusCalculator가 계산), 반려는 시점과 무관하게 '승인반려'로 표시된다.
-     * 평가하면 reviewMember/approvalDate가 갱신된다.
+     * 평가하면 reviewMember/approvalDate가 갱신되지만, updatedAt(제출 시각)은 평가로 바뀌면 안 되므로 그대로 유지한다.
      */
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'PRESIDENT')")
     @Transactional
@@ -261,17 +264,19 @@ public class AssignmentService {
         if (!submit.getAssignment().getId().equals(assignmentId)) {
             throw new CustomException(ErrorCode.ASSIGNMENT_SUBMIT_NOT_FOUND, "존재하지 않는 제출입니다. submitId=" + submitId);
         }
-
-        switch (request.status()) {
-            case APPROVED -> submit.approve(staff);
-            case REJECTED -> {
-                if (!StringUtils.hasText(request.rejectionReason())) {
-                    throw new CustomException(ErrorCode.INVALID_INPUT, "반려 사유를 입력해주세요.");
-                }
-                submit.reject(staff, request.rejectionReason());
-            }
-            case PENDING -> throw new CustomException(ErrorCode.INVALID_INPUT, "평가 상태는 APPROVED 또는 REJECTED만 가능합니다.");
+        if (request.status() == AssignmentSubmitStatus.PENDING) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "평가 상태는 APPROVED 또는 REJECTED만 가능합니다.");
         }
+        if (request.status() == AssignmentSubmitStatus.REJECTED && !StringUtils.hasText(request.rejectionReason())) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "반려 사유를 입력해주세요.");
+        }
+        String rejectionReason = request.status() == AssignmentSubmitStatus.REJECTED ? request.rejectionReason() : null;
+
+        // submit.approve()/reject()로 엔티티를 직접 고쳐 save하면 JPA auditing이 updatedAt까지 같이 갱신해버리므로,
+        // 평가 컬럼만 벌크 UPDATE로 반영하고 refresh()로 다시 읽어들인다 (updatedAt은 DB에 있는 값 그대로 유지됨).
+        assignmentSubmitRepository.applyEvaluation(submit.getId(), request.status(), staff, staff.getName(),
+                LocalDateTime.now(), rejectionReason);
+        entityManager.refresh(submit);
 
         assignmentPushNotificationService.sendEvaluationNotification(submit);
 

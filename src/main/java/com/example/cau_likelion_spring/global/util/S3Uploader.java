@@ -21,6 +21,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -61,18 +62,28 @@ public class S3Uploader {
         validate(file, domain);
 
         String extension = extractExtension(file.getOriginalFilename());
-        byte[] content = resizeIfNeeded(file, domain, extension);
-
         String key = domain.getFolder() + "/" + UUID.randomUUID() + "." + extension;
+
         ObjectMetadata.Builder metadataBuilder = ObjectMetadata.builder()
                 .contentType(file.getContentType());
         if (domain.isForceDownload()) {
             metadataBuilder.contentDisposition(buildAttachmentContentDisposition(file.getOriginalFilename()));
         }
+        ObjectMetadata metadata = metadataBuilder.build();
 
         try {
-            S3Resource resource = s3Template.upload(bucket, key, new ByteArrayInputStream(content), metadataBuilder.build());
-            return resource.getURL().toString();
+            if (domain.isResizable() && RESIZABLE_EXTENSIONS.contains(extension)) {
+                byte[] content = resizeIfNeeded(file, extension);
+                S3Resource resource = s3Template.upload(bucket, key, new ByteArrayInputStream(content), metadata);
+                return resource.getURL().toString();
+            }
+
+            // 리사이징이 필요 없는 파일(과제 첨부파일 등)은 힙에 통째로 올리지 않고
+            // 스트리밍으로 바로 S3에 전송한다 - 파일이 커도 서버 메모리 사용량이 거의 늘지 않는다.
+            try (InputStream inputStream = file.getInputStream()) {
+                S3Resource resource = s3Template.upload(bucket, key, inputStream, metadata);
+                return resource.getURL().toString();
+            }
         } catch (IOException e) {
             throw new CustomException(ErrorCode.FILE_UPLOAD_FAILED);
         }
@@ -119,11 +130,7 @@ public class S3Uploader {
      * 단, 동시 처리 자리를 못 구한 경우(서버가 바쁨)는 원본 업로드로 눈감아주지 않고 명시적으로 실패시킨다 -
      * 안전장치를 우회해서 결국 메모리를 또 많이 쓰게 되면 세마포어를 두는 의미가 없기 때문이다.
      */
-    private byte[] resizeIfNeeded(MultipartFile file, UploadDomain domain, String extension) {
-        if (!domain.isResizable() || !RESIZABLE_EXTENSIONS.contains(extension)) {
-            return readAllBytes(file);
-        }
-
+    private byte[] resizeIfNeeded(MultipartFile file, String extension) {
         byte[] originalBytes = readAllBytes(file);
 
         // 먼저 헤더만 가볍게 읽어서, 애초에 리사이징이 필요 없는 작은 이미지면 세마포어 자리도 안 쓰고 바로 반환

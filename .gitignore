@@ -49,3 +49,7 @@ IMPLEMENTATION_LOG.md
 
 ### Claude Code (local-only settings) ###
 .claude/settings.local.json
+
+### Load test results (local-only) ###
+loadtest/results/*
+!loadtest/results/.gitkeep

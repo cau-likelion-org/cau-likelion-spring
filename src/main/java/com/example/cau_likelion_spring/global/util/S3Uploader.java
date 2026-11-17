@@ -101,6 +101,23 @@ public class S3Uploader {
     }
 
     /**
+     * 우리 버킷의 S3 URL인지 확인한다 (다른 API로 전달받은 파일 URL 검증용).
+     * upload()가 돌려주는 URL의 호스트는 "{bucket}.s3..." 형태다.
+     */
+    public boolean isBucketUrl(String url) {
+        if (!StringUtils.hasText(url)) {
+            return false;
+        }
+        try {
+            URI uri = URI.create(url);
+            String host = uri.getHost();
+            return "https".equals(uri.getScheme()) && host != null && host.startsWith(bucket + ".s3");
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    /**
      * 이 클래스가 발급한 URL을 대상으로 S3 파일을 삭제한다.
      * 실패해도 예외를 던지지 않고 로그만 남긴다 - S3 일시 장애 때문에 정상적인 수정/삭제 요청 자체가 실패하면 안 되므로 best-effort로 처리.
      */

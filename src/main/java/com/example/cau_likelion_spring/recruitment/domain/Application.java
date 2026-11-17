@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
  * 지원서.
  * "application"은 의미가 너무 일반적이고(스프링 Application 클래스 등과 헷갈림)
  * 다른 도메인 테이블과 겹칠 수 있어, recruitment_ 접두어를 붙인 테이블명을 명시한다.
+ * 회차는 roundPart.round로 찾는다.
  */
 @Entity
 @Table(name = "recruitment_application")
@@ -27,6 +28,11 @@ public class Application extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "applicant_id")
     private Applicant applicant;
+
+    /** 지원 파트 */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "round_part_id")
+    private RoundPart roundPart;
 
     @Column(length = 10)
     private String studentNumber;
@@ -51,10 +57,11 @@ public class Application extends BaseTimeEntity {
     private LocalDateTime submitAt;
 
     @Builder
-    public Application(Applicant applicant, String studentNumber, String department, Grade grade,
-                       Integer semester, EnrollmentStatus enrollment, String capInfo,
+    public Application(Applicant applicant, RoundPart roundPart, String studentNumber, String department,
+                       Grade grade, Integer semester, EnrollmentStatus enrollment, String capInfo,
                        ApplicationSource source, LocalDateTime submitAt) {
         this.applicant = applicant;
+        this.roundPart = roundPart;
         this.studentNumber = studentNumber;
         this.department = department;
         this.grade = grade;

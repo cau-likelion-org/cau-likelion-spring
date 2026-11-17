@@ -19,10 +19,15 @@ public class InterviewTime extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "round_id")
+    private Round round;
+
     private LocalDateTime interviewDate;
 
     @Builder
-    public InterviewTime(LocalDateTime interviewDate) {
+    public InterviewTime(Round round, LocalDateTime interviewDate) {
+        this.round = round;
         this.interviewDate = interviewDate;
     }
 }

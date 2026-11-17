@@ -35,20 +35,30 @@ public class Round extends BaseTimeEntity {
 
     private LocalDateTime interviewDeadLine;
 
-    private LocalDateTime resultDate;
+    /** 서류 결과 공개 시각 (비어 있으면 공개 예약 전) */
+    private LocalDateTime documentResultDate;
+
+    /** 최종 결과 공개 시각 (비어 있으면 공개 예약 전) */
+    private LocalDateTime finalResultDate;
+
+    /** 결과 확인 종료일 */
+    private LocalDateTime resultCheckDeadLine;
 
     private LocalDateTime otDate;
 
     @Builder
     public Round(String name, LocalDateTime startDate, LocalDateTime deadLine,
                  LocalDateTime interviewStartDate, LocalDateTime interviewDeadLine,
-                 LocalDateTime resultDate, LocalDateTime otDate) {
+                 LocalDateTime documentResultDate, LocalDateTime finalResultDate,
+                 LocalDateTime resultCheckDeadLine, LocalDateTime otDate) {
         this.name = name;
         this.startDate = startDate;
         this.deadLine = deadLine;
         this.interviewStartDate = interviewStartDate;
         this.interviewDeadLine = interviewDeadLine;
-        this.resultDate = resultDate;
+        this.documentResultDate = documentResultDate;
+        this.finalResultDate = finalResultDate;
+        this.resultCheckDeadLine = resultCheckDeadLine;
         this.otDate = otDate;
     }
 }

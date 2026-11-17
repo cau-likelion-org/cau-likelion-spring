@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -79,8 +80,23 @@ public class ProjectService {
             projects = projectRepository.findAll(sort);
         }
 
+        if (projects.isEmpty()) {
+            return List.of();
+        }
+
+        // 목록 전체의 이미지·링크·멤버를 한 번씩 조회해서 프로젝트 id별로 묶음 (프로젝트마다 조회하는 N+1 방지)
+        Map<Long, List<ProjectImage>> imagesByProjectId = projectImageRepository.findAllByProjectIn(projects).stream()
+                .collect(Collectors.groupingBy(image -> image.getProject().getId()));
+        Map<Long, List<ProjectLink>> linksByProjectId = projectLinkRepository.findAllByProjectIn(projects).stream()
+                .collect(Collectors.groupingBy(link -> link.getProject().getId()));
+        Map<Long, List<ProjectMember>> membersByProjectId = projectMemberRepository.findAllByProjectIn(projects).stream()
+                .collect(Collectors.groupingBy(member -> member.getProject().getId()));
+
         return projects.stream()
-                .map(this::toResponse)
+                .map(project -> ProjectResponse.of(project,
+                        imagesByProjectId.getOrDefault(project.getId(), List.of()),
+                        linksByProjectId.getOrDefault(project.getId(), List.of()),
+                        membersByProjectId.getOrDefault(project.getId(), List.of())))
                 .toList();
     }
 

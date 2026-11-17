@@ -10,5 +10,7 @@ public interface ProjectLinkRepository extends JpaRepository<ProjectLink, Long> 
 
     List<ProjectLink> findAllByProject(Project project);
 
+    List<ProjectLink> findAllByProjectIn(List<Project> projects);
+
     void deleteAllByProject(Project project);
 }

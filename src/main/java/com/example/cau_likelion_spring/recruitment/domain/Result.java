@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
  * 지원 결과.
  * "result"는 의미가 너무 일반적이고 일부 DB에서 키워드로 쓰여 헷갈릴 수 있어,
  * recruitment_ 접두어를 붙인 테이블명을 명시한다.
+ * 결과 미입력은 null, 보류(HOLD)는 입력된 것으로 취급한다.
  */
 @Entity
 @Table(name = "recruitment_result")
@@ -32,24 +33,26 @@ public class Result extends BaseTimeEntity {
     @JoinColumn(name = "applicant_id")
     private Applicant applicant;
 
+    /** 서류 결과 */
     @Enumerated(EnumType.STRING)
-    private SubmitStatus submitStatus;
+    private ApplicationResult documentResult;
 
+    /** 면접(최종) 결과 */
     @Enumerated(EnumType.STRING)
-    private ApplicationResult applicationResult;
+    private ApplicationResult finalResult;
 
     private LocalDateTime fixedInterviewDate;
 
     private String fixedInterviewSpot;
 
     @Builder
-    public Result(Application application, Applicant applicant, SubmitStatus submitStatus,
-                  ApplicationResult applicationResult, LocalDateTime fixedInterviewDate,
+    public Result(Application application, Applicant applicant, ApplicationResult documentResult,
+                  ApplicationResult finalResult, LocalDateTime fixedInterviewDate,
                   String fixedInterviewSpot) {
         this.application = application;
         this.applicant = applicant;
-        this.submitStatus = submitStatus;
-        this.applicationResult = applicationResult;
+        this.documentResult = documentResult;
+        this.finalResult = finalResult;
         this.fixedInterviewDate = fixedInterviewDate;
         this.fixedInterviewSpot = fixedInterviewSpot;
     }

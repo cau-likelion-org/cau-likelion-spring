@@ -1,6 +1,7 @@
 package com.example.cau_likelion_spring.global.config;
 
 import com.example.cau_likelion_spring.global.jwt.JwtAuthenticationFilter;
+import com.example.cau_likelion_spring.member.domain.MemberRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -33,6 +34,11 @@ public class SecurityConfig {
             "/v3/api-docs/**",
             "/error"
     };
+
+    /** 회원 API는 회원 역할이 있어야 통과 (지원자 토큰의 ROLE_APPLICANT로는 접근 불가) */
+    private static final String[] MEMBER_ROLES = Arrays.stream(MemberRole.values())
+            .map(Enum::name)
+            .toArray(String[]::new);
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -67,7 +73,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/admin/curriculums").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/roadmap").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/generations").permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().hasAnyRole(MEMBER_ROLES)
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

@@ -24,24 +24,27 @@ public class JwtTokenProvider {
     private static final String TYPE_CLAIM = "type";
 
     private enum TokenType {
-        ACCESS, REFRESH, SIGNUP
+        ACCESS, REFRESH, SIGNUP, APPLICANT
     }
 
     private final SecretKey key;
     private final Duration accessTokenExpiration;
     private final Duration refreshTokenExpiration;
     private final Duration signupTokenExpiration;
+    private final Duration applicantTokenExpiration;
 
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.access-token-expiration}") Duration accessTokenExpiration,
             @Value("${jwt.refresh-token-expiration}") Duration refreshTokenExpiration,
-            @Value("${jwt.signup-token-expiration}") Duration signupTokenExpiration
+            @Value("${jwt.signup-token-expiration}") Duration signupTokenExpiration,
+            @Value("${jwt.applicant-token-expiration}") Duration applicantTokenExpiration
     ) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessTokenExpiration = accessTokenExpiration;
         this.refreshTokenExpiration = refreshTokenExpiration;
         this.signupTokenExpiration = signupTokenExpiration;
+        this.applicantTokenExpiration = applicantTokenExpiration;
     }
 
     public String createAccessToken(Long memberId, MemberRole role) {
@@ -58,6 +61,14 @@ public class JwtTokenProvider {
      */
     public String createSignupToken(String email) {
         return buildToken(email, Map.of(TYPE_CLAIM, TokenType.SIGNUP.name()), signupTokenExpiration);
+    }
+
+    /**
+     * 리크루팅 지원자(회원과 별개 계정)용 토큰. subject는 지원자 id이고, 회원 역할(role) claim은 넣지 않는다.
+     * refresh 토큰 없이 만료되면 다시 로그인한다.
+     */
+    public String createApplicantToken(Long applicantId) {
+        return buildToken(String.valueOf(applicantId), Map.of(TYPE_CLAIM, TokenType.APPLICANT.name()), applicantTokenExpiration);
     }
 
     private String buildToken(String subject, Map<String, ?> claims, Duration expiration) {
@@ -79,6 +90,10 @@ public class JwtTokenProvider {
         return Long.valueOf(parseClaims(token).getSubject());
     }
 
+    public Long getApplicantId(String token) {
+        return Long.valueOf(parseClaims(token).getSubject());
+    }
+
     public MemberRole getRole(String token) {
         String role = parseClaims(token).get(ROLE_CLAIM, String.class);
         return role == null ? null : MemberRole.valueOf(role);
@@ -96,6 +111,11 @@ public class JwtTokenProvider {
     /** API 인증(Authorization 헤더) 자리에 signup/refresh 토큰이 잘못 들어온 경우를 걸러내기 위한 타입 체크 */
     public boolean isAccessToken(String token) {
         return isTokenType(token, TokenType.ACCESS);
+    }
+
+    /** API 인증 시 회원 access 토큰과 지원자 토큰을 구분하기 위한 타입 체크 */
+    public boolean isApplicantToken(String token) {
+        return isTokenType(token, TokenType.APPLICANT);
     }
 
     private boolean isTokenType(String token, TokenType type) {

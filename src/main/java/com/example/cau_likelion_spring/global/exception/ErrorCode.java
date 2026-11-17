@@ -96,6 +96,16 @@ public enum ErrorCode {
     RECRUITMENT_TEXT_ALREADY_SENT(HttpStatus.CONFLICT, "이미 발송된 모집 공고입니다."),
     RECRUITMENT_TEXT_NO_RESEND_TARGET(HttpStatus.CONFLICT, "재전송할 실패 대상이 없습니다."),
 
+    // ===== Recruitment =====
+    RECRUITMENT_ROUND_NOT_FOUND(HttpStatus.NOT_FOUND, "진행 중인 모집 회차가 없습니다."),
+    RECRUITMENT_ROUND_PART_NOT_FOUND(HttpStatus.NOT_FOUND, "현재 회차의 지원 파트가 아닙니다."),
+    RECRUITMENT_APPLICANT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 지원자입니다."),
+    RECRUITMENT_NOT_IN_APPLY_PERIOD(HttpStatus.BAD_REQUEST, "지원서 접수 기간이 아닙니다."),
+    RECRUITMENT_INVALID_INTERVIEW_TIME(HttpStatus.BAD_REQUEST, "선택할 수 없는 면접 가능 시간입니다."),
+    RECRUITMENT_ALREADY_APPLIED(HttpStatus.CONFLICT, "이미 지원 내역이 있습니다."),
+    RECRUITMENT_DUPLICATE_STUDENT_NUMBER(HttpStatus.CONFLICT, "이미 지원 내역이 있는 학번입니다."),
+    RECRUITMENT_INVALID_ANSWER(HttpStatus.BAD_REQUEST, "지원서 답변이 올바르지 않습니다."),
+
     // ===== File Upload (global/util) =====
     FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다."),
     INVALID_FILE_TYPE(HttpStatus.BAD_REQUEST, "지원하지 않는 파일 형식입니다."),

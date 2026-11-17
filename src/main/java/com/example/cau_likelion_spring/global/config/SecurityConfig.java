@@ -58,6 +58,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/gallery/projects/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/recruitment/subscribers").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/recruitment/subscribers/available-parts").permitAll()
+                        // TODO: 지원자 로그인(7.3) 완료 후 지원자 토큰 인증으로 변경 - 지금은 누구나 학번으로 지원 여부 조회 가능
+                        .requestMatchers(HttpMethod.POST, "/api/recruitment/applications/student-number/check").permitAll()
+                        // TODO: 지원자 로그인(7.3) 완료 후 지원자 토큰 인증으로 변경 - 지금은 요청 applicantId로 식별해 남의 id로도 제출 가능
+                        .requestMatchers(HttpMethod.POST, "/api/recruitment/applications").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/recruitment/interview-times").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/recruitment/applications/form-options").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/recruitment/questions").permitAll()
                         // 랜딩/소개 페이지에서 비로그인 방문자도 조회해야 하는 admin 관리 콘텐츠 (쓰기는 여전히 인증+권한 필요)
                         .requestMatchers(HttpMethod.GET, "/api/admin/indicator").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/tracks").permitAll()

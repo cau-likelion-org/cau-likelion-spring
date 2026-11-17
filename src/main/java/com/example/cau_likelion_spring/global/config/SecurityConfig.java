@@ -62,6 +62,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/recruitment/applications/student-number/check").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/recruitment/interview-times").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/recruitment/applications/form-options").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/recruitment/questions").permitAll()
                         // 랜딩/소개 페이지에서 비로그인 방문자도 조회해야 하는 admin 관리 콘텐츠 (쓰기는 여전히 인증+권한 필요)
                         .requestMatchers(HttpMethod.GET, "/api/admin/indicator").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/tracks").permitAll()

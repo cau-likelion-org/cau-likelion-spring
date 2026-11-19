@@ -11,7 +11,7 @@ class JwtTokenProviderTest {
 
     private final JwtTokenProvider jwtTokenProvider = new JwtTokenProvider(
             "test-secret-key-for-jwt-token-provider-test-0123456789",
-            Duration.ofHours(1), Duration.ofDays(14), Duration.ofMinutes(10), Duration.ofHours(6));
+            Duration.ofHours(1), Duration.ofDays(14), Duration.ofMinutes(10), Duration.ofHours(6), Duration.ofMinutes(30));
 
     @Test
     void 지원자_토큰은_지원자_토큰으로만_판별되고_지원자_id를_담는다() {
@@ -22,6 +22,18 @@ class JwtTokenProviderTest {
         assertThat(jwtTokenProvider.isAccessToken(token)).isFalse();
         assertThat(jwtTokenProvider.getApplicantId(token)).isEqualTo(3L);
         assertThat(jwtTokenProvider.getRole(token)).isNull();
+    }
+
+    @Test
+    void 이메일_인증_완료_토큰은_이메일과_용도를_담고_API_인증_토큰으로_판별되지_않는다() {
+        String token = jwtTokenProvider.createEmailVerificationToken("applicant@cau.ac.kr", "SIGNUP");
+
+        assertThat(jwtTokenProvider.validateToken(token)).isEqualTo(JwtValidationType.VALID_JWT);
+        assertThat(jwtTokenProvider.isEmailVerificationToken(token)).isTrue();
+        assertThat(jwtTokenProvider.isAccessToken(token)).isFalse();
+        assertThat(jwtTokenProvider.isApplicantToken(token)).isFalse();
+        assertThat(jwtTokenProvider.getEmail(token)).isEqualTo("applicant@cau.ac.kr");
+        assertThat(jwtTokenProvider.getPurpose(token)).isEqualTo("SIGNUP");
     }
 
     @Test

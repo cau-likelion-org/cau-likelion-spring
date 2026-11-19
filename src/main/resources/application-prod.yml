@@ -46,6 +46,7 @@ jwt:
   refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:14d}
   signup-token-expiration: ${JWT_SIGNUP_EXPIRATION:10m}
   applicant-token-expiration: ${JWT_APPLICANT_EXPIRATION:6h}
+  email-verification-token-expiration: ${JWT_EMAIL_VERIFICATION_EXPIRATION:30m}
 
 google:
   client-id: ${GOOGLE_CLIENT_ID}
@@ -65,3 +66,12 @@ attendance:
   check-close-hour: 22
   late-grace-minutes: 5
   absence-check-cron: "0 0 22 * * WED"
+
+recruitment:
+  email-verification:
+    code-ttl: 10m
+    resend-interval: 60s
+    # 이 횟수만큼 틀리면 해당 인증번호는 무효 (다시 발송받아야 함)
+    max-fail-count: 5
+    # 만료된 인증번호 행 정리 (초 분 시 일 월 요일) - 매일 04:00
+    cleanup-cron: "0 0 4 * * *"

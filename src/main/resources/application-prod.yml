@@ -45,6 +45,7 @@ jwt:
   access-token-expiration: ${JWT_ACCESS_EXPIRATION:1h}
   refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:14d}
   signup-token-expiration: ${JWT_SIGNUP_EXPIRATION:10m}
+  applicant-token-expiration: ${JWT_APPLICANT_EXPIRATION:6h}
 
 google:
   client-id: ${GOOGLE_CLIENT_ID}

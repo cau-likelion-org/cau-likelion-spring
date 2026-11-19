@@ -38,6 +38,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 JwtValidationType validationType = jwtTokenProvider.validateToken(token);
                 if (validationType == JwtValidationType.VALID_JWT && jwtTokenProvider.isAccessToken(token)) {
                     setAuthentication(token);
+                } else if (validationType == JwtValidationType.VALID_JWT && jwtTokenProvider.isApplicantToken(token)) {
+                    setApplicantAuthentication(token);
                 } else {
                     log.info("유효하지 않은 토큰: {}", validationType);
                 }
@@ -57,6 +59,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(memberId, null, authorities);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    /** 지원자는 회원 역할이 없으므로 ROLE_APPLICANT만 부여한다 (SecurityConfig에서 회원 API 접근 차단) */
+    private void setApplicantAuthentication(String token) {
+        Long applicantId = jwtTokenProvider.getApplicantId(token);
+
+        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_APPLICANT"));
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(applicantId, null, authorities);
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 

@@ -35,4 +35,8 @@ public class RoundPart extends BaseTimeEntity {
         this.headCount = headCount;
         this.generation = generation;
     }
+
+    public void changeHeadCount(Integer headCount) {
+        this.headCount = headCount;
+    }
 }

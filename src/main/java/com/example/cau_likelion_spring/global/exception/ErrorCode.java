@@ -44,6 +44,7 @@ public enum ErrorCode {
     TRACK_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 트랙입니다."),
     ACTIVITY_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 활동입니다."),
     FAQ_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 FAQ입니다."),
+    FAQ_ORDER_MISMATCH(HttpStatus.BAD_REQUEST, "순서 변경 요청에 전체 FAQ id가 중복 없이 모두 포함되어야 합니다."),
     DESIRED_TALENT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 인재상입니다."),
     CURRICULUM_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 커리큘럼입니다."),
     ROADMAP_NOT_FOUND(HttpStatus.NOT_FOUND, "등록된 로드맵 이미지가 없습니다."),
@@ -99,6 +100,8 @@ public enum ErrorCode {
     // ===== Recruitment =====
     RECRUITMENT_ROUND_NOT_FOUND(HttpStatus.NOT_FOUND, "진행 중인 모집 회차가 없습니다."),
     RECRUITMENT_ROUND_PART_NOT_FOUND(HttpStatus.NOT_FOUND, "현재 회차의 지원 파트가 아닙니다."),
+    RECRUITMENT_ROUND_PART_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 정원이 등록된 파트입니다."),
+    RECRUITMENT_DUPLICATE_PART_HEAD_COUNT(HttpStatus.BAD_REQUEST, "같은 파트의 정원이 중복으로 요청되었습니다."),
     RECRUITMENT_APPLICANT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 지원자입니다."),
     RECRUITMENT_NOT_IN_APPLY_PERIOD(HttpStatus.BAD_REQUEST, "지원서 접수 기간이 아닙니다."),
     RECRUITMENT_INVALID_INTERVIEW_TIME(HttpStatus.BAD_REQUEST, "선택할 수 없는 면접 가능 시간입니다."),

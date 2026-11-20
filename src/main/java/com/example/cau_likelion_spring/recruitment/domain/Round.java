@@ -10,7 +10,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * 모집 회차.
+ * 모집 회차 (= 모집공고).
+ * 회차와 공고가 1:1이라 별도 Notice 엔티티를 두지 않고, 공고 정보도 이 엔티티에서 관리한다.
  * "round"는 MySQL의 ROUND() 함수명과 같아 헷갈리고 의미도 일반적이라,
  * recruitment_ 접두어를 붙인 테이블명을 명시한다.
  */

@@ -21,10 +21,6 @@ public class FAQ extends BaseTimeEntity {
     @JoinColumn(name = "round_id")
     private Round round;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "notice_id")
-    private Notice notice;
-
     @Column(length = 1000)
     private String question;
 
@@ -32,9 +28,8 @@ public class FAQ extends BaseTimeEntity {
     private String answer;
 
     @Builder
-    public FAQ(Round round, Notice notice, String question, String answer) {
+    public FAQ(Round round, String question, String answer) {
         this.round = round;
-        this.notice = notice;
         this.question = question;
         this.answer = answer;
     }

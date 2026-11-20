@@ -1,11 +1,13 @@
 package com.example.cau_likelion_spring.recruitment.dto;
 
+import com.example.cau_likelion_spring.recruitment.domain.FAQ;
 import com.example.cau_likelion_spring.recruitment.domain.Round;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
-@Schema(description = "모집공고 응답")
+@Schema(description = "모집공고 응답 (일정 + FAQ)")
 public record RoundNoticeResponse(
 
         @Schema(description = "모집 회차 id (수정 API 경로에 사용)")
@@ -21,15 +23,20 @@ public record RoundNoticeResponse(
         LocalDateTime documentResultDate,
 
         @Schema(description = "OT 일시")
-        LocalDateTime otDate
+        LocalDateTime otDate,
+
+        @Schema(description = "FAQ 목록 (노출 순서대로)")
+        List<RoundFaqResponse> faqs
 ) {
-    public static RoundNoticeResponse from(Round round) {
+    /** faqs는 노출 순서대로 정렬된 상태로 넘겨야 한다 */
+    public static RoundNoticeResponse of(Round round, List<FAQ> faqs) {
         return new RoundNoticeResponse(
                 round.getId(),
                 round.getStartDate(),
                 round.getDeadLine(),
                 round.getDocumentResultDate(),
-                round.getOtDate()
+                round.getOtDate(),
+                faqs.stream().map(RoundFaqResponse::from).toList()
         );
     }
 }

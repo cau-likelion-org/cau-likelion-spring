@@ -44,6 +44,7 @@ public enum ErrorCode {
     TRACK_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 트랙입니다."),
     ACTIVITY_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 활동입니다."),
     FAQ_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 FAQ입니다."),
+    FAQ_ORDER_MISMATCH(HttpStatus.BAD_REQUEST, "순서 변경 요청에 전체 FAQ id가 중복 없이 모두 포함되어야 합니다."),
     DESIRED_TALENT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 인재상입니다."),
     CURRICULUM_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 커리큘럼입니다."),
     ROADMAP_NOT_FOUND(HttpStatus.NOT_FOUND, "등록된 로드맵 이미지가 없습니다."),

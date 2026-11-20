@@ -22,9 +22,10 @@ public class JwtTokenProvider {
 
     private static final String ROLE_CLAIM = "role";
     private static final String TYPE_CLAIM = "type";
+    private static final String PURPOSE_CLAIM = "purpose";
 
     private enum TokenType {
-        ACCESS, REFRESH, SIGNUP, APPLICANT
+        ACCESS, REFRESH, SIGNUP, APPLICANT, EMAIL_VERIFICATION
     }
 
     private final SecretKey key;
@@ -32,19 +33,22 @@ public class JwtTokenProvider {
     private final Duration refreshTokenExpiration;
     private final Duration signupTokenExpiration;
     private final Duration applicantTokenExpiration;
+    private final Duration emailVerificationTokenExpiration;
 
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.access-token-expiration}") Duration accessTokenExpiration,
             @Value("${jwt.refresh-token-expiration}") Duration refreshTokenExpiration,
             @Value("${jwt.signup-token-expiration}") Duration signupTokenExpiration,
-            @Value("${jwt.applicant-token-expiration}") Duration applicantTokenExpiration
+            @Value("${jwt.applicant-token-expiration}") Duration applicantTokenExpiration,
+            @Value("${jwt.email-verification-token-expiration}") Duration emailVerificationTokenExpiration
     ) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessTokenExpiration = accessTokenExpiration;
         this.refreshTokenExpiration = refreshTokenExpiration;
         this.signupTokenExpiration = signupTokenExpiration;
         this.applicantTokenExpiration = applicantTokenExpiration;
+        this.emailVerificationTokenExpiration = emailVerificationTokenExpiration;
     }
 
     public String createAccessToken(Long memberId, MemberRole role) {
@@ -69,6 +73,14 @@ public class JwtTokenProvider {
      */
     public String createApplicantToken(Long applicantId) {
         return buildToken(String.valueOf(applicantId), Map.of(TYPE_CLAIM, TokenType.APPLICANT.name()), applicantTokenExpiration);
+    }
+
+    /**
+     * 리크루팅 지원자 이메일 인증을 마쳤다는 증표. subject는 인증된 이메일이고, 용도(purpose)를 함께 담는다.
+     * 계정 생성·비밀번호 재설정 요청에서 이 토큰의 이메일과 용도를 확인한다.
+     */
+    public String createEmailVerificationToken(String email, String purpose) {
+        return buildToken(email, Map.of(TYPE_CLAIM, TokenType.EMAIL_VERIFICATION.name(), PURPOSE_CLAIM, purpose), emailVerificationTokenExpiration);
     }
 
     private String buildToken(String subject, Map<String, ?> claims, Duration expiration) {
@@ -103,6 +115,11 @@ public class JwtTokenProvider {
         return parseClaims(token).getSubject();
     }
 
+    /** 이메일 인증 완료 토큰에 담긴 인증 용도 */
+    public String getPurpose(String token) {
+        return parseClaims(token).get(PURPOSE_CLAIM, String.class);
+    }
+
     /** signupToken 자리에 access/refresh 토큰이 잘못 들어온 경우를 걸러내기 위한 타입 체크 */
     public boolean isSignupToken(String token) {
         return isTokenType(token, TokenType.SIGNUP);
@@ -116,6 +133,11 @@ public class JwtTokenProvider {
     /** API 인증 시 회원 access 토큰과 지원자 토큰을 구분하기 위한 타입 체크 */
     public boolean isApplicantToken(String token) {
         return isTokenType(token, TokenType.APPLICANT);
+    }
+
+    /** 인증 완료 토큰 자리에 다른 토큰이 잘못 들어온 경우를 걸러내기 위한 타입 체크 */
+    public boolean isEmailVerificationToken(String token) {
+        return isTokenType(token, TokenType.EMAIL_VERIFICATION);
     }
 
     private boolean isTokenType(String token, TokenType type) {

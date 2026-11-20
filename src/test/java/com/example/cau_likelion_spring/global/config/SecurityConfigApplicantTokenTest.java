@@ -28,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "jwt.refresh-token-expiration=14d",
         "jwt.signup-token-expiration=10m",
         "jwt.applicant-token-expiration=6h",
+        "jwt.email-verification-token-expiration=30m",
         "app.frontend-base-url=http://localhost:3000"
 })
 class SecurityConfigApplicantTokenTest {

@@ -62,4 +62,13 @@ public class Round extends BaseTimeEntity {
         this.resultCheckDeadLine = resultCheckDeadLine;
         this.otDate = otDate;
     }
+
+    /** 모집공고 일정 수정 (서류접수 시작·마감, 서류 결과발표, OT) */
+    public void updateNoticeSchedule(LocalDateTime startDate, LocalDateTime deadLine,
+                                     LocalDateTime documentResultDate, LocalDateTime otDate) {
+        this.startDate = startDate;
+        this.deadLine = deadLine;
+        this.documentResultDate = documentResultDate;
+        this.otDate = otDate;
+    }
 }

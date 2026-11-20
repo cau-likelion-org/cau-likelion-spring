@@ -99,6 +99,7 @@ public enum ErrorCode {
 
     // ===== Recruitment =====
     RECRUITMENT_ROUND_NOT_FOUND(HttpStatus.NOT_FOUND, "진행 중인 모집 회차가 없습니다."),
+    RECRUITMENT_INVALID_ROUND_SCHEDULE(HttpStatus.BAD_REQUEST, "모집공고 일정 순서가 올바르지 않습니다."),
     RECRUITMENT_ROUND_PART_NOT_FOUND(HttpStatus.NOT_FOUND, "현재 회차의 지원 파트가 아닙니다."),
     RECRUITMENT_ROUND_PART_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 정원이 등록된 파트입니다."),
     RECRUITMENT_DUPLICATE_PART_HEAD_COUNT(HttpStatus.BAD_REQUEST, "같은 파트의 정원이 중복으로 요청되었습니다."),

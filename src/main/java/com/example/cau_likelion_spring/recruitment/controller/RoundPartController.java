@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -30,14 +31,25 @@ public class RoundPartController {
         return ResponseEntity.ok(roundPartService.getHeadCounts(generation));
     }
 
-    @Operation(summary = "모집 기수의 파트별 정원 등록·수정",
-            description = "현재 회차에 파트별 정원을 등록합니다. 이미 등록된 파트는 정원만 수정됩니다. "
-                    + "partId는 조회 API의 parts.partId이며, 해당 기수의 파트여야 합니다. ADMIN/PRESIDENT 권한이 필요합니다.")
+    @Operation(summary = "모집 기수의 파트별 정원 등록",
+            description = "현재 회차에 파트별 정원을 처음 등록합니다. partId는 조회 API의 parts.partId이며, 해당 기수의 파트여야 합니다. "
+                    + "요청한 파트 중 이미 등록된 파트가 있으면 409를 반환합니다(수정은 PATCH). ADMIN/PRESIDENT 권한이 필요합니다.")
     @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
-    @PutMapping
-    public ResponseEntity<RoundPartHeadCountResponse> upsertHeadCounts(
+    @PostMapping
+    public ResponseEntity<RoundPartHeadCountResponse> createHeadCounts(
             @Parameter(description = "모집 기수 번호 (예: 15)") @RequestParam Integer generation,
             @Valid @RequestBody RoundPartHeadCountRequest request) {
-        return ResponseEntity.ok(roundPartService.upsertHeadCounts(generation, request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(roundPartService.createHeadCounts(generation, request));
+    }
+
+    @Operation(summary = "모집 기수의 파트별 정원 수정",
+            description = "현재 회차에 이미 등록된 파트의 정원을 수정합니다. "
+                    + "요청한 파트 중 등록되지 않은 파트가 있으면 404를 반환합니다(등록은 POST). ADMIN/PRESIDENT 권한이 필요합니다.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
+    @PatchMapping
+    public ResponseEntity<RoundPartHeadCountResponse> updateHeadCounts(
+            @Parameter(description = "모집 기수 번호 (예: 15)") @RequestParam Integer generation,
+            @Valid @RequestBody RoundPartHeadCountRequest request) {
+        return ResponseEntity.ok(roundPartService.updateHeadCounts(generation, request));
     }
 }

@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * 모집 기수의 파트별 정원 등록·수정 요청.
- * 요청에 포함된 파트만 등록(없으면 생성, 있으면 정원 수정)한다.
+ * 모집 기수의 파트별 정원 등록(POST)·수정(PATCH) 요청.
+ * 요청에 포함된 파트만 처리한다.
  */
 @Getter
 @NoArgsConstructor

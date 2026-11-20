@@ -7,6 +7,10 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/**
+ * 모집공고(회차)에 달리는 FAQ - 질문·답변 한 쌍.
+ * 관리자 화면에서 목록 통째로 저장하므로, 저장할 때마다 회차의 FAQ를 모두 지우고 새로 만든다.
+ */
 @Entity
 @Table(name = "recruitment_faq")
 @Getter
@@ -27,10 +31,14 @@ public class FAQ extends BaseTimeEntity {
     @Column(length = 1000)
     private String answer;
 
+    /** 노출 순서 (1부터, 오름차순) */
+    private Integer displayOrder;
+
     @Builder
-    public FAQ(Round round, String question, String answer) {
+    public FAQ(Round round, String question, String answer, Integer displayOrder) {
         this.round = round;
         this.question = question;
         this.answer = answer;
+        this.displayOrder = displayOrder;
     }
 }

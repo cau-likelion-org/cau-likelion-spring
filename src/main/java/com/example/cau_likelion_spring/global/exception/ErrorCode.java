@@ -105,6 +105,8 @@ public enum ErrorCode {
     RECRUITMENT_ALREADY_APPLIED(HttpStatus.CONFLICT, "이미 지원 내역이 있습니다."),
     RECRUITMENT_DUPLICATE_STUDENT_NUMBER(HttpStatus.CONFLICT, "이미 지원 내역이 있는 학번입니다."),
     RECRUITMENT_INVALID_ANSWER(HttpStatus.BAD_REQUEST, "지원서 답변이 올바르지 않습니다."),
+    RECRUITMENT_APPLICATION_IN_PROGRESS(HttpStatus.CONFLICT, "이미 작성 중인 지원서가 있습니다."),
+    RECRUITMENT_INVALID_VERIFICATION_TOKEN(HttpStatus.BAD_REQUEST, "이메일 인증이 유효하지 않습니다. 다시 인증해주세요."),
     RECRUITMENT_EMAIL_RESEND_TOO_SOON(HttpStatus.TOO_MANY_REQUESTS, "인증번호는 잠시 후 다시 요청해주세요."),
     RECRUITMENT_EMAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "인증번호 이메일 발송에 실패했습니다."),
     RECRUITMENT_EMAIL_CODE_EXPIRED(HttpStatus.BAD_REQUEST, "인증번호가 만료되었습니다."),

@@ -10,7 +10,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * 모집 회차.
+ * 모집 회차 (= 모집공고).
+ * 회차와 공고가 1:1이라 별도 Notice 엔티티를 두지 않고, 공고 정보도 이 엔티티에서 관리한다.
  * "round"는 MySQL의 ROUND() 함수명과 같아 헷갈리고 의미도 일반적이라,
  * recruitment_ 접두어를 붙인 테이블명을 명시한다.
  */
@@ -59,6 +60,20 @@ public class Round extends BaseTimeEntity {
         this.documentResultDate = documentResultDate;
         this.finalResultDate = finalResultDate;
         this.resultCheckDeadLine = resultCheckDeadLine;
+        this.otDate = otDate;
+    }
+
+    /** 서류 접수가 시작됐는지 (시작일이 비어 있으면 아직 일정 미정 → 시작 전으로 본다) */
+    public boolean isApplyStarted(LocalDateTime now) {
+        return startDate != null && !now.isBefore(startDate);
+    }
+
+    /** 모집공고 일정 수정 (서류접수 시작·마감, 서류 결과발표, OT) */
+    public void updateNoticeSchedule(LocalDateTime startDate, LocalDateTime deadLine,
+                                     LocalDateTime documentResultDate, LocalDateTime otDate) {
+        this.startDate = startDate;
+        this.deadLine = deadLine;
+        this.documentResultDate = documentResultDate;
         this.otDate = otDate;
     }
 }

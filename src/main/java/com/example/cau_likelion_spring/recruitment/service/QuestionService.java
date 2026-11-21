@@ -31,7 +31,8 @@ public class QuestionService {
                 .toList();
     }
 
-    private QuestionResponse toResponse(PartQuestion partQuestion) {
+    /** 문항 + 내용을 응답으로 변환 (백오피스 저장 응답에서도 재사용) */
+    QuestionResponse toResponse(PartQuestion partQuestion) {
         if (partQuestion.isChoice()) {
             return QuestionResponse.ofOption(partQuestion.question(), partQuestion.option(), partQuestion.choices());
         }

@@ -62,6 +62,11 @@ public class Result extends BaseTimeEntity {
         this.documentResult = documentResult;
     }
 
+    /** 면접(최종) 결과 변경 (이력 미보관, 덮어쓰기) */
+    public void changeFinalResult(ApplicationResult finalResult) {
+        this.finalResult = finalResult;
+    }
+
     /** 확정 면접 일시·장소 입력 (덮어쓰기) */
     public void changeInterviewSchedule(LocalDateTime fixedInterviewDate, String fixedInterviewSpot) {
         this.fixedInterviewDate = fixedInterviewDate;

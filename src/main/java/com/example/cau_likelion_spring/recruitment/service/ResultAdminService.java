@@ -8,6 +8,8 @@ import com.example.cau_likelion_spring.recruitment.domain.ResultPublishStatus;
 import com.example.cau_likelion_spring.recruitment.domain.Round;
 import com.example.cau_likelion_spring.recruitment.dto.DocumentResultRequest;
 import com.example.cau_likelion_spring.recruitment.dto.DocumentResultResponse;
+import com.example.cau_likelion_spring.recruitment.dto.FinalResultRequest;
+import com.example.cau_likelion_spring.recruitment.dto.FinalResultResponse;
 import com.example.cau_likelion_spring.recruitment.dto.InterviewScheduleRequest;
 import com.example.cau_likelion_spring.recruitment.dto.InterviewScheduleResponse;
 import com.example.cau_likelion_spring.recruitment.dto.InterviewScheduleResponse.Warning;
@@ -32,10 +34,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 백오피스 서류 결과·확정 면접 일정 입력 (현재 회차 제출자 한정).
+ * 백오피스 서류 결과·확정 면접 일정·면접(최종) 결과 입력 (현재 회차 제출자 한정).
  *
  * 결과(Result)는 지원서 제출 시 만들지 않으므로, 처음 입력할 때 만들고 이후에는 덮어쓴다 (이력 미보관).
  * 서류 결과 공개 예약 중(RESERVED)에는 서류 결과·면접 일정 입력이 잠긴다 (예약 취소 후 수정).
+ * 면접(최종) 결과는 서류 합격자만 입력할 수 있다.
+ * TODO: 최종 결과 공개 예약 중 잠금은 최종 결과 공개 예약 기능과 함께 추가
  * TODO: 공개 후 변경 규칙(보류로 변경 불가, 합격 변경 시 면접 정보 필수 등)은 공개 후 수정 기능(7.8.1·7.8.2)과 함께 추가
  */
 @Service
@@ -55,21 +59,9 @@ public class ResultAdminService {
     @Transactional
     public List<DocumentResultResponse> updateDocumentResults(DocumentResultRequest request) {
         List<Long> applicationIds = request.applicationIds();
-        Set<Long> distinctIds = new HashSet<>(applicationIds);
-        if (distinctIds.size() != applicationIds.size()) {
-            throw new CustomException(ErrorCode.RECRUITMENT_DUPLICATE_APPLICATION_ID,
-                    "같은 지원서가 중복으로 요청되었습니다. applicationIds=" + applicationIds);
-        }
-
         Round round = currentRoundFinder.find();
         validateNotReserved(round);
-        List<Application> applications = applicationRepository.findAllByIdInAndRoundPart_Round(distinctIds, round);
-        if (applications.size() != distinctIds.size()) {
-            Set<Long> foundIds = applications.stream().map(Application::getId).collect(Collectors.toSet());
-            List<Long> missingIds = applicationIds.stream().filter(id -> !foundIds.contains(id)).toList();
-            throw new CustomException(ErrorCode.RECRUITMENT_APPLICATION_NOT_FOUND,
-                    "현재 회차에 제출된 지원서가 아닙니다. applicationIds=" + missingIds);
-        }
+        List<Application> applications = findCurrentRoundApplications(round, applicationIds);
 
         Map<Long, Result> resultByApplicationId = resultRepository.findAllByApplicationIn(applications).stream()
                 .collect(Collectors.toMap(result -> result.getApplication().getId(),
@@ -100,6 +92,41 @@ public class ResultAdminService {
     }
 
     /**
+     * 요청한 지원서들의 면접(최종) 결과를 한 번에 저장한다 (덮어쓰기).
+     * 서류 합격자만 입력할 수 있고, 하나라도 잘못된 id가 있으면 아무것도 저장하지 않는다.
+     */
+    @Transactional
+    public List<FinalResultResponse> updateFinalResults(FinalResultRequest request) {
+        List<Long> applicationIds = request.applicationIds();
+        Round round = currentRoundFinder.find();
+        List<Application> applications = findCurrentRoundApplications(round, applicationIds);
+
+        // 서류 합격자는 서류 결과 입력 시 Result가 만들어져 있으므로, 없거나 합격이 아니면 입력 불가
+        Map<Long, Result> resultByApplicationId = resultRepository.findAllByApplicationIn(applications).stream()
+                .collect(Collectors.toMap(result -> result.getApplication().getId(),
+                        Function.identity(), (first, second) -> first));
+        List<Long> notPassedIds = applicationIds.stream()
+                .filter(id -> {
+                    Result result = resultByApplicationId.get(id);
+                    return result == null || !result.isDocumentPassed();
+                })
+                .toList();
+        if (!notPassedIds.isEmpty()) {
+            throw new CustomException(ErrorCode.RECRUITMENT_NOT_DOCUMENT_PASSED,
+                    "서류 합격자만 면접 결과를 입력할 수 있습니다. applicationIds=" + notPassedIds);
+        }
+
+        // 요청한 순서대로 저장·응답 (영속 상태라 더티 체킹으로 반영)
+        List<FinalResultResponse> responses = new ArrayList<>();
+        for (Long applicationId : applicationIds) {
+            Result result = resultByApplicationId.get(applicationId);
+            result.changeFinalResult(request.result());
+            responses.add(FinalResultResponse.from(result));
+        }
+        return responses;
+    }
+
+    /**
      * 지원자 한 명의 확정 면접 일시·장소를 저장한다 (덮어쓰기).
      * 서류 합격자만 입력할 수 있다. 장소는 비워 보내면 지워진다.
      * 지원자 가능 시간 밖이거나 같은 일시 중복 배정이어도 저장하고, 응답의 warnings로 알린다.
@@ -121,6 +148,27 @@ public class ResultAdminService {
         result.changeInterviewSchedule(request.fixedInterviewDate(), spot); // 영속 상태라 더티 체킹으로 반영
 
         return InterviewScheduleResponse.of(result, checkScheduleWarnings(round, application, request.fixedInterviewDate()));
+    }
+
+    /**
+     * 요청한 id가 모두 현재 회차에 제출된 지원서인지 확인하고 반환한다.
+     * id가 중복되면 400, 하나라도 현재 회차 지원서가 아니면 404 (이때는 아무것도 저장하지 않는다).
+     */
+    private List<Application> findCurrentRoundApplications(Round round, List<Long> applicationIds) {
+        Set<Long> distinctIds = new HashSet<>(applicationIds);
+        if (distinctIds.size() != applicationIds.size()) {
+            throw new CustomException(ErrorCode.RECRUITMENT_DUPLICATE_APPLICATION_ID,
+                    "같은 지원서가 중복으로 요청되었습니다. applicationIds=" + applicationIds);
+        }
+
+        List<Application> applications = applicationRepository.findAllByIdInAndRoundPart_Round(distinctIds, round);
+        if (applications.size() != distinctIds.size()) {
+            Set<Long> foundIds = applications.stream().map(Application::getId).collect(Collectors.toSet());
+            List<Long> missingIds = applicationIds.stream().filter(id -> !foundIds.contains(id)).toList();
+            throw new CustomException(ErrorCode.RECRUITMENT_APPLICATION_NOT_FOUND,
+                    "현재 회차에 제출된 지원서가 아닙니다. applicationIds=" + missingIds);
+        }
+        return applications;
     }
 
     /** 서류 결과 공개 예약 중에는 입력할 수 없다 */

@@ -2,6 +2,8 @@ package com.example.cau_likelion_spring.recruitment.controller;
 
 import com.example.cau_likelion_spring.recruitment.dto.DocumentResultRequest;
 import com.example.cau_likelion_spring.recruitment.dto.DocumentResultResponse;
+import com.example.cau_likelion_spring.recruitment.dto.FinalResultRequest;
+import com.example.cau_likelion_spring.recruitment.dto.FinalResultResponse;
 import com.example.cau_likelion_spring.recruitment.dto.InterviewScheduleRequest;
 import com.example.cau_likelion_spring.recruitment.dto.InterviewScheduleResponse;
 import com.example.cau_likelion_spring.recruitment.service.ResultAdminService;
@@ -34,6 +36,18 @@ public class ResultAdminController {
     public ResponseEntity<List<DocumentResultResponse>> updateDocumentResults(
             @Valid @RequestBody DocumentResultRequest request) {
         return ResponseEntity.ok(resultAdminService.updateDocumentResults(request));
+    }
+
+    @Operation(summary = "면접 결과 입력 (백오피스)",
+            description = "현재 회차 서류 합격자의 면접(최종) 결과를 합격(PASS)/불합격(FAIL)/보류(HOLD)로 저장합니다. "
+                    + "체크박스 일괄 변경은 여러 id, 행별 개별 변경은 id 하나를 보내면 됩니다. 기존 결과는 덮어씁니다(이력 미보관). "
+                    + "id가 중복되면 400, 현재 회차에 제출된 지원서가 아닌 id가 있으면 404, 서류 합격자가 아닌 id가 있으면 400이며 "
+                    + "이때는 아무것도 저장되지 않습니다. 응답은 요청한 순서대로 지원서별 저장된 결과입니다. ADMIN/PRESIDENT 권한이 필요합니다.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
+    @PatchMapping("/final")
+    public ResponseEntity<List<FinalResultResponse>> updateFinalResults(
+            @Valid @RequestBody FinalResultRequest request) {
+        return ResponseEntity.ok(resultAdminService.updateFinalResults(request));
     }
 
     @Operation(summary = "확정 면접 일정 입력 (백오피스)",

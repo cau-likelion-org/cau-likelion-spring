@@ -113,7 +113,7 @@ public enum ErrorCode {
     RECRUITMENT_INVALID_QUESTION(HttpStatus.BAD_REQUEST, "2단계 문항 입력값이 올바르지 않습니다."),
     RECRUITMENT_QUESTION_LOCKED(HttpStatus.CONFLICT, "서류 접수가 시작된 후에는 문항을 수정할 수 없습니다."),
     RECRUITMENT_APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "현재 회차에 제출된 지원서가 아닙니다."),
-    RECRUITMENT_NOT_DOCUMENT_PASSED(HttpStatus.BAD_REQUEST, "서류 합격자만 면접 일정을 입력할 수 있습니다."),
+    RECRUITMENT_NOT_DOCUMENT_PASSED(HttpStatus.BAD_REQUEST, "서류 합격자만 입력할 수 있습니다."),
     RECRUITMENT_DUPLICATE_APPLICATION_ID(HttpStatus.BAD_REQUEST, "같은 지원서가 중복으로 요청되었습니다."),
     RECRUITMENT_INVALID_RESULT_TEMPLATE(HttpStatus.BAD_REQUEST, "결과 안내 문구 입력값이 올바르지 않습니다."),
     RECRUITMENT_INVALID_PUBLISH_SCHEDULE(HttpStatus.BAD_REQUEST, "결과 공개 일정이 올바르지 않습니다."),

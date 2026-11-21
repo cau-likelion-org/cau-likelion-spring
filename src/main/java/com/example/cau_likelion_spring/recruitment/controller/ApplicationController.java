@@ -3,6 +3,7 @@ package com.example.cau_likelion_spring.recruitment.controller;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicationRequest;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicationSubmitResponse;
 import com.example.cau_likelion_spring.recruitment.dto.FormOptionsResponse;
+import com.example.cau_likelion_spring.recruitment.dto.MyApplicationResponse;
 import com.example.cau_likelion_spring.recruitment.dto.StudentNumberCheckRequest;
 import com.example.cau_likelion_spring.recruitment.dto.StudentNumberCheckResponse;
 import com.example.cau_likelion_spring.recruitment.service.ApplicationService;
@@ -53,5 +54,13 @@ public class ApplicationController {
     public ResponseEntity<StudentNumberCheckResponse> checkStudentNumber(
             @Valid @RequestBody StudentNumberCheckRequest request) {
         return ResponseEntity.ok(applicationService.checkStudentNumber(request));
+    }
+
+    @Operation(summary = "지원자 본인 제출 내역 조회",
+            description = "지원자 토큰이 필요합니다. 이번 회차에 제출한 지원서가 있으면 제출 일시와 지원 파트를, "
+                    + "없으면 submitted=false를 반환합니다. applyOpen은 지금이 접수 기간인지 여부입니다.")
+    @GetMapping("/me")
+    public ResponseEntity<MyApplicationResponse> getMyApplication(@AuthenticationPrincipal Long applicantId) {
+        return ResponseEntity.ok(applicationService.getMyApplication(applicantId));
     }
 }

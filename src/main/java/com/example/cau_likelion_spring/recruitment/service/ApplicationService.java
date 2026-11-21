@@ -13,6 +13,7 @@ import com.example.cau_likelion_spring.recruitment.domain.RoundPart;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicationRequest;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicationSubmitResponse;
 import com.example.cau_likelion_spring.recruitment.dto.FormOptionsResponse;
+import com.example.cau_likelion_spring.recruitment.dto.MyApplicationResponse;
 import com.example.cau_likelion_spring.recruitment.dto.RoundPartResponse;
 import com.example.cau_likelion_spring.recruitment.dto.StudentNumberCheckRequest;
 import com.example.cau_likelion_spring.recruitment.dto.StudentNumberCheckResponse;
@@ -128,6 +129,24 @@ public class ApplicationService {
                 .toList());
 
         return ApplicationSubmitResponse.from(application);
+    }
+
+    /**
+     * 로그인한 지원자의 이번 회차 제출 내역을 조회한다 (7.3.3).
+     * 미제출이면 접수 중인지만 알려준다 (지각 제출 가능 여부는 반영하지 않는다).
+     */
+    public MyApplicationResponse getMyApplication(Long applicantId) {
+        Applicant applicant = applicantRepository.findById(applicantId)
+                .orElseThrow(() -> new CustomException(ErrorCode.RECRUITMENT_APPLICANT_NOT_FOUND));
+        Round round = currentRoundFinder.find();
+
+        LocalDateTime now = LocalDateTime.now();
+        boolean applyOpen = round.getStartDate() != null && round.getDeadLine() != null
+                && !now.isBefore(round.getStartDate()) && !now.isAfter(round.getDeadLine());
+
+        return applicationRepository.findByApplicantAndRoundPart_Round(applicant, round)
+                .map(application -> MyApplicationResponse.submitted(application, applyOpen))
+                .orElseGet(() -> MyApplicationResponse.notSubmitted(applyOpen));
     }
 
     /**

@@ -74,6 +74,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/recruitment/subscribers/available-parts").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/recruitment/applications/student-number/check").hasRole("APPLICANT")
                         .requestMatchers(HttpMethod.POST, "/api/recruitment/applications").hasRole("APPLICANT")
+                        .requestMatchers(HttpMethod.GET, "/api/recruitment/applications/me").hasRole("APPLICANT")
                         .requestMatchers(HttpMethod.GET, "/api/recruitment/interview-times").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/recruitment/applications/form-options").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/recruitment/questions").permitAll()

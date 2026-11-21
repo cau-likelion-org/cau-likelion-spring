@@ -110,33 +110,45 @@ public class ResultPublishService {
 
     // ===== 조건 =====
 
+    /**
+     * 서류 결과 공개 조건 (각각 달성 수 / 전체 수).
+     * (1) 서류 결과 입력된 지원자 수 / 전체 지원자 수
+     * (2) 서류 합격자 중 면접 일시·장소 입력된 수 / 서류 합격자 수
+     * (3) 저장한 서류 문구 수 / 2 (합격·불합격)
+     */
     private List<Condition> documentConditions(Round round) {
-        long total = applicationRepository.countByRoundPart_Round(round);
-        long entered = resultRepository.countByApplication_RoundPart_RoundAndDocumentResultIsNotNull(round);
+        long applicants = applicationRepository.countByRoundPart_Round(round);
+        long resultEntered = resultRepository.countByApplication_RoundPart_RoundAndDocumentResultIsNotNull(round);
         long passed = countDocumentPassed(round);
-        long scheduleMissing = resultRepository
-                .countByApplication_RoundPart_RoundAndDocumentResultAndFixedInterviewDateIsNull(round, ApplicationResult.PASS);
+        long scheduleEntered = resultRepository
+                .countByApplication_RoundPart_RoundAndDocumentResultAndFixedInterviewDateIsNotNullAndFixedInterviewSpotIsNotNull(
+                        round, ApplicationResult.PASS);
 
         return List.of(
-                condition(ResultPublishCondition.DOCUMENT_RESULT_ENTERED, entered == total,
-                        total + "명 중 " + entered + "명 입력"),
-                condition(ResultPublishCondition.INTERVIEW_SCHEDULE_ENTERED, scheduleMissing == 0,
-                        "서류 합격자 " + passed + "명 중 " + (passed - scheduleMissing) + "명 입력"),
+                condition(ResultPublishCondition.DOCUMENT_RESULT_ENTERED, resultEntered, applicants,
+                        applicants + "명 중 " + resultEntered + "명 입력"),
+                condition(ResultPublishCondition.INTERVIEW_SCHEDULE_ENTERED, scheduleEntered, passed,
+                        "서류 합격자 " + passed + "명 중 " + scheduleEntered + "명 입력"),
                 templateCondition(ResultPublishCondition.DOCUMENT_TEMPLATES_WRITTEN, round,
                         ResultTemplateType.DOCUMENT_PASS, ResultTemplateType.DOCUMENT_FAIL));
     }
 
+    /**
+     * 최종 결과 공개 조건 (각각 달성 수 / 전체 수).
+     * 서류 결과 공개 예약 여부는 1 / 1(완료) 또는 0 / 1(미완료)로 표기한다.
+     */
     private List<Condition> finalConditions(Round round, LocalDateTime now) {
         ResultPublishStatus documentStatus = round.getDocumentPublishStatus(now);
         long passed = countDocumentPassed(round);
-        long finalMissing = resultRepository
-                .countByApplication_RoundPart_RoundAndDocumentResultAndFinalResultIsNull(round, ApplicationResult.PASS);
+        long finalEntered = resultRepository
+                .countByApplication_RoundPart_RoundAndDocumentResultAndFinalResultIsNotNull(round, ApplicationResult.PASS);
 
         return List.of(
                 condition(ResultPublishCondition.DOCUMENT_PUBLISH_RESERVED,
-                        documentStatus != ResultPublishStatus.INPUTTING, "서류 결과 " + documentStatus.getLabel()),
-                condition(ResultPublishCondition.FINAL_RESULT_ENTERED, finalMissing == 0,
-                        "서류 합격자 " + passed + "명 중 " + (passed - finalMissing) + "명 입력"),
+                        documentStatus != ResultPublishStatus.INPUTTING ? 1 : 0, 1,
+                        "서류 결과 " + documentStatus.getLabel()),
+                condition(ResultPublishCondition.FINAL_RESULT_ENTERED, finalEntered, passed,
+                        "서류 합격자 " + passed + "명 중 " + finalEntered + "명 입력"),
                 templateCondition(ResultPublishCondition.FINAL_TEMPLATES_WRITTEN, round,
                         ResultTemplateType.FINAL_PASS, ResultTemplateType.FINAL_FAIL));
     }
@@ -152,11 +164,11 @@ public class ResultPublishService {
                 .map(ResultTemplateType::getLabel)
                 .toList();
         String detail = missing.isEmpty() ? "작성 완료" : "미작성: " + String.join(", ", missing);
-        return condition(type, missing.isEmpty(), detail);
+        return condition(type, templateTypes.length - missing.size(), templateTypes.length, detail);
     }
 
-    private Condition condition(ResultPublishCondition type, boolean satisfied, String detail) {
-        return new Condition(type, type.getLabel(), satisfied, detail);
+    private Condition condition(ResultPublishCondition type, long achieved, long total, String detail) {
+        return new Condition(type, type.getLabel(), achieved == total, achieved, total, detail);
     }
 
     private void validateConditions(String stageName, List<Condition> conditions) {

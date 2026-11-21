@@ -38,8 +38,14 @@ public record ResultPublishResponse(
             @Schema(description = "조건 설명", example = "전원 서류 결과 입력 (보류 포함)")
             String label,
 
-            @Schema(description = "충족 여부", example = "false")
+            @Schema(description = "충족 여부 (achieved == total)", example = "false")
             boolean satisfied,
+
+            @Schema(description = "달성 수 (예: 서류 결과가 입력된 지원자 수)", example = "10")
+            long achieved,
+
+            @Schema(description = "전체 수 (예: 전체 지원자 수)", example = "12")
+            long total,
 
             @Schema(description = "진행 현황", example = "12명 중 10명 입력")
             String detail

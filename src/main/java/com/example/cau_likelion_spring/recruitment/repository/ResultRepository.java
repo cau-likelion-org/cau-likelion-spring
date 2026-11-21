@@ -24,12 +24,12 @@ public interface ResultRepository extends JpaRepository<Result, Long> {
     /** 해당 회차 서류 결과가 documentResult인 지원서 수 */
     long countByApplication_RoundPart_RoundAndDocumentResult(Round round, ApplicationResult documentResult);
 
-    /** 해당 회차 서류 결과가 documentResult인데 확정 면접 일시가 비어 있는 지원서 수 */
-    long countByApplication_RoundPart_RoundAndDocumentResultAndFixedInterviewDateIsNull(
+    /** 해당 회차 서류 결과가 documentResult이고 확정 면접 일시·장소가 모두 입력된 지원서 수 */
+    long countByApplication_RoundPart_RoundAndDocumentResultAndFixedInterviewDateIsNotNullAndFixedInterviewSpotIsNotNull(
             Round round, ApplicationResult documentResult);
 
-    /** 해당 회차 서류 결과가 documentResult인데 면접(최종) 결과가 비어 있는 지원서 수 */
-    long countByApplication_RoundPart_RoundAndDocumentResultAndFinalResultIsNull(
+    /** 해당 회차 서류 결과가 documentResult이고 면접(최종) 결과가 입력된(보류 포함) 지원서 수 */
+    long countByApplication_RoundPart_RoundAndDocumentResultAndFinalResultIsNotNull(
             Round round, ApplicationResult documentResult);
 
     /** 해당 회차에서 같은 확정 면접 일시에 배정된 다른 지원서 수 (본인 제외) */

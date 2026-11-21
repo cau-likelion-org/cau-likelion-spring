@@ -20,14 +20,14 @@ public class ResultPublishController {
 
     private final ResultPublishService resultPublishService;
 
-    private static final String CONDITION_RULE = "공개 조건: 전원 서류 결과 입력(보류 포함), 서류 합격자 전원 면접 일시 입력, "
+    private static final String CONDITION_RULE = "공개 조건: 전원 서류 결과 입력(보류 포함), 서류 합격자 전원 면접 일시·장소 입력, "
             + "서류 합격·불합격 문구 2종 저장(기본 문구 그대로는 미작성). ";
     private static final String STATE_RULE = "상태는 INPUTTING(입력 중) → RESERVED(공개 예약) → PUBLISHED(공개, 예약 시각이 지나면 자동)로 바뀌며, "
             + "예약 중에는 서류 결과·면접 일정·서류 문구를 수정할 수 없습니다(409). ";
     private static final String RESPONSE_RULE = "응답은 예약 현황(상태, 예약 일시, 조건 충족 여부)입니다. ADMIN/PRESIDENT 권한이 필요합니다.";
 
     @Operation(summary = "서류 결과 공개 예약 현황 조회 (백오피스)",
-            description = "서류 결과의 공개 상태, 예약 일시, 조건별 충족 여부와 진행 현황을 반환합니다. "
+            description = "서류 결과의 공개 상태, 예약 일시, 조건별 충족 여부와 달성 수(achieved)·전체 수(total)를 반환합니다. "
                     + "reservable은 [예약] 버튼, cancellable은 [예약 취소] 버튼 활성 여부입니다. "
                     + CONDITION_RULE + STATE_RULE + RESPONSE_RULE)
     @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
@@ -62,7 +62,7 @@ public class ResultPublishController {
             + "예약 중에는 면접 결과·최종 문구를 수정할 수 없습니다(409). ";
 
     @Operation(summary = "최종 결과 공개 예약 현황 조회 (백오피스)",
-            description = "최종 결과의 공개 상태, 예약 일시, 결과 확인 종료일, 조건별 충족 여부와 진행 현황을 반환합니다. "
+            description = "최종 결과의 공개 상태, 예약 일시, 결과 확인 종료일, 조건별 충족 여부와 달성 수(achieved)·전체 수(total)를 반환합니다. "
                     + "reservable은 [예약] 버튼, cancellable은 [예약 취소] 버튼 활성 여부입니다. "
                     + FINAL_CONDITION_RULE + FINAL_STATE_RULE + RESPONSE_RULE)
     @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")

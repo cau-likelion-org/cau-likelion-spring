@@ -56,4 +56,9 @@ public class Result extends BaseTimeEntity {
         this.fixedInterviewDate = fixedInterviewDate;
         this.fixedInterviewSpot = fixedInterviewSpot;
     }
+
+    /** 서류 결과 변경 (이력 미보관, 덮어쓰기) */
+    public void changeDocumentResult(ApplicationResult documentResult) {
+        this.documentResult = documentResult;
+    }
 }

@@ -61,4 +61,9 @@ public class Applicant extends BaseTimeEntity {
     public void updateFormEnteredAt(LocalDateTime formEnteredAt) {
         this.formEnteredAt = formEnteredAt;
     }
+
+    /** 암호화된 비밀번호로 바꾼다 */
+    public void updatePassword(String password) {
+        this.password = password;
+    }
 }

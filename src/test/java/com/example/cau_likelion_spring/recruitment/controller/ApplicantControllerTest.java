@@ -24,13 +24,14 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** 계정 생성·로그인은 토큰 없이, 본인 정보 조회는 지원자 토큰으로만 호출할 수 있는지 확인 */
+/** 계정 생성·로그인·비밀번호 재설정은 토큰 없이, 본인 정보 조회는 지원자 토큰으로만 호출할 수 있는지 확인 */
 @WebMvcTest(controllers = ApplicantController.class)
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtTokenProvider.class})
 @TestPropertySource(properties = {
@@ -117,6 +118,31 @@ class ApplicantControllerTest {
     })
     void 로그인_요청에_이메일이나_비밀번호가_비어_있으면_400(String body) throws Exception {
         mockMvc.perform(post("/api/recruitment/applicants/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(applicantService);
+    }
+
+    @Test
+    void 토큰_없이_비밀번호를_재설정할_수_있다() throws Exception {
+        mockMvc.perform(post("/api/recruitment/applicants/password-reset")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"verificationToken\":\"token\",\"newPassword\":\"newPassword1!\"}"))
+                .andExpect(status().isNoContent());
+
+        verify(applicantService).resetPassword(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"verificationToken\":\"token\",\"newPassword\":\"short1!\"}",
+            "{\"verificationToken\":\"token\",\"newPassword\":\"한글비밀번호12345\"}",
+            "{\"newPassword\":\"newPassword1!\"}"
+    })
+    void 새_비밀번호_형식이_맞지_않거나_인증_완료_토큰이_없으면_400(String body) throws Exception {
+        mockMvc.perform(post("/api/recruitment/applicants/password-reset")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isBadRequest());

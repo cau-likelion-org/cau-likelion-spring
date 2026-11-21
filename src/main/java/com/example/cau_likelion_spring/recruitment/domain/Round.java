@@ -63,6 +63,11 @@ public class Round extends BaseTimeEntity {
         this.otDate = otDate;
     }
 
+    /** 서류 접수가 시작됐는지 (시작일이 비어 있으면 아직 일정 미정 → 시작 전으로 본다) */
+    public boolean isApplyStarted(LocalDateTime now) {
+        return startDate != null && !now.isBefore(startDate);
+    }
+
     /** 모집공고 일정 수정 (서류접수 시작·마감, 서류 결과발표, OT) */
     public void updateNoticeSchedule(LocalDateTime startDate, LocalDateTime deadLine,
                                      LocalDateTime documentResultDate, LocalDateTime otDate) {

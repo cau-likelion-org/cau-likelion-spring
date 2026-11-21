@@ -4,6 +4,7 @@ import com.example.cau_likelion_spring.global.exception.CustomException;
 import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.recruitment.domain.Application;
 import com.example.cau_likelion_spring.recruitment.domain.Result;
+import com.example.cau_likelion_spring.recruitment.domain.ResultPublishStatus;
 import com.example.cau_likelion_spring.recruitment.domain.Round;
 import com.example.cau_likelion_spring.recruitment.dto.DocumentResultRequest;
 import com.example.cau_likelion_spring.recruitment.dto.DocumentResultResponse;
@@ -34,7 +35,8 @@ import java.util.stream.Collectors;
  * 백오피스 서류 결과·확정 면접 일정 입력 (현재 회차 제출자 한정).
  *
  * 결과(Result)는 지원서 제출 시 만들지 않으므로, 처음 입력할 때 만들고 이후에는 덮어쓴다 (이력 미보관).
- * TODO: 공개 예약 상태 잠금, 공개 후 변경 규칙(보류로 변경 불가, 합격 변경 시 면접 정보 필수 등)은 공개 예약 기능과 함께 추가
+ * 서류 결과 공개 예약 중(RESERVED)에는 서류 결과·면접 일정 입력이 잠긴다 (예약 취소 후 수정).
+ * TODO: 공개 후 변경 규칙(보류로 변경 불가, 합격 변경 시 면접 정보 필수 등)은 공개 후 수정 기능(7.8.1·7.8.2)과 함께 추가
  */
 @Service
 @RequiredArgsConstructor
@@ -60,6 +62,7 @@ public class ResultAdminService {
         }
 
         Round round = currentRoundFinder.find();
+        validateNotReserved(round);
         List<Application> applications = applicationRepository.findAllByIdInAndRoundPart_Round(distinctIds, round);
         if (applications.size() != distinctIds.size()) {
             Set<Long> foundIds = applications.stream().map(Application::getId).collect(Collectors.toSet());
@@ -104,6 +107,7 @@ public class ResultAdminService {
     @Transactional
     public InterviewScheduleResponse updateInterviewSchedule(Long applicationId, InterviewScheduleRequest request) {
         Round round = currentRoundFinder.find();
+        validateNotReserved(round);
         Application application = applicationRepository.findByIdAndRoundPart_Round(applicationId, round)
                 .orElseThrow(() -> new CustomException(ErrorCode.RECRUITMENT_APPLICATION_NOT_FOUND,
                         "현재 회차에 제출된 지원서가 아닙니다. applicationId=" + applicationId));
@@ -117,6 +121,14 @@ public class ResultAdminService {
         result.changeInterviewSchedule(request.fixedInterviewDate(), spot); // 영속 상태라 더티 체킹으로 반영
 
         return InterviewScheduleResponse.of(result, checkScheduleWarnings(round, application, request.fixedInterviewDate()));
+    }
+
+    /** 서류 결과 공개 예약 중에는 입력할 수 없다 */
+    private void validateNotReserved(Round round) {
+        if (round.getDocumentPublishStatus(LocalDateTime.now()) == ResultPublishStatus.RESERVED) {
+            throw new CustomException(ErrorCode.RECRUITMENT_RESULT_LOCKED,
+                    "서류 결과 공개 예약 중에는 수정할 수 없습니다. 예약을 취소한 후 수정해주세요.");
+        }
     }
 
     /**

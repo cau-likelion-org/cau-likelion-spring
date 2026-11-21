@@ -3,6 +3,7 @@ package com.example.cau_likelion_spring.recruitment.service;
 import com.example.cau_likelion_spring.global.exception.CustomException;
 import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.recruitment.domain.Application;
+import com.example.cau_likelion_spring.recruitment.domain.ResultPublishStatus;
 import com.example.cau_likelion_spring.recruitment.domain.ResultTemplate;
 import com.example.cau_likelion_spring.recruitment.domain.ResultTemplateType;
 import com.example.cau_likelion_spring.recruitment.domain.ResultTemplateVariable;
@@ -18,12 +19,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
 /**
  * 백오피스 결과 안내 문구 템플릿 조회·저장·미리보기 (현재 회차 기준).
- * TODO: 공개 예약 상태 잠금(예약 중에는 해당 템플릿 수정 불가, 예약 취소 후 수정)은 공개 예약 기능과 함께 추가
+ * 서류 결과 공개 예약 중(RESERVED)에는 서류 문구를 수정할 수 없다 (예약 취소 후 수정).
+ * TODO: 최종 문구 잠금은 최종 결과 공개 예약 기능과 함께 추가
  */
 @Service
 @RequiredArgsConstructor
@@ -49,6 +52,7 @@ public class ResultTemplateService {
     public ResultTemplateResponse saveTemplate(ResultTemplateType type, ResultTemplateSaveRequest request) {
         validateVariables(type, request.text());
         Round round = currentRoundFinder.find();
+        validateNotReserved(round, type);
 
         resultTemplateRepository.findByRoundAndType(round, type)
                 .ifPresentOrElse(
@@ -74,6 +78,16 @@ public class ResultTemplateService {
                 resultRepository.findByApplication(application).orElse(null));
 
         return new ResultTemplatePreviewResponse(application.getId(), message);
+    }
+
+    private void validateNotReserved(Round round, ResultTemplateType type) {
+        if (type.isFinalStage()) {
+            return;
+        }
+        if (round.getDocumentPublishStatus(LocalDateTime.now()) == ResultPublishStatus.RESERVED) {
+            throw new CustomException(ErrorCode.RECRUITMENT_RESULT_LOCKED,
+                    type.getLabel() + " 문구는 결과 공개 예약 중에는 수정할 수 없습니다. 예약을 취소한 후 수정해주세요.");
+        }
     }
 
     /** 면접 변수는 서류 합격 템플릿에서만 쓸 수 있다 (버튼 비활성과 같은 규칙을 서버에서도 막는다) */

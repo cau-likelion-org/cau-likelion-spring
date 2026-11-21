@@ -24,6 +24,9 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     /** 요청한 id 중 해당 회차에 제출된 지원서만 */
     List<Application> findAllByIdInAndRoundPart_Round(Collection<Long> ids, Round round);
 
+    /** 해당 회차에 제출된 지원서 수 */
+    long countByRoundPart_Round(Round round);
+
     /** 해당 회차에 제출된 지원서 */
     Optional<Application> findByIdAndRoundPart_Round(Long id, Round round);
 }

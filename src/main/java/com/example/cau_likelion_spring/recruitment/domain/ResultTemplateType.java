@@ -33,6 +33,11 @@ public enum ResultTemplateType {
 
     private final String defaultText;
 
+    /** 최종 결과 문구인지 (아니면 서류 결과 문구) - 어느 전형의 공개 예약 잠금을 따를지 정한다 */
+    public boolean isFinalStage() {
+        return this == FINAL_PASS || this == FINAL_FAIL;
+    }
+
     public boolean allows(ResultTemplateVariable variable) {
         return !variable.isInterviewOnly() || interviewVariablesAllowed;
     }

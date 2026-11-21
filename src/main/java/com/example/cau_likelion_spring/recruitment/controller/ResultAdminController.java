@@ -27,7 +27,7 @@ public class ResultAdminController {
     @Operation(summary = "서류 결과 입력 (백오피스)",
             description = "현재 회차에 제출된 지원서의 서류 결과를 합격(PASS)/불합격(FAIL)/보류(HOLD)로 저장합니다. "
                     + "체크박스 일괄 변경은 여러 id, 행별 개별 변경은 id 하나를 보내면 됩니다. 기존 결과는 덮어씁니다(이력 미보관). "
-                    + "id가 중복되면 400, 현재 회차에 제출된 지원서가 아닌 id가 있으면 404이며 이때는 아무것도 저장되지 않습니다. "
+                    + "id가 중복되면 400, 현재 회차에 제출된 지원서가 아닌 id가 있으면 404이며 이때는 아무것도 저장되지 않습니다. 서류 결과 공개 예약 중이면 409입니다. "
                     + "응답은 요청한 순서대로 지원서별 저장된 결과입니다. ADMIN/PRESIDENT 권한이 필요합니다.")
     @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PatchMapping("/document")
@@ -40,7 +40,7 @@ public class ResultAdminController {
             description = "지원자 한 명의 확정 면접 일시(필수)와 장소(선택)를 저장합니다. 기존 값은 덮어쓰며, 장소를 비워 보내면 지워집니다. "
                     + "저장은 항상 되며, 확인이 필요하면 응답 warnings에 경고를 담습니다: "
                     + "OUT_OF_AVAILABLE_TIME(지원자가 고른 15분 단위 면접 가능 시간 밖), DUPLICATE_SCHEDULE(같은 일시에 다른 지원자 배정). "
-                    + "현재 회차에 제출된 지원서가 아니면 404, 서류 결과가 합격(PASS)이 아니면 400입니다. ADMIN/PRESIDENT 권한이 필요합니다.")
+                    + "현재 회차에 제출된 지원서가 아니면 404, 서류 결과가 합격(PASS)이 아니면 400, 서류 결과 공개 예약 중이면 409입니다. ADMIN/PRESIDENT 권한이 필요합니다.")
     @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PutMapping("/{applicationId}/interview")
     public ResponseEntity<InterviewScheduleResponse> updateInterviewSchedule(

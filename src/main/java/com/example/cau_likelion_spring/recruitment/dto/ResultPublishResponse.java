@@ -6,8 +6,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/** 백오피스 서류 결과 공개 예약 현황 (상태·예약 일시·공개 조건 충족 여부) */
-@Schema(description = "서류 결과 공개 예약 현황")
+/** 백오피스 전형별(서류·최종) 결과 공개 예약 현황 (상태·예약 일시·공개 조건 충족 여부) */
+@Schema(description = "결과 공개 예약 현황")
 public record ResultPublishResponse(
 
         @Schema(description = "상태 (INPUTTING: 입력 중, RESERVED: 공개 예약, PUBLISHED: 공개)", example = "INPUTTING")
@@ -16,10 +16,13 @@ public record ResultPublishResponse(
         @Schema(description = "공개 예약 일시 (입력 중이면 null)", example = "2027-03-10T18:00:00")
         LocalDateTime publishAt,
 
+        @Schema(description = "결과 확인 종료일 (최종 결과만, 서류 결과이거나 예약 전이면 null)", example = "2027-05-31T23:59:00")
+        LocalDateTime resultCheckDeadLine,
+
         @Schema(description = "[예약] 버튼 활성 여부 (입력 중이고 조건을 모두 만족하면 true)", example = "false")
         boolean reservable,
 
-        @Schema(description = "[예약 취소] 버튼 활성 여부 (공개 예약 상태면 true)", example = "false")
+        @Schema(description = "[예약 취소] 버튼 활성 여부 (공개 예약 상태면 true. 단, 서류 결과는 최종 결과가 예약되어 있으면 false)", example = "false")
         boolean cancellable,
 
         @Schema(description = "공개 조건 목록")

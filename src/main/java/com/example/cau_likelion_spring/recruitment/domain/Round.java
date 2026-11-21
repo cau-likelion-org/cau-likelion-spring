@@ -45,10 +45,10 @@ public class Round extends BaseTimeEntity {
     /** 서류 결과 공개 예약 시각 (비어 있으면 예약 전 = 입력 중, 이 시각이 지나면 공개) */
     private LocalDateTime documentResultPublishAt;
 
-    /** 최종 결과 공개 시각 (비어 있으면 공개 예약 전) */
+    /** 최종 결과 공개 예약 시각 (비어 있으면 예약 전 = 입력 중, 이 시각이 지나면 공개) */
     private LocalDateTime finalResultDate;
 
-    /** 결과 확인 종료일 */
+    /** 결과 확인 종료일 (최종 결과 예약 시 함께 설정) */
     private LocalDateTime resultCheckDeadLine;
 
     private LocalDateTime otDate;
@@ -95,5 +95,21 @@ public class Round extends BaseTimeEntity {
     /** 서류 결과 공개 예약 취소 (입력 중으로 복귀) */
     public void cancelDocumentResultReservation() {
         this.documentResultPublishAt = null;
+    }
+
+    public ResultPublishStatus getFinalPublishStatus(LocalDateTime now) {
+        return ResultPublishStatus.of(finalResultDate, now);
+    }
+
+    /** 최종 결과 공개 예약 (결과 확인 종료일 함께 설정) */
+    public void reserveFinalResult(LocalDateTime publishAt, LocalDateTime resultCheckDeadLine) {
+        this.finalResultDate = publishAt;
+        this.resultCheckDeadLine = resultCheckDeadLine;
+    }
+
+    /** 최종 결과 공개 예약 취소 (입력 중으로 복귀, 결과 확인 종료일도 비운다) */
+    public void cancelFinalResultReservation() {
+        this.finalResultDate = null;
+        this.resultCheckDeadLine = null;
     }
 }

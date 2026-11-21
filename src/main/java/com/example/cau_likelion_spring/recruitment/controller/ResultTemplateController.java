@@ -39,7 +39,7 @@ public class ResultTemplateController {
     }
 
     @Operation(summary = "결과 안내 문구 저장 (백오피스)",
-            description = "현재 회차의 템플릿 하나를 저장합니다(처음이면 생성, 이후 덮어쓰기). 문구는 필수이며 2000자 이하이고, 서류 문구(DOCUMENT_PASS·DOCUMENT_FAIL)는 서류 결과 공개 예약 중이면 409입니다. "
+            description = "현재 회차의 템플릿 하나를 저장합니다(처음이면 생성, 이후 덮어쓰기). 문구는 필수이며 2000자 이하이고, 해당 전형(서류·최종)의 결과 공개 예약 중이면 409입니다. "
                     + VARIABLE_RULE + "ADMIN/PRESIDENT 권한이 필요합니다.")
     @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PutMapping("/{type}")

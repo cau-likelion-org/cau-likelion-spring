@@ -25,8 +25,7 @@ import java.util.List;
 
 /**
  * 백오피스 결과 안내 문구 템플릿 조회·저장·미리보기 (현재 회차 기준).
- * 서류 결과 공개 예약 중(RESERVED)에는 서류 문구를 수정할 수 없다 (예약 취소 후 수정).
- * TODO: 최종 문구 잠금은 최종 결과 공개 예약 기능과 함께 추가
+ * 해당 전형(서류·최종)의 결과 공개 예약 중(RESERVED)에는 문구를 수정할 수 없다 (예약 취소 후 수정).
  */
 @Service
 @RequiredArgsConstructor
@@ -81,10 +80,11 @@ public class ResultTemplateService {
     }
 
     private void validateNotReserved(Round round, ResultTemplateType type) {
-        if (type.isFinalStage()) {
-            return;
-        }
-        if (round.getDocumentPublishStatus(LocalDateTime.now()) == ResultPublishStatus.RESERVED) {
+        LocalDateTime now = LocalDateTime.now();
+        ResultPublishStatus status = type.isFinalStage()
+                ? round.getFinalPublishStatus(now)
+                : round.getDocumentPublishStatus(now);
+        if (status == ResultPublishStatus.RESERVED) {
             throw new CustomException(ErrorCode.RECRUITMENT_RESULT_LOCKED,
                     type.getLabel() + " 문구는 결과 공개 예약 중에는 수정할 수 없습니다. 예약을 취소한 후 수정해주세요.");
         }

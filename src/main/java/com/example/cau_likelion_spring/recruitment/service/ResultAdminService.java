@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
  * 결과(Result)는 지원서 제출 시 만들지 않으므로, 처음 입력할 때 만들고 이후에는 덮어쓴다 (이력 미보관).
  * 서류 결과 공개 예약 중(RESERVED)에는 서류 결과·면접 일정 입력이 잠긴다 (예약 취소 후 수정).
  * 면접(최종) 결과는 서류 합격자만 입력할 수 있다.
- * TODO: 최종 결과 공개 예약 중 잠금은 최종 결과 공개 예약 기능과 함께 추가
+ * 최종 결과 공개 예약 중(RESERVED)에는 면접 결과 입력이 잠긴다.
  * TODO: 공개 후 변경 규칙(보류로 변경 불가, 합격 변경 시 면접 정보 필수 등)은 공개 후 수정 기능(7.8.1·7.8.2)과 함께 추가
  */
 @Service
@@ -60,7 +60,7 @@ public class ResultAdminService {
     public List<DocumentResultResponse> updateDocumentResults(DocumentResultRequest request) {
         List<Long> applicationIds = request.applicationIds();
         Round round = currentRoundFinder.find();
-        validateNotReserved(round);
+        validateDocumentNotReserved(round);
         List<Application> applications = findCurrentRoundApplications(round, applicationIds);
 
         Map<Long, Result> resultByApplicationId = resultRepository.findAllByApplicationIn(applications).stream()
@@ -99,6 +99,7 @@ public class ResultAdminService {
     public List<FinalResultResponse> updateFinalResults(FinalResultRequest request) {
         List<Long> applicationIds = request.applicationIds();
         Round round = currentRoundFinder.find();
+        validateFinalNotReserved(round);
         List<Application> applications = findCurrentRoundApplications(round, applicationIds);
 
         // 서류 합격자는 서류 결과 입력 시 Result가 만들어져 있으므로, 없거나 합격이 아니면 입력 불가
@@ -134,7 +135,7 @@ public class ResultAdminService {
     @Transactional
     public InterviewScheduleResponse updateInterviewSchedule(Long applicationId, InterviewScheduleRequest request) {
         Round round = currentRoundFinder.find();
-        validateNotReserved(round);
+        validateDocumentNotReserved(round);
         Application application = applicationRepository.findByIdAndRoundPart_Round(applicationId, round)
                 .orElseThrow(() -> new CustomException(ErrorCode.RECRUITMENT_APPLICATION_NOT_FOUND,
                         "현재 회차에 제출된 지원서가 아닙니다. applicationId=" + applicationId));
@@ -171,8 +172,16 @@ public class ResultAdminService {
         return applications;
     }
 
-    /** 서류 결과 공개 예약 중에는 입력할 수 없다 */
-    private void validateNotReserved(Round round) {
+    /** 최종 결과 공개 예약 중에는 면접 결과를 입력할 수 없다 */
+    private void validateFinalNotReserved(Round round) {
+        if (round.getFinalPublishStatus(LocalDateTime.now()) == ResultPublishStatus.RESERVED) {
+            throw new CustomException(ErrorCode.RECRUITMENT_RESULT_LOCKED,
+                    "최종 결과 공개 예약 중에는 수정할 수 없습니다. 예약을 취소한 후 수정해주세요.");
+        }
+    }
+
+    /** 서류 결과 공개 예약 중에는 서류 결과·면접 일정을 입력할 수 없다 */
+    private void validateDocumentNotReserved(Round round) {
         if (round.getDocumentPublishStatus(LocalDateTime.now()) == ResultPublishStatus.RESERVED) {
             throw new CustomException(ErrorCode.RECRUITMENT_RESULT_LOCKED,
                     "서류 결과 공개 예약 중에는 수정할 수 없습니다. 예약을 취소한 후 수정해주세요.");

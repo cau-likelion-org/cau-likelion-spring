@@ -5,6 +5,7 @@ import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.global.jwt.JwtTokenProvider;
 import com.example.cau_likelion_spring.recruitment.domain.EmailVerification;
 import com.example.cau_likelion_spring.recruitment.domain.EmailVerificationPurpose;
+import com.example.cau_likelion_spring.recruitment.domain.Round;
 import com.example.cau_likelion_spring.recruitment.dto.EmailVerificationConfirmRequest;
 import com.example.cau_likelion_spring.recruitment.dto.EmailVerificationSendRequest;
 import com.example.cau_likelion_spring.recruitment.dto.EmailVerificationSendResponse;
@@ -27,6 +28,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -46,6 +48,12 @@ class EmailVerificationServiceTest {
 
     @Mock
     private JwtTokenProvider jwtTokenProvider;
+
+    @Mock
+    private CurrentRoundFinder currentRoundFinder;
+
+    @Mock
+    private ApplicantService applicantService;
 
     @InjectMocks
     private EmailVerificationService emailVerificationService;
@@ -70,6 +78,21 @@ class EmailVerificationServiceTest {
         assertThat(saved.getValue().getExpiresAt()).isEqualTo(saved.getValue().getSentAt().plus(CODE_TTL));
         assertThat(response.getExpiresAt()).isEqualTo(saved.getValue().getExpiresAt());
         verify(emailVerificationMailSender).send(EMAIL, saved.getValue().getCode(), CODE_TTL);
+    }
+
+    @Test
+    void 가입_용도는_이미_가입한_이메일이면_인증번호를_보내지_않는다() {
+        Round round = Round.builder().build();
+        given(currentRoundFinder.find()).willReturn(round);
+        willThrow(new CustomException(ErrorCode.RECRUITMENT_APPLICATION_IN_PROGRESS))
+                .given(applicantService).validateEmailAvailable(round, EMAIL);
+
+        assertThatThrownBy(() -> emailVerificationService.send(sendRequest(EMAIL)))
+                .isInstanceOf(CustomException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.RECRUITMENT_APPLICATION_IN_PROGRESS);
+
+        verify(emailVerificationStore, never()).save(any());
+        verify(emailVerificationMailSender, never()).send(any(), any(), any());
     }
 
     @Test

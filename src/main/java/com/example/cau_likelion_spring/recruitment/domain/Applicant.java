@@ -10,7 +10,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "recruitment_applicant")
+@Table(name = "recruitment_applicant",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"round_id", "email"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Applicant extends BaseTimeEntity {
@@ -18,6 +19,14 @@ public class Applicant extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    /**
+     * 가입한 회차. 지원서를 내기 전인 계정도 회차에 묶어야 해서 여기에 둔다.
+     * 같은 이메일이라도 회차가 다르면 새로 가입할 수 있다 (round_id + email unique).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "round_id")
+    private Round round;
 
     @Column(length = 10)
     private String name;
@@ -39,7 +48,9 @@ public class Applicant extends BaseTimeEntity {
     private LocalDateTime formEnteredAt;
 
     @Builder
-    public Applicant(String name, String phone, String email, String password, LocalDateTime formEnteredAt) {
+    public Applicant(Round round, String name, String phone, String email, String password,
+                     LocalDateTime formEnteredAt) {
+        this.round = round;
         this.name = name;
         this.phone = phone;
         this.email = email;

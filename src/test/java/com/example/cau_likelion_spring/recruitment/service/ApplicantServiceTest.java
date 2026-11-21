@@ -6,6 +6,7 @@ import com.example.cau_likelion_spring.global.jwt.JwtTokenProvider;
 import com.example.cau_likelion_spring.global.jwt.JwtValidationType;
 import com.example.cau_likelion_spring.recruitment.domain.Applicant;
 import com.example.cau_likelion_spring.recruitment.domain.Round;
+import com.example.cau_likelion_spring.recruitment.dto.ApplicantLoginRequest;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantSignupRequest;
 import com.example.cau_likelion_spring.recruitment.repository.ApplicantRepository;
 import com.example.cau_likelion_spring.recruitment.repository.ApplicationRepository;
@@ -130,6 +131,77 @@ class ApplicantServiceTest {
         given(applicationRepository.existsByApplicantAndRoundPart_Round(existing, round)).willReturn(true);
 
         assertSignupFails(ErrorCode.RECRUITMENT_ALREADY_APPLIED);
+    }
+
+    @Test
+    void 접수_기간에_로그인하면_지원자_토큰을_발급하고_폼_진입_시각을_갱신한다() {
+        Round round = openRound();
+        LocalDateTime enteredAt = LocalDateTime.now().minusHours(3);
+        Applicant applicant = givenApplicant(round, enteredAt);
+        given(passwordEncoder.matches("password1!", "encoded")).willReturn(true);
+        given(jwtTokenProvider.createApplicantToken(7L)).willReturn("applicant-token");
+
+        String accessToken = applicantService.login(loginRequest("Applicant@CAU.ac.kr", "password1!")).getAccessToken();
+
+        assertThat(accessToken).isEqualTo("applicant-token");
+        assertThat(applicant.getFormEnteredAt()).isAfter(enteredAt);
+    }
+
+    @Test
+    void 접수_마감_후_로그인하면_토큰은_발급하지만_폼_진입_시각은_갱신하지_않는다() {
+        LocalDateTime now = LocalDateTime.now();
+        Round round = Round.builder().startDate(now.minusDays(7)).deadLine(now.minusMinutes(1)).build();
+        LocalDateTime enteredAt = now.minusDays(1);
+        Applicant applicant = givenApplicant(round, enteredAt);
+        given(passwordEncoder.matches("password1!", "encoded")).willReturn(true);
+        given(jwtTokenProvider.createApplicantToken(7L)).willReturn("applicant-token");
+
+        String accessToken = applicantService.login(loginRequest(EMAIL, "password1!")).getAccessToken();
+
+        assertThat(accessToken).isEqualTo("applicant-token");
+        assertThat(applicant.getFormEnteredAt()).isEqualTo(enteredAt);
+    }
+
+    @Test
+    void 이번_회차에_없는_이메일로_로그인하면_거절한다() {
+        Round round = openRound();
+        given(currentRoundFinder.find()).willReturn(round);
+        given(applicantRepository.findByRoundAndEmail(round, EMAIL)).willReturn(Optional.empty());
+
+        assertLoginFails();
+    }
+
+    @Test
+    void 비밀번호가_틀리면_이메일이_없을_때와_같은_오류로_거절하고_폼_진입_시각을_갱신하지_않는다() {
+        LocalDateTime enteredAt = LocalDateTime.now().minusHours(3);
+        Applicant applicant = givenApplicant(openRound(), enteredAt);
+        given(passwordEncoder.matches("password1!", "encoded")).willReturn(false);
+
+        assertLoginFails();
+        assertThat(applicant.getFormEnteredAt()).isEqualTo(enteredAt);
+    }
+
+    private Applicant givenApplicant(Round round, LocalDateTime formEnteredAt) {
+        Applicant applicant = Applicant.builder()
+                .round(round).email(EMAIL).password("encoded").formEnteredAt(formEnteredAt).build();
+        ReflectionTestUtils.setField(applicant, "id", 7L);
+        given(currentRoundFinder.find()).willReturn(round);
+        given(applicantRepository.findByRoundAndEmail(round, EMAIL)).willReturn(Optional.of(applicant));
+        return applicant;
+    }
+
+    private void assertLoginFails() {
+        assertThatThrownBy(() -> applicantService.login(loginRequest(EMAIL, "password1!")))
+                .isInstanceOf(CustomException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.RECRUITMENT_LOGIN_FAILED);
+        verify(jwtTokenProvider, never()).createApplicantToken(any());
+    }
+
+    private ApplicantLoginRequest loginRequest(String email, String password) {
+        ApplicantLoginRequest request = new ApplicantLoginRequest();
+        ReflectionTestUtils.setField(request, "email", email);
+        ReflectionTestUtils.setField(request, "password", password);
+        return request;
     }
 
     private void givenVerificationToken(String purpose, String email) {

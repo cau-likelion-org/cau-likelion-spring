@@ -37,8 +37,9 @@ public class QuestionController {
 
     private static final String LOCK_RULE = "서류 접수 시작일(startDate)이 지났거나 해당 파트에 지원서가 접수됐으면 409입니다(시작일 미설정이면 가능). "
             + "ADMIN/PRESIDENT 권한이 필요합니다.";
-    private static final String TYPE_RULE = "유형은 LONG_TEXT(장문: charLimit 필수, options 불가) / "
-            + "SINGLE_CHOICE(객관식 단일: options 2개 이상, charLimit 불가)만 가능하며, 규칙 위반 시 400입니다. ";
+    private static final String TYPE_RULE = "유형별 규칙: LONG_TEXT(장문)는 charLimit 필수·options 불가, "
+            + "LINK(링크)·FILE(파일)은 charLimit·options 모두 불가, "
+            + "SINGLE_CHOICE(객관식 단일)·MULTIPLE_CHOICE(객관식 복수)는 options 2개 이상·charLimit 불가이며, 위반 시 400입니다. ";
 
     @Operation(summary = "2단계 문항 등록 (백오피스)",
             description = "현재 회차 해당 파트에 문항 하나를 맨 뒤 순서로 추가합니다. 선택지는 배열 순서대로 노출됩니다. "

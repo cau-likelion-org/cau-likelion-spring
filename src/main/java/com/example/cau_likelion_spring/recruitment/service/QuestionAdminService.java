@@ -17,6 +17,7 @@ import com.example.cau_likelion_spring.recruitment.repository.InterviewOptionRep
 import com.example.cau_likelion_spring.recruitment.repository.InterviewQuestionRepository;
 import com.example.cau_likelion_spring.recruitment.repository.InterviewScriptRepository;
 import com.example.cau_likelion_spring.recruitment.repository.OptionsRepository;
+import com.example.cau_likelion_spring.recruitment.service.PartQuestionLoader.PartQuestion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,8 +34,8 @@ import java.util.stream.Collectors;
  * 백오피스 2단계 문항 작성 (현재 회차의 파트별) - 등록·수정·삭제·순서 변경.
  *
  * 저장 구조: InterviewQuestion(유형·필수 응답·순서) +
- *   장문 → InterviewScript(질문·설명·글자 수 제한)
- *   객관식 단일 → InterviewOption(질문·설명) + Options(선택지)
+ *   장문·링크·파일 → InterviewScript(질문·설명·글자 수 제한(장문만))
+ *   객관식 단일·복수 → InterviewOption(질문·설명) + Options(선택지)
  *
  * 서류 접수 시작 후(또는 지원서가 접수된 파트)는 모든 변경을 막는다(409).
  * 그래서 수정 시 내용·선택지를 지우고 다시 만들어 id가 새로 발급돼도, 그것을 가리키는 답변이 없어 안전하다.
@@ -45,8 +46,6 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class QuestionAdminService {
 
-    /** 백오피스에서 작성할 수 있는 문항 유형 */
-    private static final Set<QuestionType> EDITABLE_TYPES = Set.of(QuestionType.LONG_TEXT, QuestionType.SINGLE_CHOICE);
     private static final int MIN_CHOICE_COUNT = 2;
 
     private final CurrentRoundFinder currentRoundFinder;
@@ -155,29 +154,32 @@ public class QuestionAdminService {
         }
     }
 
-    /** 유형별 규칙 검증 */
+    /**
+     * 유형별 규칙 검증.
+     * 장문: 글자 수 제한 필수, 선택지 불가 / 링크·파일: 글자 수 제한·선택지 불가 / 객관식 단일·복수: 선택지 2개 이상, 글자 수 제한 불가
+     */
     private void validateRequest(QuestionSaveRequest request) {
-        if (!EDITABLE_TYPES.contains(request.type())) {
-            throw invalid("문항 유형은 LONG_TEXT(장문) 또는 SINGLE_CHOICE(객관식 단일)만 가능합니다.");
-        }
-
+        QuestionType type = request.type();
         boolean hasOptions = request.options() != null && !request.options().isEmpty();
-        if (request.type() == QuestionType.LONG_TEXT) {
-            if (request.charLimit() == null) {
-                throw invalid("장문 문항은 글자 수 제한(charLimit)을 입력해야 합니다.");
+
+        if (PartQuestion.isChoice(type)) {
+            if (request.charLimit() != null) {
+                throw invalid("객관식 문항에는 글자 수 제한을 넣을 수 없습니다.");
             }
-            if (hasOptions) {
-                throw invalid("장문 문항에는 선택지를 넣을 수 없습니다.");
+            if (!hasOptions || request.options().size() < MIN_CHOICE_COUNT) {
+                throw invalid(type.getLabel() + " 문항은 선택지를 " + MIN_CHOICE_COUNT + "개 이상 입력해야 합니다.");
             }
             return;
         }
 
-        // SINGLE_CHOICE
-        if (request.charLimit() != null) {
-            throw invalid("객관식 문항에는 글자 수 제한을 넣을 수 없습니다.");
+        if (hasOptions) {
+            throw invalid(type.getLabel() + " 문항에는 선택지를 넣을 수 없습니다.");
         }
-        if (!hasOptions || request.options().size() < MIN_CHOICE_COUNT) {
-            throw invalid("객관식 단일 문항은 선택지를 " + MIN_CHOICE_COUNT + "개 이상 입력해야 합니다.");
+        if (type == QuestionType.LONG_TEXT && request.charLimit() == null) {
+            throw invalid("장문 문항은 글자 수 제한(charLimit)을 입력해야 합니다.");
+        }
+        if (type != QuestionType.LONG_TEXT && request.charLimit() != null) {
+            throw invalid(type.getLabel() + " 문항에는 글자 수 제한을 넣을 수 없습니다.");
         }
     }
 
@@ -188,12 +190,12 @@ public class QuestionAdminService {
         interviewScriptRepository.deleteAllByInterviewQuestion(question);
     }
 
-    /** 유형에 맞는 내용(장문: Script / 객관식: Option + 선택지)을 저장하고 응답으로 변환한다 */
+    /** 유형에 맞는 내용(장문·링크·파일: Script / 객관식: Option + 선택지)을 저장하고 응답으로 변환한다 */
     private QuestionResponse saveContent(InterviewQuestion question, QuestionSaveRequest request) {
         Round round = question.getRound();
         RoundPart roundPart = question.getRoundPart();
 
-        if (request.type() == QuestionType.LONG_TEXT) {
+        if (!PartQuestion.isChoice(request.type())) {
             InterviewScript script = interviewScriptRepository.save(InterviewScript.builder()
                     .interviewQuestion(question)
                     .round(round)

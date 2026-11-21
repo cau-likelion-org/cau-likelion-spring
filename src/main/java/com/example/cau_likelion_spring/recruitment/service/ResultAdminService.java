@@ -7,11 +7,14 @@ import com.example.cau_likelion_spring.recruitment.domain.Result;
 import com.example.cau_likelion_spring.recruitment.domain.Round;
 import com.example.cau_likelion_spring.recruitment.dto.DocumentResultRequest;
 import com.example.cau_likelion_spring.recruitment.dto.DocumentResultResponse;
+import com.example.cau_likelion_spring.recruitment.dto.InterviewScheduleRequest;
+import com.example.cau_likelion_spring.recruitment.dto.InterviewScheduleResponse;
 import com.example.cau_likelion_spring.recruitment.repository.ApplicationRepository;
 import com.example.cau_likelion_spring.recruitment.repository.ResultRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,7 +26,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 백오피스 서류 결과 입력 (현재 회차 제출자 한정).
+ * 백오피스 서류 결과·확정 면접 일정 입력 (현재 회차 제출자 한정).
  *
  * 결과(Result)는 지원서 제출 시 만들지 않으므로, 처음 입력할 때 만들고 이후에는 덮어쓴다 (이력 미보관).
  * TODO: 공개 예약 상태 잠금, 공개 후 변경 규칙(보류로 변경 불가, 합격 변경 시 면접 정보 필수 등)은 공개 예약 기능과 함께 추가
@@ -82,5 +85,27 @@ public class ResultAdminService {
                 .map(resultByApplicationId::get)
                 .map(DocumentResultResponse::from)
                 .toList();
+    }
+
+    /**
+     * 지원자 한 명의 확정 면접 일시·장소를 저장한다 (덮어쓰기).
+     * 서류 합격자만 입력할 수 있다. 장소는 비워 보내면 지워진다.
+     */
+    @Transactional
+    public InterviewScheduleResponse updateInterviewSchedule(Long applicationId, InterviewScheduleRequest request) {
+        Round round = currentRoundFinder.find();
+        Application application = applicationRepository.findByIdAndRoundPart_Round(applicationId, round)
+                .orElseThrow(() -> new CustomException(ErrorCode.RECRUITMENT_APPLICATION_NOT_FOUND,
+                        "현재 회차에 제출된 지원서가 아닙니다. applicationId=" + applicationId));
+
+        Result result = resultRepository.findByApplication(application)
+                .filter(Result::isDocumentPassed)
+                .orElseThrow(() -> new CustomException(ErrorCode.RECRUITMENT_NOT_DOCUMENT_PASSED,
+                        "서류 합격자만 면접 일정을 입력할 수 있습니다. applicationId=" + applicationId));
+
+        String spot = StringUtils.hasText(request.fixedInterviewSpot()) ? request.fixedInterviewSpot().trim() : null;
+        result.changeInterviewSchedule(request.fixedInterviewDate(), spot); // 영속 상태라 더티 체킹으로 반영
+
+        return InterviewScheduleResponse.from(result);
     }
 }

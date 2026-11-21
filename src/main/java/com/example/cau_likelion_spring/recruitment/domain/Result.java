@@ -61,4 +61,14 @@ public class Result extends BaseTimeEntity {
     public void changeDocumentResult(ApplicationResult documentResult) {
         this.documentResult = documentResult;
     }
+
+    /** 확정 면접 일시·장소 입력 (덮어쓰기) */
+    public void changeInterviewSchedule(LocalDateTime fixedInterviewDate, String fixedInterviewSpot) {
+        this.fixedInterviewDate = fixedInterviewDate;
+        this.fixedInterviewSpot = fixedInterviewSpot;
+    }
+
+    public boolean isDocumentPassed() {
+        return documentResult == ApplicationResult.PASS;
+    }
 }

@@ -2,17 +2,17 @@ package com.example.cau_likelion_spring.recruitment.controller;
 
 import com.example.cau_likelion_spring.recruitment.dto.DocumentResultRequest;
 import com.example.cau_likelion_spring.recruitment.dto.DocumentResultResponse;
+import com.example.cau_likelion_spring.recruitment.dto.InterviewScheduleRequest;
+import com.example.cau_likelion_spring.recruitment.dto.InterviewScheduleResponse;
 import com.example.cau_likelion_spring.recruitment.service.ResultAdminService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -34,5 +34,17 @@ public class ResultAdminController {
     public ResponseEntity<List<DocumentResultResponse>> updateDocumentResults(
             @Valid @RequestBody DocumentResultRequest request) {
         return ResponseEntity.ok(resultAdminService.updateDocumentResults(request));
+    }
+
+    @Operation(summary = "확정 면접 일정 입력 (백오피스)",
+            description = "지원자 한 명의 확정 면접 일시(필수)와 장소(선택)를 저장합니다. 기존 값은 덮어쓰며, 장소를 비워 보내면 지워집니다. "
+                    + "일시는 지원자가 고른 면접 가능 시간과 상관없이 자유롭게 입력할 수 있습니다. "
+                    + "현재 회차에 제출된 지원서가 아니면 404, 서류 결과가 합격(PASS)이 아니면 400입니다. ADMIN/PRESIDENT 권한이 필요합니다.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
+    @PutMapping("/{applicationId}/interview")
+    public ResponseEntity<InterviewScheduleResponse> updateInterviewSchedule(
+            @Parameter(description = "지원서 id") @PathVariable Long applicationId,
+            @Valid @RequestBody InterviewScheduleRequest request) {
+        return ResponseEntity.ok(resultAdminService.updateInterviewSchedule(applicationId, request));
     }
 }

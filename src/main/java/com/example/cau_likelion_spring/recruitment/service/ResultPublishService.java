@@ -89,8 +89,12 @@ public class ResultPublishService {
         LocalDateTime now = LocalDateTime.now();
 
         validateInputting("최종", round.getFinalPublishStatus(now));
+        if (round.getDocumentPublishStatus(now) == ResultPublishStatus.INPUTTING) {
+            throw new CustomException(ErrorCode.RECRUITMENT_PUBLISH_STATE_CONFLICT,
+                    "서류 결과 공개를 먼저 예약해주세요.");
+        }
         validateFuture(request.publishAt(), now);
-        validateConditions("최종", finalConditions(round, now));
+        validateConditions("최종", finalConditions(round));
         validateFinalSchedule(round, request);
 
         round.reserveFinalResult(request.publishAt(), request.resultCheckDeadLine());
@@ -125,30 +129,25 @@ public class ResultPublishService {
                         round, ApplicationResult.PASS);
 
         return List.of(
-                condition(ResultPublishCondition.DOCUMENT_RESULT_ENTERED, resultEntered, applicants,
-                        applicants + "명 중 " + resultEntered + "명 입력"),
-                condition(ResultPublishCondition.INTERVIEW_SCHEDULE_ENTERED, scheduleEntered, passed,
-                        "서류 합격자 " + passed + "명 중 " + scheduleEntered + "명 입력"),
+                condition(ResultPublishCondition.DOCUMENT_RESULT_ENTERED, resultEntered, applicants),
+                condition(ResultPublishCondition.INTERVIEW_SCHEDULE_ENTERED, scheduleEntered, passed),
                 templateCondition(ResultPublishCondition.DOCUMENT_TEMPLATES_WRITTEN, round,
                         ResultTemplateType.DOCUMENT_PASS, ResultTemplateType.DOCUMENT_FAIL));
     }
 
     /**
      * 최종 결과 공개 조건 (각각 달성 수 / 전체 수).
-     * 서류 결과 공개 예약 여부는 1 / 1(완료) 또는 0 / 1(미완료)로 표기한다.
+     * (1) 서류 합격자 중 면접 결과 입력된 수 / 서류 합격자 수
+     * (2) 저장한 최종 문구 수 / 2 (합격·불합격)
+     * 서류 결과 공개 예약이 먼저 돼 있어야 하는 것은 조건이 아닌 상태 검증으로 따로 막는다 (reserveFinal).
      */
-    private List<Condition> finalConditions(Round round, LocalDateTime now) {
-        ResultPublishStatus documentStatus = round.getDocumentPublishStatus(now);
+    private List<Condition> finalConditions(Round round) {
         long passed = countDocumentPassed(round);
         long finalEntered = resultRepository
                 .countByApplication_RoundPart_RoundAndDocumentResultAndFinalResultIsNotNull(round, ApplicationResult.PASS);
 
         return List.of(
-                condition(ResultPublishCondition.DOCUMENT_PUBLISH_RESERVED,
-                        documentStatus != ResultPublishStatus.INPUTTING ? 1 : 0, 1,
-                        "서류 결과 " + documentStatus.getLabel()),
-                condition(ResultPublishCondition.FINAL_RESULT_ENTERED, finalEntered, passed,
-                        "서류 합격자 " + passed + "명 중 " + finalEntered + "명 입력"),
+                condition(ResultPublishCondition.FINAL_RESULT_ENTERED, finalEntered, passed),
                 templateCondition(ResultPublishCondition.FINAL_TEMPLATES_WRITTEN, round,
                         ResultTemplateType.FINAL_PASS, ResultTemplateType.FINAL_FAIL));
     }
@@ -159,22 +158,20 @@ public class ResultPublishService {
 
     /** 문구는 저장한 적이 있어야 작성한 것으로 본다 (기본 문구 그대로는 미작성) */
     private Condition templateCondition(ResultPublishCondition type, Round round, ResultTemplateType... templateTypes) {
-        List<String> missing = Stream.of(templateTypes)
-                .filter(templateType -> !resultTemplateRepository.existsByRoundAndType(round, templateType))
-                .map(ResultTemplateType::getLabel)
-                .toList();
-        String detail = missing.isEmpty() ? "작성 완료" : "미작성: " + String.join(", ", missing);
-        return condition(type, templateTypes.length - missing.size(), templateTypes.length, detail);
+        long written = Stream.of(templateTypes)
+                .filter(templateType -> resultTemplateRepository.existsByRoundAndType(round, templateType))
+                .count();
+        return condition(type, written, templateTypes.length);
     }
 
-    private Condition condition(ResultPublishCondition type, long achieved, long total, String detail) {
-        return new Condition(type, type.getLabel(), achieved == total, achieved, total, detail);
+    private Condition condition(ResultPublishCondition type, long achieved, long total) {
+        return new Condition(type, type.getLabel(), achieved == total, achieved, total);
     }
 
     private void validateConditions(String stageName, List<Condition> conditions) {
         List<String> unmet = conditions.stream()
                 .filter(condition -> !condition.satisfied())
-                .map(condition -> condition.label() + "(" + condition.detail() + ")")
+                .map(condition -> condition.label() + "(" + condition.achieved() + "/" + condition.total() + ")")
                 .toList();
         if (!unmet.isEmpty()) {
             throw new CustomException(ErrorCode.RECRUITMENT_PUBLISH_CONDITION_NOT_MET,
@@ -247,9 +244,11 @@ public class ResultPublishService {
 
     private ResultPublishResponse buildFinalResponse(Round round, LocalDateTime now) {
         ResultPublishStatus status = round.getFinalPublishStatus(now);
-        List<Condition> conditions = finalConditions(round, now);
+        List<Condition> conditions = finalConditions(round);
         return new ResultPublishResponse(status, round.getFinalResultDate(), round.getResultCheckDeadLine(),
-                status == ResultPublishStatus.INPUTTING && allSatisfied(conditions),
+                status == ResultPublishStatus.INPUTTING
+                        && round.getDocumentPublishStatus(now) != ResultPublishStatus.INPUTTING // 서류 예약이 먼저
+                        && allSatisfied(conditions),
                 status == ResultPublishStatus.RESERVED,
                 conditions);
     }

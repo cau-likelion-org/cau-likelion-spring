@@ -56,8 +56,8 @@ public class ResultPublishController {
         return ResponseEntity.ok(resultPublishService.cancelDocument());
     }
 
-    private static final String FINAL_CONDITION_RULE = "공개 조건: 서류 결과 공개 예약(또는 공개) 완료, 서류 합격자 전원 면접 결과 입력(보류 포함), "
-            + "최종 합격·불합격 문구 2종 저장(기본 문구 그대로는 미작성). ";
+    private static final String FINAL_CONDITION_RULE = "공개 조건: 서류 합격자 전원 면접 결과 입력(보류 포함), "
+            + "최종 합격·불합격 문구 2종 저장(기본 문구 그대로는 미작성). 서류 결과 공개를 먼저 예약해야 하며, 아니면 409입니다. ";
     private static final String FINAL_STATE_RULE = "상태는 INPUTTING(입력 중) → RESERVED(공개 예약) → PUBLISHED(공개, 예약 시각이 지나면 자동)로 바뀌며, "
             + "예약 중에는 면접 결과·최종 문구를 수정할 수 없습니다(409). ";
 

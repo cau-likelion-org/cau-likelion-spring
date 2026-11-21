@@ -9,6 +9,9 @@ import com.example.cau_likelion_spring.recruitment.dto.DocumentResultRequest;
 import com.example.cau_likelion_spring.recruitment.dto.DocumentResultResponse;
 import com.example.cau_likelion_spring.recruitment.dto.InterviewScheduleRequest;
 import com.example.cau_likelion_spring.recruitment.dto.InterviewScheduleResponse;
+import com.example.cau_likelion_spring.recruitment.dto.InterviewScheduleResponse.Warning;
+import com.example.cau_likelion_spring.recruitment.dto.InterviewScheduleResponse.WarningType;
+import com.example.cau_likelion_spring.recruitment.repository.ApplicantInterviewTimeRepository;
 import com.example.cau_likelion_spring.recruitment.repository.ApplicationRepository;
 import com.example.cau_likelion_spring.recruitment.repository.ResultRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,9 +41,13 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ResultAdminService {
 
+    /** 면접 가능 시간 슬롯 하나의 길이 (지원자는 10:00~10:15처럼 15분 단위로 고른다) */
+    private static final Duration INTERVIEW_SLOT_LENGTH = Duration.ofMinutes(15);
+
     private final CurrentRoundFinder currentRoundFinder;
     private final ApplicationRepository applicationRepository;
     private final ResultRepository resultRepository;
+    private final ApplicantInterviewTimeRepository applicantInterviewTimeRepository;
 
     /** 요청한 지원서들의 서류 결과를 한 번에 저장한다. 하나라도 잘못된 id가 있으면 아무것도 저장하지 않는다 */
     @Transactional
@@ -90,6 +99,7 @@ public class ResultAdminService {
     /**
      * 지원자 한 명의 확정 면접 일시·장소를 저장한다 (덮어쓰기).
      * 서류 합격자만 입력할 수 있다. 장소는 비워 보내면 지워진다.
+     * 지원자 가능 시간 밖이거나 같은 일시 중복 배정이어도 저장하고, 응답의 warnings로 알린다.
      */
     @Transactional
     public InterviewScheduleResponse updateInterviewSchedule(Long applicationId, InterviewScheduleRequest request) {
@@ -106,6 +116,32 @@ public class ResultAdminService {
         String spot = StringUtils.hasText(request.fixedInterviewSpot()) ? request.fixedInterviewSpot().trim() : null;
         result.changeInterviewSchedule(request.fixedInterviewDate(), spot); // 영속 상태라 더티 체킹으로 반영
 
-        return InterviewScheduleResponse.from(result);
+        return InterviewScheduleResponse.of(result, checkScheduleWarnings(round, application, request.fixedInterviewDate()));
+    }
+
+    /**
+     * 확정 면접 일정 경고 (저장은 막지 않는다).
+     * - 지원자가 고른 면접 가능 시간 슬롯([시작, 시작 + 15분)) 중 어디에도 속하지 않는 일시
+     * - 현재 회차에서 같은 일시에 다른 지원자가 이미 배정됨
+     */
+    private List<Warning> checkScheduleWarnings(Round round, Application application, LocalDateTime fixedInterviewDate) {
+        List<Warning> warnings = new ArrayList<>();
+
+        boolean inAvailableTime = applicantInterviewTimeRepository
+                .findAllByApplicantAndInterviewTime_Round(application.getApplicant(), round).stream()
+                .map(selected -> selected.getInterviewTime().getInterviewDate())
+                .anyMatch(slotStart -> !fixedInterviewDate.isBefore(slotStart)
+                        && fixedInterviewDate.isBefore(slotStart.plus(INTERVIEW_SLOT_LENGTH)));
+        if (!inAvailableTime) {
+            warnings.add(new Warning(WarningType.OUT_OF_AVAILABLE_TIME, "지원자가 선택한 면접 가능 시간이 아닙니다."));
+        }
+
+        long sameTimeCount = resultRepository.countByFixedInterviewDateAndApplication_RoundPart_RoundAndApplicationNot(
+                fixedInterviewDate, round, application);
+        if (sameTimeCount > 0) {
+            warnings.add(new Warning(WarningType.DUPLICATE_SCHEDULE,
+                    "같은 일시에 이미 배정된 지원자가 " + sameTimeCount + "명 있습니다."));
+        }
+        return warnings;
     }
 }

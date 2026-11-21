@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 /**
  * 백오피스 확정 면접 일정 입력 요청 (지원자 한 명).
- * 일시는 지원자가 고른 면접 가능 시간과 상관없이 자유롭게 입력한다 (일정 조율로 바뀌는 경우 대응).
+ * 지원자가 고른 면접 가능 시간 밖이거나 같은 일시 중복 배정이어도 저장되고, 응답 warnings로 알린다.
  */
 @Schema(description = "백오피스 확정 면접 일정 입력 요청")
 public record InterviewScheduleRequest(

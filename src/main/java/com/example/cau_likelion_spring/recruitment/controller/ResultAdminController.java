@@ -38,7 +38,8 @@ public class ResultAdminController {
 
     @Operation(summary = "확정 면접 일정 입력 (백오피스)",
             description = "지원자 한 명의 확정 면접 일시(필수)와 장소(선택)를 저장합니다. 기존 값은 덮어쓰며, 장소를 비워 보내면 지워집니다. "
-                    + "일시는 지원자가 고른 면접 가능 시간과 상관없이 자유롭게 입력할 수 있습니다. "
+                    + "저장은 항상 되며, 확인이 필요하면 응답 warnings에 경고를 담습니다: "
+                    + "OUT_OF_AVAILABLE_TIME(지원자가 고른 15분 단위 면접 가능 시간 밖), DUPLICATE_SCHEDULE(같은 일시에 다른 지원자 배정). "
                     + "현재 회차에 제출된 지원서가 아니면 404, 서류 결과가 합격(PASS)이 아니면 400입니다. ADMIN/PRESIDENT 권한이 필요합니다.")
     @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @PutMapping("/{applicationId}/interview")

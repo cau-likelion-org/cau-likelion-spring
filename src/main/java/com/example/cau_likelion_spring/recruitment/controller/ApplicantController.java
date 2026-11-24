@@ -3,6 +3,7 @@ package com.example.cau_likelion_spring.recruitment.controller;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantLoginRequest;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantLoginResponse;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantMeResponse;
+import com.example.cau_likelion_spring.recruitment.dto.ApplicantPasswordResetRequest;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantSignupRequest;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantSignupResponse;
 import com.example.cau_likelion_spring.recruitment.service.ApplicantService;
@@ -42,6 +43,16 @@ public class ApplicantController {
     @PostMapping("/login")
     public ResponseEntity<ApplicantLoginResponse> login(@Valid @RequestBody ApplicantLoginRequest request) {
         return ResponseEntity.ok(applicantService.login(request));
+    }
+
+    @Operation(summary = "지원자 비밀번호 재설정",
+            description = "이메일 인증을 마친 뒤 verificationToken(용도 PASSWORD_RESET)과 새 비밀번호로 요청합니다. "
+                    + "토큰에 담긴 이메일의 이번 회차 계정 비밀번호를 바꾸며, 성공하면 본문 없이 204입니다. "
+                    + "가입 여부를 알려주지 않도록 계정이 없는 이메일이어도 204입니다.")
+    @PostMapping("/password-reset")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ApplicantPasswordResetRequest request) {
+        applicantService.resetPassword(request);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "지원자 본인 정보 조회",

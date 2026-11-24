@@ -10,6 +10,7 @@ import com.example.cau_likelion_spring.recruitment.domain.Round;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantLoginRequest;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantLoginResponse;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantMeResponse;
+import com.example.cau_likelion_spring.recruitment.dto.ApplicantPasswordResetRequest;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantSignupRequest;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantSignupResponse;
 import com.example.cau_likelion_spring.recruitment.repository.ApplicantRepository;
@@ -87,6 +88,21 @@ public class ApplicantService {
         return ApplicantLoginResponse.of(jwtTokenProvider.createApplicantToken(applicant.getId()));
     }
 
+    /**
+     * 이메일 인증을 마친 지원자의 비밀번호를 바꾼다 (7.3.4). 대상은 인증 완료 토큰에 담긴 이메일의 현재 회차 계정이다.
+     * 가입 여부를 알려주지 않도록, 계정이 없어도 오류 없이 끝낸다.
+     * 마감 후에도 결과 확인을 위해 로그인해야 하므로 접수 기간은 확인하지 않는다.
+     */
+    @Transactional
+    public void resetPassword(ApplicantPasswordResetRequest request) {
+        String token = request.getVerificationToken();
+        if (!isVerificationToken(token, EmailVerificationPurpose.PASSWORD_RESET)) {
+            throw new CustomException(ErrorCode.RECRUITMENT_INVALID_VERIFICATION_TOKEN);
+        }
+        applicantRepository.findByRoundAndEmail(currentRoundFinder.find(), jwtTokenProvider.getEmail(token))
+                .ifPresent(applicant -> applicant.updatePassword(passwordEncoder.encode(request.getNewPassword())));
+    }
+
     /** 1단계에서 이름·전화번호·이메일을 수정 불가로 보여주기 위한 본인 정보 조회 */
     public ApplicantMeResponse getMe(Long applicantId) {
         Applicant applicant = applicantRepository.findById(applicantId)
@@ -114,12 +130,17 @@ public class ApplicantService {
 
     /** 가입 용도로 이 이메일을 인증하고 받은 토큰인지 확인한다 */
     private void validateVerificationToken(String token, String email) {
-        boolean valid = jwtTokenProvider.validateToken(token) == JwtValidationType.VALID_JWT
-                && jwtTokenProvider.isEmailVerificationToken(token)
-                && EmailVerificationPurpose.SIGNUP.name().equals(jwtTokenProvider.getPurpose(token))
+        boolean valid = isVerificationToken(token, EmailVerificationPurpose.SIGNUP)
                 && email.equals(jwtTokenProvider.getEmail(token));
         if (!valid) {
             throw new CustomException(ErrorCode.RECRUITMENT_INVALID_VERIFICATION_TOKEN);
         }
+    }
+
+    /** 해당 용도로 이메일 인증을 마치고 받은, 아직 유효한 토큰인지 확인한다 */
+    private boolean isVerificationToken(String token, EmailVerificationPurpose purpose) {
+        return jwtTokenProvider.validateToken(token) == JwtValidationType.VALID_JWT
+                && jwtTokenProvider.isEmailVerificationToken(token)
+                && purpose.name().equals(jwtTokenProvider.getPurpose(token));
     }
 }

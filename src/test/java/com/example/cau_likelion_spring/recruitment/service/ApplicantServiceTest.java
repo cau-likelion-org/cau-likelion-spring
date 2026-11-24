@@ -7,6 +7,7 @@ import com.example.cau_likelion_spring.global.jwt.JwtValidationType;
 import com.example.cau_likelion_spring.recruitment.domain.Applicant;
 import com.example.cau_likelion_spring.recruitment.domain.Round;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantLoginRequest;
+import com.example.cau_likelion_spring.recruitment.dto.ApplicantPasswordResetRequest;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantSignupRequest;
 import com.example.cau_likelion_spring.recruitment.repository.ApplicantRepository;
 import com.example.cau_likelion_spring.recruitment.repository.ApplicationRepository;
@@ -179,6 +180,61 @@ class ApplicantServiceTest {
 
         assertLoginFails();
         assertThat(applicant.getFormEnteredAt()).isEqualTo(enteredAt);
+    }
+
+    @Test
+    void 재설정_용도로_인증된_이메일의_계정_비밀번호를_암호화해_바꾼다() {
+        givenVerificationToken("PASSWORD_RESET", EMAIL);
+        given(jwtTokenProvider.getEmail(TOKEN)).willReturn(EMAIL);
+        Applicant applicant = givenApplicant(openRound(), LocalDateTime.now());
+        given(passwordEncoder.encode("newPassword1!")).willReturn("new-encoded");
+
+        applicantService.resetPassword(passwordResetRequest());
+
+        assertThat(applicant.getPassword()).isEqualTo("new-encoded");
+    }
+
+    @Test
+    void 계정이_없는_이메일이면_아무것도_바꾸지_않고_오류_없이_끝난다() {
+        givenVerificationToken("PASSWORD_RESET", EMAIL);
+        given(jwtTokenProvider.getEmail(TOKEN)).willReturn(EMAIL);
+        Round round = openRound();
+        given(currentRoundFinder.find()).willReturn(round);
+        given(applicantRepository.findByRoundAndEmail(round, EMAIL)).willReturn(Optional.empty());
+
+        applicantService.resetPassword(passwordResetRequest());
+
+        verify(passwordEncoder, never()).encode(any());
+    }
+
+    @Test
+    void 가입_용도의_인증_완료_토큰으로는_비밀번호를_재설정할_수_없다() {
+        given(jwtTokenProvider.validateToken(TOKEN)).willReturn(JwtValidationType.VALID_JWT);
+        given(jwtTokenProvider.isEmailVerificationToken(TOKEN)).willReturn(true);
+        given(jwtTokenProvider.getPurpose(TOKEN)).willReturn("SIGNUP");
+
+        assertPasswordResetFails();
+    }
+
+    @Test
+    void 만료된_인증_완료_토큰으로는_비밀번호를_재설정할_수_없다() {
+        given(jwtTokenProvider.validateToken(TOKEN)).willReturn(JwtValidationType.EXPIRED_JWT_TOKEN);
+
+        assertPasswordResetFails();
+    }
+
+    private void assertPasswordResetFails() {
+        assertThatThrownBy(() -> applicantService.resetPassword(passwordResetRequest()))
+                .isInstanceOf(CustomException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.RECRUITMENT_INVALID_VERIFICATION_TOKEN);
+        verify(applicantRepository, never()).findByRoundAndEmail(any(), any());
+    }
+
+    private ApplicantPasswordResetRequest passwordResetRequest() {
+        ApplicantPasswordResetRequest request = new ApplicantPasswordResetRequest();
+        ReflectionTestUtils.setField(request, "verificationToken", TOKEN);
+        ReflectionTestUtils.setField(request, "newPassword", "newPassword1!");
+        return request;
     }
 
     private Applicant givenApplicant(Round round, LocalDateTime formEnteredAt) {

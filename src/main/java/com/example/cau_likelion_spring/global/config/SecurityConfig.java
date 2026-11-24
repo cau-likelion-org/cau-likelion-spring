@@ -82,7 +82,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/recruitment/rounds/current").permitAll()
                         // 지원자 로그인 전(계정 생성·비밀번호 재설정)에 쓰는 이메일 인증
                         .requestMatchers(HttpMethod.POST, "/api/recruitment/email-verifications", "/api/recruitment/email-verifications/confirm").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/recruitment/applicants", "/api/recruitment/applicants/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/recruitment/applicants", "/api/recruitment/applicants/login",
+                                "/api/recruitment/applicants/password-reset").permitAll()
                         // 지원자 전용 API: anyRequest는 회원 역할만 통과시키므로 지원자 토큰용 규칙을 따로 둔다
                         .requestMatchers(HttpMethod.GET, "/api/recruitment/applicants/me").hasRole("APPLICANT")
                         // 랜딩/소개 페이지에서 비로그인 방문자도 조회해야 하는 admin 관리 콘텐츠 (쓰기는 여전히 인증+권한 필요)

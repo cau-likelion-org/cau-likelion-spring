@@ -36,13 +36,19 @@ public class Round extends BaseTimeEntity {
 
     private LocalDateTime interviewDeadLine;
 
-    /** 서류 결과 공개 시각 (비어 있으면 공개 예약 전) */
+    /**
+     * 모집공고에 안내하는 서류 결과 발표 예정일 (모집공고 일정 API에서 입력).
+     * 실제로 지원자에게 결과가 공개되는 시각은 documentResultPublishAt이다.
+     */
     private LocalDateTime documentResultDate;
 
-    /** 최종 결과 공개 시각 (비어 있으면 공개 예약 전) */
+    /** 서류 결과 공개 예약 시각 (비어 있으면 예약 전 = 입력 중, 이 시각이 지나면 공개) */
+    private LocalDateTime documentResultPublishAt;
+
+    /** 최종 결과 공개 예약 시각 (비어 있으면 예약 전 = 입력 중, 이 시각이 지나면 공개) */
     private LocalDateTime finalResultDate;
 
-    /** 결과 확인 종료일 */
+    /** 결과 확인 종료일 (최종 결과 예약 시 함께 설정) */
     private LocalDateTime resultCheckDeadLine;
 
     private LocalDateTime otDate;
@@ -75,5 +81,35 @@ public class Round extends BaseTimeEntity {
         this.deadLine = deadLine;
         this.documentResultDate = documentResultDate;
         this.otDate = otDate;
+    }
+
+    public ResultPublishStatus getDocumentPublishStatus(LocalDateTime now) {
+        return ResultPublishStatus.of(documentResultPublishAt, now);
+    }
+
+    /** 서류 결과 공개 예약 */
+    public void reserveDocumentResult(LocalDateTime publishAt) {
+        this.documentResultPublishAt = publishAt;
+    }
+
+    /** 서류 결과 공개 예약 취소 (입력 중으로 복귀) */
+    public void cancelDocumentResultReservation() {
+        this.documentResultPublishAt = null;
+    }
+
+    public ResultPublishStatus getFinalPublishStatus(LocalDateTime now) {
+        return ResultPublishStatus.of(finalResultDate, now);
+    }
+
+    /** 최종 결과 공개 예약 (결과 확인 종료일 함께 설정) */
+    public void reserveFinalResult(LocalDateTime publishAt, LocalDateTime resultCheckDeadLine) {
+        this.finalResultDate = publishAt;
+        this.resultCheckDeadLine = resultCheckDeadLine;
+    }
+
+    /** 최종 결과 공개 예약 취소 (입력 중으로 복귀, 결과 확인 종료일도 비운다) */
+    public void cancelFinalResultReservation() {
+        this.finalResultDate = null;
+        this.resultCheckDeadLine = null;
     }
 }

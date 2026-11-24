@@ -1,0 +1,19 @@
+# 부하 테스트 전용 오버라이드 파일
+# 기존 docker-compose.yml(로컬 MySQL + 백엔드) 위에 운영(EC2 t3.micro)과 같은 자원 제한만 덧씌운다.
+#
+# 실행: docker compose -f docker-compose.yml -f docker-compose.loadtest.yml up -d --build
+# 종료: docker compose -f docker-compose.yml -f docker-compose.loadtest.yml down
+#
+# 운영과 맞춘 값
+# - mem_limit: docker-compose.prod.yml과 동일 (700m)
+# - JVM 힙(-Xmx400m): Dockerfile ENTRYPOINT에 있어서 같은 이미지를 쓰면 자동으로 동일
+# - cpus: t3.micro vCPU 수 (2)
+#
+# 운영과 맞출 수 없는 값 (결과 해석 시 주의)
+# - t3 CPU 크레딧: 운영은 부하가 길면 CPU가 기준치(약 10%)로 떨어지지만 로컬은 재현 불가
+# - DB 위치: 운영은 RDS(네트워크 왕복 있음), 로컬은 같은 PC의 MySQL 컨테이너
+# → 로컬 결과는 운영보다 좋게 나오므로 "최대치"로 해석한다.
+services:
+  backend:
+    mem_limit: 700m
+    cpus: 2

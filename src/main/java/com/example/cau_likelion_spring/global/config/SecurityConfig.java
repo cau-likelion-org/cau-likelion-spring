@@ -1,6 +1,7 @@
 package com.example.cau_likelion_spring.global.config;
 
 import com.example.cau_likelion_spring.global.jwt.JwtAuthenticationFilter;
+import com.example.cau_likelion_spring.member.domain.MemberRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -11,6 +12,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -34,11 +37,22 @@ public class SecurityConfig {
             "/error"
     };
 
+    /** 회원 API는 회원 역할이 있어야 통과 (지원자 토큰의 ROLE_APPLICANT로는 접근 불가) */
+    private static final String[] MEMBER_ROLES = Arrays.stream(MemberRole.values())
+            .map(Enum::name)
+            .toArray(String[]::new);
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     /** 콤마로 구분해서 여러 개(예: 로컬 개발용 + 배포 도메인) 등록 가능 */
     @Value("${app.frontend-base-url}")
     private String frontendBaseUrl;
+
+    /** 리크루팅 지원자 계정 비밀번호 암호화용 (회원은 구글 로그인이라 비밀번호가 없음) */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -58,6 +72,20 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/gallery/projects/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/recruitment/subscribers").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/recruitment/subscribers/available-parts").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/recruitment/applications/student-number/check").hasRole("APPLICANT")
+                        .requestMatchers(HttpMethod.POST, "/api/recruitment/applications").hasRole("APPLICANT")
+                        .requestMatchers(HttpMethod.GET, "/api/recruitment/applications/me").hasRole("APPLICANT")
+                        .requestMatchers(HttpMethod.GET, "/api/recruitment/interview-times").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/recruitment/applications/form-options").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/recruitment/questions").permitAll()
+                        // 모집공고(일정)는 지원 전 비로그인 방문자도 봐야 함
+                        .requestMatchers(HttpMethod.GET, "/api/recruitment/rounds/current").permitAll()
+                        // 지원자 로그인 전(계정 생성·비밀번호 재설정)에 쓰는 이메일 인증
+                        .requestMatchers(HttpMethod.POST, "/api/recruitment/email-verifications", "/api/recruitment/email-verifications/confirm").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/recruitment/applicants", "/api/recruitment/applicants/login",
+                                "/api/recruitment/applicants/password-reset").permitAll()
+                        // 지원자 전용 API: anyRequest는 회원 역할만 통과시키므로 지원자 토큰용 규칙을 따로 둔다
+                        .requestMatchers(HttpMethod.GET, "/api/recruitment/applicants/me").hasRole("APPLICANT")
                         // 랜딩/소개 페이지에서 비로그인 방문자도 조회해야 하는 admin 관리 콘텐츠 (쓰기는 여전히 인증+권한 필요)
                         .requestMatchers(HttpMethod.GET, "/api/admin/indicator").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/tracks").permitAll()
@@ -67,7 +95,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/admin/curriculums").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/roadmap").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/generations").permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().hasAnyRole(MEMBER_ROLES)
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

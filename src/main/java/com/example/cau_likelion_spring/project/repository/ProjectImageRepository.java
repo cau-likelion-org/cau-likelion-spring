@@ -10,5 +10,7 @@ public interface ProjectImageRepository extends JpaRepository<ProjectImage, Long
 
     List<ProjectImage> findAllByProject(Project project);
 
+    List<ProjectImage> findAllByProjectIn(List<Project> projects);
+
     void deleteAllByProject(Project project);
 }

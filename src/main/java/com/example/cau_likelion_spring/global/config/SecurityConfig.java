@@ -12,6 +12,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -46,6 +48,12 @@ public class SecurityConfig {
     @Value("${app.frontend-base-url}")
     private String frontendBaseUrl;
 
+    /** 리크루팅 지원자 계정 비밀번호 암호화용 (회원은 구글 로그인이라 비밀번호가 없음) */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -75,6 +83,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/recruitment/rounds/current").permitAll()
                         // 지원자 로그인 전(계정 생성·비밀번호 재설정)에 쓰는 이메일 인증
                         .requestMatchers(HttpMethod.POST, "/api/recruitment/email-verifications", "/api/recruitment/email-verifications/confirm").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/recruitment/applicants").permitAll()
+                        // 지원자 전용 API: anyRequest는 회원 역할만 통과시키므로 지원자 토큰용 규칙을 따로 둔다
+                        .requestMatchers(HttpMethod.GET, "/api/recruitment/applicants/me").hasRole("APPLICANT")
                         // 랜딩/소개 페이지에서 비로그인 방문자도 조회해야 하는 admin 관리 콘텐츠 (쓰기는 여전히 인증+권한 필요)
                         .requestMatchers(HttpMethod.GET, "/api/admin/indicator").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/tracks").permitAll()

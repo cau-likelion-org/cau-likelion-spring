@@ -120,6 +120,9 @@ public enum ErrorCode {
     RECRUITMENT_PUBLISH_CONDITION_NOT_MET(HttpStatus.CONFLICT, "결과 공개 조건을 만족하지 않습니다."),
     RECRUITMENT_PUBLISH_STATE_CONFLICT(HttpStatus.CONFLICT, "현재 결과 공개 상태에서는 처리할 수 없습니다."),
     RECRUITMENT_RESULT_LOCKED(HttpStatus.CONFLICT, "결과 공개 예약 중에는 수정할 수 없습니다. 예약을 취소한 후 수정해주세요."),
+
+    RECRUITMENT_APPLICATION_IN_PROGRESS(HttpStatus.CONFLICT, "이미 작성 중인 지원서가 있습니다."),
+    RECRUITMENT_INVALID_VERIFICATION_TOKEN(HttpStatus.BAD_REQUEST, "이메일 인증이 유효하지 않습니다. 다시 인증해주세요."),
     RECRUITMENT_EMAIL_RESEND_TOO_SOON(HttpStatus.TOO_MANY_REQUESTS, "인증번호는 잠시 후 다시 요청해주세요."),
     RECRUITMENT_EMAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "인증번호 이메일 발송에 실패했습니다."),
     RECRUITMENT_EMAIL_CODE_EXPIRED(HttpStatus.BAD_REQUEST, "인증번호가 만료되었습니다."),

@@ -32,6 +32,8 @@ public class EmailVerificationService {
     private final EmailVerificationStore emailVerificationStore;
     private final EmailVerificationMailSender emailVerificationMailSender;
     private final JwtTokenProvider jwtTokenProvider;
+    private final CurrentRoundFinder currentRoundFinder;
+    private final ApplicantService applicantService;
 
     @Value("${recruitment.email-verification.code-ttl}")
     private Duration codeTtl;
@@ -51,6 +53,11 @@ public class EmailVerificationService {
         String email = normalize(request.getEmail());
         EmailVerificationPurpose purpose = request.getPurpose();
         LocalDateTime now = LocalDateTime.now();
+
+        // 이미 가입한 이메일은 인증번호를 보내기 전에 알려준다 (계정 생성 단계에서도 다시 확인)
+        if (purpose == EmailVerificationPurpose.SIGNUP) {
+            applicantService.validateEmailAvailable(currentRoundFinder.find(), email);
+        }
 
         Optional<EmailVerification> existing = emailVerificationStore.find(email, purpose);
         if (existing.isPresent() && now.isBefore(existing.get().getSentAt().plus(resendInterval))) {

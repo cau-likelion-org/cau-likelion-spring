@@ -57,4 +57,8 @@ public class Applicant extends BaseTimeEntity {
         this.password = password;
         this.formEnteredAt = formEnteredAt;
     }
+
+    public void updateFormEnteredAt(LocalDateTime formEnteredAt) {
+        this.formEnteredAt = formEnteredAt;
+    }
 }

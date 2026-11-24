@@ -4,6 +4,7 @@ import com.example.cau_likelion_spring.global.config.SecurityConfig;
 import com.example.cau_likelion_spring.global.jwt.JwtAuthenticationFilter;
 import com.example.cau_likelion_spring.global.jwt.JwtTokenProvider;
 import com.example.cau_likelion_spring.member.domain.MemberRole;
+import com.example.cau_likelion_spring.recruitment.dto.ApplicantLoginResponse;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantMeResponse;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantSignupResponse;
 import com.example.cau_likelion_spring.recruitment.service.ApplicantService;
@@ -29,7 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** 계정 생성은 토큰 없이, 본인 정보 조회는 지원자 토큰으로만 호출할 수 있는지 확인 */
+/** 계정 생성·로그인은 토큰 없이, 본인 정보 조회는 지원자 토큰으로만 호출할 수 있는지 확인 */
 @WebMvcTest(controllers = ApplicantController.class)
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtTokenProvider.class})
 @TestPropertySource(properties = {
@@ -91,6 +92,31 @@ class ApplicantControllerTest {
         String body = VALID_BODY.replaceFirst(key + ":(\"[^\"]*\"|true)", invalidField);
 
         mockMvc.perform(post("/api/recruitment/applicants")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(applicantService);
+    }
+
+    @Test
+    void 토큰_없이_로그인할_수_있다() throws Exception {
+        given(applicantService.login(any())).willReturn(ApplicantLoginResponse.of("applicant-token"));
+
+        mockMvc.perform(post("/api/recruitment/applicants/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"applicant@cau.ac.kr\",\"password\":\"password1!\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("applicant-token"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"email\":\"\",\"password\":\"password1!\"}",
+            "{\"email\":\"applicant@cau.ac.kr\"}"
+    })
+    void 로그인_요청에_이메일이나_비밀번호가_비어_있으면_400(String body) throws Exception {
+        mockMvc.perform(post("/api/recruitment/applicants/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isBadRequest());

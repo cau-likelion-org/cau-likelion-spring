@@ -23,10 +23,6 @@ import java.util.List;
 @NoArgsConstructor
 public class ApplicationRequest {
 
-    // TODO: 지원자 로그인(7.3) 완료 후 제거하고 지원자 토큰으로 식별 - 지금은 남의 id로도 제출 가능
-    @NotNull
-    private Long applicantId;
-
     @NotNull
     private Long roundPartId;
 

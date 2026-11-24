@@ -76,11 +76,10 @@ public class ApplicationService {
      * 학번 중복은 DB 유니크 없이 조회로 막으므로, 거의 동시에 들어온 같은 학번은 둘 다 저장될 수 있다.
      */
     @Transactional
-    public ApplicationSubmitResponse submit(ApplicationRequest request) {
+    public ApplicationSubmitResponse submit(Long applicantId, ApplicationRequest request) {
         LocalDateTime now = LocalDateTime.now();
 
-        // TODO: 지원자 로그인(7.3) 완료 후 요청 applicantId 대신 지원자 토큰으로 식별
-        Applicant applicant = applicantRepository.findById(request.getApplicantId())
+        Applicant applicant = applicantRepository.findById(applicantId)
                 .orElseThrow(() -> new CustomException(ErrorCode.RECRUITMENT_APPLICANT_NOT_FOUND));
 
         Round round = currentRoundFinder.find();

@@ -10,4 +10,7 @@ public interface RoundPartRepository extends JpaRepository<RoundPart, Long> {
 
     /** 해당 회차의 모집 파트 (생성 순) */
     List<RoundPart> findAllByRoundOrderByIdAsc(Round round);
+
+    /** 해당 회차에서 특정 기수로 등록된 모집 파트 */
+    List<RoundPart> findAllByRoundAndGeneration(Round round, Integer generation);
 }

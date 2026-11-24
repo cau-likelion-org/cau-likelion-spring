@@ -49,4 +49,14 @@ public class InterviewQuestion extends BaseTimeEntity {
         this.required = required;
         this.sequence = sequence;
     }
+
+    /** 문항 유형·필수 여부 수정 (내용은 InterviewScript/InterviewOption에서 따로 교체) */
+    public void update(QuestionType type, Boolean required) {
+        this.type = type;
+        this.required = required;
+    }
+
+    public void changeSequence(Integer sequence) {
+        this.sequence = sequence;
+    }
 }

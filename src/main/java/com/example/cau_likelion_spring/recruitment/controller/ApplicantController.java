@@ -1,5 +1,7 @@
 package com.example.cau_likelion_spring.recruitment.controller;
 
+import com.example.cau_likelion_spring.recruitment.dto.ApplicantLoginRequest;
+import com.example.cau_likelion_spring.recruitment.dto.ApplicantLoginResponse;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantMeResponse;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantSignupRequest;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantSignupResponse;
@@ -32,6 +34,14 @@ public class ApplicantController {
     @PostMapping
     public ResponseEntity<ApplicantSignupResponse> signup(@Valid @RequestBody ApplicantSignupRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(applicantService.signup(request));
+    }
+
+    @Operation(summary = "지원자 로그인",
+            description = "이번 회차 계정의 이메일·비밀번호로 로그인하고 지원자 토큰(accessToken)을 반환합니다. "
+                    + "이메일이 없거나 비밀번호가 틀리면 구분 없이 401입니다.")
+    @PostMapping("/login")
+    public ResponseEntity<ApplicantLoginResponse> login(@Valid @RequestBody ApplicantLoginRequest request) {
+        return ResponseEntity.ok(applicantService.login(request));
     }
 
     @Operation(summary = "지원자 본인 정보 조회",

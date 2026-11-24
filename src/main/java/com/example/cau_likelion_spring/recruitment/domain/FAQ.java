@@ -7,6 +7,10 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/**
+ * 모집공고(회차)에 달리는 FAQ - 질문·답변 한 쌍.
+ * 관리자 화면에서 일정과 함께 목록 통째로 저장하므로, 저장할 때마다 회차의 FAQ를 모두 지우고 새로 만든다 (RoundNoticeService).
+ */
 @Entity
 @Table(name = "recruitment_faq")
 @Getter
@@ -21,21 +25,20 @@ public class FAQ extends BaseTimeEntity {
     @JoinColumn(name = "round_id")
     private Round round;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "notice_id")
-    private Notice notice;
-
     @Column(length = 1000)
     private String question;
 
     @Column(length = 1000)
     private String answer;
 
+    /** 노출 순서 (1부터, 오름차순) */
+    private Integer displayOrder;
+
     @Builder
-    public FAQ(Round round, Notice notice, String question, String answer) {
+    public FAQ(Round round, String question, String answer, Integer displayOrder) {
         this.round = round;
-        this.notice = notice;
         this.question = question;
         this.answer = answer;
+        this.displayOrder = displayOrder;
     }
 }

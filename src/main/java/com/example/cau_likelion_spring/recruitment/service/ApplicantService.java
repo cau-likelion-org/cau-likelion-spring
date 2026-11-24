@@ -7,6 +7,8 @@ import com.example.cau_likelion_spring.global.jwt.JwtValidationType;
 import com.example.cau_likelion_spring.recruitment.domain.Applicant;
 import com.example.cau_likelion_spring.recruitment.domain.EmailVerificationPurpose;
 import com.example.cau_likelion_spring.recruitment.domain.Round;
+import com.example.cau_likelion_spring.recruitment.dto.ApplicantLoginRequest;
+import com.example.cau_likelion_spring.recruitment.dto.ApplicantLoginResponse;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantMeResponse;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantSignupRequest;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicantSignupResponse;
@@ -43,8 +45,7 @@ public class ApplicantService {
 
         LocalDateTime now = LocalDateTime.now();
         Round round = currentRoundFinder.find();
-        if (round.getStartDate() == null || round.getDeadLine() == null
-                || now.isBefore(round.getStartDate()) || now.isAfter(round.getDeadLine())) {
+        if (!isInApplyPeriod(round, now)) {
             throw new CustomException(ErrorCode.RECRUITMENT_NOT_IN_APPLY_PERIOD);
         }
         validateEmailAvailable(round, email);
@@ -66,6 +67,26 @@ public class ApplicantService {
         return ApplicantSignupResponse.of(jwtTokenProvider.createApplicantToken(applicant.getId()));
     }
 
+    /**
+     * 현재 회차 계정으로 로그인하고 지원자 토큰을 발급한다 (7.3.2).
+     * 가입 여부를 알려주지 않도록 이메일이 없을 때와 비밀번호가 틀릴 때를 같은 오류로 응답한다.
+     * 접수 기간 안의 로그인일 때만 폼 진입 시각을 갱신한다 (마감 후 로그인으로 지각 제출 자격이 바뀌지 않도록).
+     */
+    @Transactional
+    public ApplicantLoginResponse login(ApplicantLoginRequest request) {
+        String email = request.getEmail().toLowerCase(Locale.ROOT);
+        Round round = currentRoundFinder.find();
+        Applicant applicant = applicantRepository.findByRoundAndEmail(round, email)
+                .filter(found -> passwordEncoder.matches(request.getPassword(), found.getPassword()))
+                .orElseThrow(() -> new CustomException(ErrorCode.RECRUITMENT_LOGIN_FAILED));
+
+        LocalDateTime now = LocalDateTime.now();
+        if (isInApplyPeriod(round, now)) {
+            applicant.updateFormEnteredAt(now);
+        }
+        return ApplicantLoginResponse.of(jwtTokenProvider.createApplicantToken(applicant.getId()));
+    }
+
     /** 1단계에서 이름·전화번호·이메일을 수정 불가로 보여주기 위한 본인 정보 조회 */
     public ApplicantMeResponse getMe(Long applicantId) {
         Applicant applicant = applicantRepository.findById(applicantId)
@@ -84,6 +105,11 @@ public class ApplicantService {
             }
             throw new CustomException(ErrorCode.RECRUITMENT_APPLICATION_IN_PROGRESS);
         });
+    }
+
+    private boolean isInApplyPeriod(Round round, LocalDateTime now) {
+        return round.getStartDate() != null && round.getDeadLine() != null
+                && !now.isBefore(round.getStartDate()) && !now.isAfter(round.getDeadLine());
     }
 
     /** 가입 용도로 이 이메일을 인증하고 받은 토큰인지 확인한다 */

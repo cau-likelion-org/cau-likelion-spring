@@ -5,6 +5,7 @@ import com.example.cau_likelion_spring.global.jwt.JwtAuthenticationFilter;
 import com.example.cau_likelion_spring.global.jwt.JwtTokenProvider;
 import com.example.cau_likelion_spring.member.domain.MemberRole;
 import com.example.cau_likelion_spring.recruitment.dto.ApplicationSubmitResponse;
+import com.example.cau_likelion_spring.recruitment.dto.MyApplicationResponse;
 import com.example.cau_likelion_spring.recruitment.dto.StudentNumberCheckResponse;
 import com.example.cau_likelion_spring.recruitment.service.ApplicationService;
 import org.junit.jupiter.api.Test;
@@ -26,11 +27,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** 지원서 제출·학번 중복 조회는 지원자 토큰으로만 호출할 수 있고, 제출은 토큰의 지원자로 처리되는지 확인 */
+/** 지원서 제출·학번 중복 조회·제출 내역 조회는 지원자 토큰으로만 호출할 수 있고, 제출은 토큰의 지원자로 처리되는지 확인 */
 @WebMvcTest(controllers = ApplicationController.class)
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtTokenProvider.class})
 @TestPropertySource(properties = {
@@ -112,6 +114,29 @@ class ApplicationControllerTest {
                         .content(CHECK_BODY))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.exists").value(true));
+    }
+
+    @Test
+    void 지원자_토큰으로_본인_제출_내역을_조회한다() throws Exception {
+        given(applicationService.getMyApplication(7L)).willReturn(MyApplicationResponse.notSubmitted(true));
+
+        mockMvc.perform(get(SUBMIT_URL + "/me")
+                        .header("Authorization", "Bearer " + jwtTokenProvider.createApplicantToken(7L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submitted").value(false))
+                .andExpect(jsonPath("$.applyOpen").value(true));
+    }
+
+    @Test
+    void 회원_토큰이나_토큰_없이_제출_내역을_조회하면_403() throws Exception {
+        String memberToken = jwtTokenProvider.createAccessToken(7L, MemberRole.BABY_LION);
+
+        mockMvc.perform(get(SUBMIT_URL + "/me").header("Authorization", "Bearer " + memberToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get(SUBMIT_URL + "/me"))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(applicationService);
     }
 
     @ParameterizedTest

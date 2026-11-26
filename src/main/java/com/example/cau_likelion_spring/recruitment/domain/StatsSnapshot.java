@@ -33,7 +33,7 @@ public class StatsSnapshot extends BaseTimeEntity {
     private StatsMetricType metricType;
 
     /**
-     * 파트명. 학과 분포(DEPARTMENT_DIST)를 파트별로 나눌 때만 쓴다.
+     * 파트명. 학과 비율(DEPARTMENT_RATE)을 파트별로 나눌 때만 쓴다.
      * null이면 전체 기준이고, 다른 지표는 항상 null이다.
      */
     @Column(length = 50)

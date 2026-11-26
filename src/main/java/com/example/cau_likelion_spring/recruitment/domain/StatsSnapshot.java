@@ -32,12 +32,19 @@ public class StatsSnapshot extends BaseTimeEntity {
     @Column(length = 50)
     private StatsMetricType metricType;
 
+    /**
+     * 파트명. 학과 분포(DEPARTMENT_DIST)를 파트별로 나눌 때만 쓴다.
+     * null이면 전체 기준이고, 다른 지표는 항상 null이다.
+     */
+    @Column(length = 50)
+    private String part;
+
     /** 구분 값 (파트명, 학과, 날짜 등). 전체 합계 지표면 null */
     @Column(length = 100)
     private String dimensionKey;
 
     /**
-     * 지표 값 (인원, 비율).
+     * 지표 값 (인원, 비율). 비율은 아랫값이 0이면 null.
      * "value"는 MySQL 키워드라 컬럼명으로 그대로 쓰면 쿼리가 헷갈리므로 metric_value로 지정한다.
      */
     @Column(name = "metric_value")
@@ -47,10 +54,11 @@ public class StatsSnapshot extends BaseTimeEntity {
     private LocalDateTime basisDeadLine;
 
     @Builder
-    public StatsSnapshot(Round round, StatsMetricType metricType, String dimensionKey,
+    public StatsSnapshot(Round round, StatsMetricType metricType, String part, String dimensionKey,
                          Double value, LocalDateTime basisDeadLine) {
         this.round = round;
         this.metricType = metricType;
+        this.part = part;
         this.dimensionKey = dimensionKey;
         this.value = value;
         this.basisDeadLine = basisDeadLine;

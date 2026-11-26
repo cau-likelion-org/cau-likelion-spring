@@ -86,6 +86,7 @@ public class SecurityConfig {
                                 "/api/recruitment/applicants/password-reset").permitAll()
                         // 지원자 전용 API: anyRequest는 회원 역할만 통과시키므로 지원자 토큰용 규칙을 따로 둔다
                         .requestMatchers(HttpMethod.GET, "/api/recruitment/applicants/me").hasRole("APPLICANT")
+                        .requestMatchers(HttpMethod.GET, "/api/recruitment/results/document", "/api/recruitment/results/final").hasRole("APPLICANT")
                         // 랜딩/소개 페이지에서 비로그인 방문자도 조회해야 하는 admin 관리 콘텐츠 (쓰기는 여전히 인증+권한 필요)
                         .requestMatchers(HttpMethod.GET, "/api/admin/indicator").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/tracks").permitAll()

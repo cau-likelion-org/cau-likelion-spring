@@ -24,7 +24,7 @@ public class RoundQueryController {
     @Operation(summary = "회차 목록 조회",
             description = "전체 모집 회차를 최근에 만든 회차 먼저 반환합니다 (대시보드 회차 선택용). "
                     + "회차가 없으면 빈 배열입니다. ADMIN/PRESIDENT 권한이 필요합니다.")
-    // @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')") // TEMP: 로컬 테스트용, 커밋 전 복구
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @GetMapping
     public ResponseEntity<List<RoundSummaryResponse>> getRounds() {
         return ResponseEntity.ok(roundQueryService.getRounds());

@@ -26,7 +26,7 @@ public class DashboardController {
                     + "roundId가 없으면 현재 회차입니다. 결과 확인 종료 전에는 실시간 집계(snapshot=false), "
                     + "종료 후에는 회차당 한 번 저장된 스냅샷(snapshot=true)을 반환합니다. "
                     + "비율은 소수 둘째 자리 반올림이며 아랫값이 0이면 null입니다. ADMIN/PRESIDENT 권한이 필요합니다.")
-    // @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')") // TEMP: 로컬 테스트용, 커밋 전 복구
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
     @GetMapping
     public ResponseEntity<DashboardResponse> getDashboard(
             @Parameter(description = "회차 id (회차 목록 조회의 id, 없으면 현재 회차)")

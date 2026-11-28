@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 모집 회차 생성.
- * 회차는 새 기수가 생성될 때 함께 만들어진다 (GenerationService.createGeneration).
+ * 회차는 지금까지 중 가장 큰 번호의 기수가 생성될 때 함께 만들어진다 (GenerationService.createGeneration).
  * 만든 회차가 가장 최근 회차이므로 바로 현재 회차가 되고, 일정·FAQ는 이후 모집공고 등록 API로 채운다.
  */
 @Service

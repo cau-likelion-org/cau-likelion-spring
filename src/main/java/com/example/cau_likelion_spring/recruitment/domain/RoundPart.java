@@ -26,14 +26,11 @@ public class RoundPart extends BaseTimeEntity {
 
     private Integer headCount;
 
-    private Integer generation;
-
     @Builder
-    public RoundPart(Round round, String part, Integer headCount, Integer generation) {
+    public RoundPart(Round round, String part, Integer headCount) {
         this.round = round;
         this.part = part;
         this.headCount = headCount;
-        this.generation = generation;
     }
 
     public void changeHeadCount(Integer headCount) {

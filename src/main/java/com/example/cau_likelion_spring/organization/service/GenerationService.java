@@ -36,6 +36,11 @@ public class GenerationService {
 
     @Transactional
     public GenerationListResponseDto createGeneration(GenerationCreateRequestDto request) {
+        // 저장 전에 판단해야 방금 만든 기수와 비교하지 않는다
+        boolean latestGeneration = generationRepository.findTopByOrderByNumberDesc()
+                .map(latest -> request.getNumber() > latest.getNumber())
+                .orElse(true);
+
         Generation generation = Generation.builder()
                 .number(request.getNumber())
                 .year(request.getYear())
@@ -51,8 +56,11 @@ public class GenerationService {
                 .toList();
         List<Part> savedParts = partRepository.saveAll(parts);
 
-        // 새 기수의 모집 회차를 함께 만든다 (이 회차가 현재 회차가 되고, 모집공고·정원은 이후 리크루팅 API로 입력)
-        roundService.createForGeneration(savedGeneration);
+        // 지금까지 중 가장 큰 기수 번호일 때만 모집 회차를 함께 만든다 (이 회차가 현재 회차가 되고, 모집공고·정원은 이후 리크루팅 API로 입력).
+        // 지난 기수를 뒤늦게 등록하거나 같은 번호를 다시 등록해도 현재 회차가 바뀌지 않게 한다.
+        if (latestGeneration) {
+            roundService.createForGeneration(savedGeneration);
+        }
 
         return GenerationListResponseDto.of(savedGeneration, sortPartsByCategory(savedParts));
     }

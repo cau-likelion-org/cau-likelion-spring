@@ -15,10 +15,10 @@ import java.util.List;
 @Builder
 public class RoundPartHeadCountResponse {
 
-    /** 모집 기수 번호 */
+    /** 모집 기수 번호 (현재 회차에 연결된 기수) */
     private Integer generation;
 
-    /** 정원이 등록되는 현재 회차 id (회차가 없으면 null) */
+    /** 정원이 등록되는 현재 회차 id */
     private Long roundId;
 
     private List<PartHeadCountDetail> parts;

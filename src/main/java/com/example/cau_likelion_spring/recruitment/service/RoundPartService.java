@@ -4,14 +4,12 @@ import com.example.cau_likelion_spring.global.exception.CustomException;
 import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.organization.domain.Generation;
 import com.example.cau_likelion_spring.organization.domain.Part;
-import com.example.cau_likelion_spring.organization.repository.GenerationRepository;
 import com.example.cau_likelion_spring.organization.repository.PartRepository;
 import com.example.cau_likelion_spring.recruitment.domain.Round;
 import com.example.cau_likelion_spring.recruitment.domain.RoundPart;
 import com.example.cau_likelion_spring.recruitment.dto.RoundPartHeadCountRequest;
 import com.example.cau_likelion_spring.recruitment.dto.RoundPartHeadCountResponse;
 import com.example.cau_likelion_spring.recruitment.repository.RoundPartRepository;
-import com.example.cau_likelion_spring.recruitment.repository.RoundRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,11 +24,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 모집 기수의 파트별 정원 관리 (운영자용).
- * 기수 번호를 받으면 그 기수(organization.Generation)의 파트를 불러오고,
- * 현재 회차에 파트별 정원(RoundPart)을 등록(POST)·수정(PATCH)한다.
+ * 현재 회차의 파트별 정원 관리 (운영자용).
+ * 현재 회차에 연결된 기수(기수 생성 시 자동 연결, RoundService)의 파트를 불러오고,
+ * 파트별 정원(RoundPart)을 등록(POST)·수정(PATCH)한다.
  *
- * RoundPart.part는 Part FK가 아니라 파트명 문자열이라, 같은 회차·기수 안에서 파트명으로 매칭한다.
+ * RoundPart.part는 Part FK가 아니라 파트명 문자열이라, 같은 회차 안에서 파트명으로 매칭한다.
  * 이미 지원서·문항이 RoundPart를 참조할 수 있으므로 수정 시 삭제 후 재생성하지 않고 정원만 바꾼다.
  */
 @Service
@@ -38,17 +36,14 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class RoundPartService {
 
-    private final GenerationRepository generationRepository;
     private final PartRepository partRepository;
-    private final RoundRepository roundRepository;
     private final RoundPartRepository roundPartRepository;
     private final CurrentRoundFinder currentRoundFinder;
 
-    /** 기수의 파트 목록과 현재 회차에 등록된 정원을 함께 조회한다 (회차가 없으면 정원은 모두 null) */
-    public RoundPartHeadCountResponse getHeadCounts(Integer generationNumber) {
-        Generation generation = findGeneration(generationNumber);
-        Round round = roundRepository.findTopByOrderByIdDesc().orElse(null);
-        return buildResponse(generation, round);
+    /** 현재 회차 기수의 파트 목록과 등록된 정원을 함께 조회한다 (정원 미등록 파트는 null) */
+    public RoundPartHeadCountResponse getHeadCounts() {
+        Round round = currentRoundFinder.find();
+        return buildResponse(round, findGeneration(round));
     }
 
     /**
@@ -56,13 +51,13 @@ public class RoundPartService {
      * 요청한 파트 중 하나라도 현재 회차에 이미 등록돼 있으면 전체를 거부한다 (수정은 PATCH).
      */
     @Transactional
-    public RoundPartHeadCountResponse createHeadCounts(Integer generationNumber, RoundPartHeadCountRequest request) {
-        Generation generation = findGeneration(generationNumber);
+    public RoundPartHeadCountResponse createHeadCounts(RoundPartHeadCountRequest request) {
         Round round = currentRoundFinder.find();
+        Generation generation = findGeneration(round);
         validateNoDuplicatePart(request);
 
         Map<Long, Part> partById = findPartsById(generation);
-        Map<String, RoundPart> roundPartByName = findRoundPartsByName(round, generation);
+        Map<String, RoundPart> roundPartByName = findRoundPartsByName(round);
 
         // 검증을 먼저 끝내고 저장한다 (일부만 저장되는 상황 방지)
         List<Part> targetParts = request.getParts().stream()
@@ -77,17 +72,15 @@ public class RoundPartService {
 
         List<RoundPart> newRoundParts = new ArrayList<>();
         for (int i = 0; i < targetParts.size(); i++) {
-            Part part = targetParts.get(i);
             newRoundParts.add(RoundPart.builder()
                     .round(round)
-                    .part(part.getName())
+                    .part(targetParts.get(i).getName())
                     .headCount(request.getParts().get(i).getHeadCount())
-                    .generation(generation.getNumber())
                     .build());
         }
         roundPartRepository.saveAll(newRoundParts);
 
-        return buildResponse(generation, round);
+        return buildResponse(round, generation);
     }
 
     /**
@@ -95,13 +88,13 @@ public class RoundPartService {
      * 요청한 파트 중 하나라도 현재 회차에 등록돼 있지 않으면 전체를 거부한다 (등록은 POST).
      */
     @Transactional
-    public RoundPartHeadCountResponse updateHeadCounts(Integer generationNumber, RoundPartHeadCountRequest request) {
-        Generation generation = findGeneration(generationNumber);
+    public RoundPartHeadCountResponse updateHeadCounts(RoundPartHeadCountRequest request) {
         Round round = currentRoundFinder.find();
+        Generation generation = findGeneration(round);
         validateNoDuplicatePart(request);
 
         Map<Long, Part> partById = findPartsById(generation);
-        Map<String, RoundPart> roundPartByName = findRoundPartsByName(round, generation);
+        Map<String, RoundPart> roundPartByName = findRoundPartsByName(round);
 
         // 검증을 먼저 끝내고 수정한다 (일부만 수정되는 상황 방지)
         List<RoundPart> targets = request.getParts().stream()
@@ -121,7 +114,17 @@ public class RoundPartService {
         }
         // 영속 상태(더티 체킹)라 별도 save() 호출 불필요
 
-        return buildResponse(generation, round);
+        return buildResponse(round, generation);
+    }
+
+    /** 현재 회차에 연결된 기수 (기수 생성 전에 만들어진 예전 회차는 비어 있을 수 있다) */
+    private Generation findGeneration(Round round) {
+        Generation generation = round.getGeneration();
+        if (generation == null) {
+            throw new CustomException(ErrorCode.GENERATION_NOT_FOUND,
+                    "현재 회차에 연결된 기수가 없습니다. roundId=" + round.getId());
+        }
+        return generation;
     }
 
     private Map<Long, Part> findPartsById(Generation generation) {
@@ -138,12 +141,6 @@ public class RoundPartService {
         return part;
     }
 
-    private Generation findGeneration(Integer generationNumber) {
-        return generationRepository.findFirstByNumberOrderByIdDesc(generationNumber)
-                .orElseThrow(() -> new CustomException(ErrorCode.GENERATION_NOT_FOUND,
-                        "존재하지 않는 기수입니다. generation=" + generationNumber));
-    }
-
     private void validateNoDuplicatePart(RoundPartHeadCountRequest request) {
         Set<Long> seen = new HashSet<>();
         for (RoundPartHeadCountRequest.PartHeadCountItem item : request.getParts()) {
@@ -154,13 +151,13 @@ public class RoundPartService {
         }
     }
 
-    private Map<String, RoundPart> findRoundPartsByName(Round round, Generation generation) {
-        return roundPartRepository.findAllByRoundAndGeneration(round, generation.getNumber()).stream()
+    private Map<String, RoundPart> findRoundPartsByName(Round round) {
+        return roundPartRepository.findAllByRoundOrderByIdAsc(round).stream()
                 .collect(Collectors.toMap(RoundPart::getPart, Function.identity(), (first, second) -> first));
     }
 
-    private RoundPartHeadCountResponse buildResponse(Generation generation, Round round) {
-        Map<String, RoundPart> roundPartByName = round == null ? Map.of() : findRoundPartsByName(round, generation);
+    private RoundPartHeadCountResponse buildResponse(Round round, Generation generation) {
+        Map<String, RoundPart> roundPartByName = findRoundPartsByName(round);
 
         List<RoundPartHeadCountResponse.PartHeadCountDetail> parts = partRepository.findAllByGeneration_Id(generation.getId())
                 .stream()
@@ -170,7 +167,7 @@ public class RoundPartService {
 
         return RoundPartHeadCountResponse.builder()
                 .generation(generation.getNumber())
-                .roundId(round == null ? null : round.getId())
+                .roundId(round.getId())
                 .parts(parts)
                 .build();
     }

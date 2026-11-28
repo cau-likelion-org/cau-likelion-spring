@@ -22,8 +22,8 @@ public class RoundNoticeController {
     private final RoundNoticeService roundNoticeService;
 
     @Operation(summary = "모집공고 등록",
-            description = "일정(서류접수 시작·마감, 서류 결과발표, OT)과 FAQ 목록을 한 번에 저장해 새 모집 회차를 만듭니다. "
-                    + "새로 만든 회차가 현재 회차가 됩니다. 일정은 시작 < 마감 < 결과발표 < OT 순서여야 하고, "
+            description = "일정(서류접수 시작·마감, 서류 결과발표, 면접 시작·종료, OT)과 FAQ 목록을 한 번에 저장해 새 모집 회차를 만듭니다. "
+                    + "새로 만든 회차가 현재 회차가 됩니다. 일정은 시작 < 마감 < 결과발표 < 면접 시작 < 면접 종료 < OT 순서여야 하고, "
                     + "FAQ는 최소 1개 있어야 합니다(아니면 400, 아무것도 저장되지 않음). FAQ 배열 순서가 노출 순서입니다. "
                     + "ADMIN/PRESIDENT 권한이 필요합니다.")
     @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")

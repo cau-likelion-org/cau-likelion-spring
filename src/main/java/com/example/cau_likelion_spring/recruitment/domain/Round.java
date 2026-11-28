@@ -25,15 +25,12 @@ public class Round extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(length = 100)
-    private String name;
-
+    /** 서류 접수 **/
     private LocalDateTime startDate;
-
     private LocalDateTime deadLine;
 
+    /** 면접 **/
     private LocalDateTime interviewStartDate;
-
     private LocalDateTime interviewDeadLine;
 
     /**
@@ -51,14 +48,14 @@ public class Round extends BaseTimeEntity {
     /** 결과 확인 종료일 (최종 결과 예약 시 함께 설정) */
     private LocalDateTime resultCheckDeadLine;
 
+    /** ot **/
     private LocalDateTime otDate;
 
     @Builder
-    public Round(String name, LocalDateTime startDate, LocalDateTime deadLine,
+    public Round(LocalDateTime startDate, LocalDateTime deadLine,
                  LocalDateTime interviewStartDate, LocalDateTime interviewDeadLine,
                  LocalDateTime documentResultDate, LocalDateTime finalResultDate,
                  LocalDateTime resultCheckDeadLine, LocalDateTime otDate) {
-        this.name = name;
         this.startDate = startDate;
         this.deadLine = deadLine;
         this.interviewStartDate = interviewStartDate;
@@ -74,12 +71,16 @@ public class Round extends BaseTimeEntity {
         return startDate != null && !now.isBefore(startDate);
     }
 
-    /** 모집공고 일정 수정 (서류접수 시작·마감, 서류 결과발표, OT) */
+    /** 모집공고 일정 수정 (서류접수 시작·마감, 서류 결과발표, 면접 시작·종료, OT) */
     public void updateNoticeSchedule(LocalDateTime startDate, LocalDateTime deadLine,
-                                     LocalDateTime documentResultDate, LocalDateTime otDate) {
+                                     LocalDateTime documentResultDate,
+                                     LocalDateTime interviewStartDate, LocalDateTime interviewDeadLine,
+                                     LocalDateTime otDate) {
         this.startDate = startDate;
         this.deadLine = deadLine;
         this.documentResultDate = documentResultDate;
+        this.interviewStartDate = interviewStartDate;
+        this.interviewDeadLine = interviewDeadLine;
         this.otDate = otDate;
     }
 

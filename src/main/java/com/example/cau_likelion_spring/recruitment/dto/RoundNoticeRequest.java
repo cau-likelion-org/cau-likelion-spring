@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * 모집공고 등록/수정 요청 - 일정과 FAQ 목록을 한 번에 저장한다.
  * 수정 시에도 항상 전체를 덮어쓴다 (PUT 방식, FAQ 목록도 통째로 교체).
- * 일정은 서류접수 시작 < 서류접수 마감 < 서류 결과발표 < OT 순서여야 하고, FAQ는 최소 1개 있어야 한다.
+ * 일정은 서류접수 시작 < 서류접수 마감 < 서류 결과발표 < 면접 시작 < 면접 종료 < OT 순서여야 하고, FAQ는 최소 1개 있어야 한다.
  */
 @Schema(description = "모집공고 등록/수정 요청 (일정 + FAQ)")
 public record RoundNoticeRequest(
@@ -26,6 +26,12 @@ public record RoundNoticeRequest(
 
         @Schema(description = "서류 결과발표 일시", example = "2027-03-12T18:00:00")
         @NotNull LocalDateTime documentResultDate,
+
+        @Schema(description = "면접 시작일시", example = "2027-03-14T10:00:00")
+        @NotNull LocalDateTime interviewStartDate,
+
+        @Schema(description = "면접 종료일시", example = "2027-03-16T18:00:00")
+        @NotNull LocalDateTime interviewDeadLine,
 
         @Schema(description = "OT 일시", example = "2027-03-20T14:00:00")
         @NotNull LocalDateTime otDate,

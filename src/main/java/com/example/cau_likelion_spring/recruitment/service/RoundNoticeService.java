@@ -42,6 +42,8 @@ public class RoundNoticeService {
                 .startDate(request.startDate())
                 .deadLine(request.deadLine())
                 .documentResultDate(request.documentResultDate())
+                .interviewStartDate(request.interviewStartDate())
+                .interviewDeadLine(request.interviewDeadLine())
                 .otDate(request.otDate())
                 .build());
 
@@ -64,7 +66,8 @@ public class RoundNoticeService {
                         "존재하지 않는 모집 회차입니다. roundId=" + roundId));
 
         round.updateNoticeSchedule(request.startDate(), request.deadLine(),
-                request.documentResultDate(), request.otDate());
+                request.documentResultDate(), request.interviewStartDate(), request.interviewDeadLine(),
+                request.otDate());
 
         // deleteAllByRound가 flush + clear하므로, 위 일정 변경이 먼저 반영된 뒤 FAQ를 교체한다
         roundFaqRepository.deleteAllByRound(round);
@@ -88,7 +91,7 @@ public class RoundNoticeService {
         return roundFaqRepository.saveAll(faqs);
     }
 
-    /** 서류접수 시작 < 서류접수 마감 < 서류 결과발표 < OT */
+    /** 서류접수 시작 < 서류접수 마감 < 서류 결과발표 < 면접 시작 < 면접 종료 < OT */
     private void validateSchedule(RoundNoticeRequest request) {
         if (!request.startDate().isBefore(request.deadLine())) {
             throw new CustomException(ErrorCode.RECRUITMENT_INVALID_ROUND_SCHEDULE,
@@ -98,9 +101,17 @@ public class RoundNoticeService {
             throw new CustomException(ErrorCode.RECRUITMENT_INVALID_ROUND_SCHEDULE,
                     "서류 결과발표 일시는 서류접수 마감일시 이후여야 합니다.");
         }
-        if (!request.documentResultDate().isBefore(request.otDate())) {
+        if (!request.documentResultDate().isBefore(request.interviewStartDate())) {
             throw new CustomException(ErrorCode.RECRUITMENT_INVALID_ROUND_SCHEDULE,
-                    "OT 일시는 서류 결과발표 일시 이후여야 합니다.");
+                    "면접 시작일시는 서류 결과발표 일시 이후여야 합니다.");
+        }
+        if (!request.interviewStartDate().isBefore(request.interviewDeadLine())) {
+            throw new CustomException(ErrorCode.RECRUITMENT_INVALID_ROUND_SCHEDULE,
+                    "면접 종료일시는 면접 시작일시 이후여야 합니다.");
+        }
+        if (!request.interviewDeadLine().isBefore(request.otDate())) {
+            throw new CustomException(ErrorCode.RECRUITMENT_INVALID_ROUND_SCHEDULE,
+                    "OT 일시는 면접 종료일시 이후여야 합니다.");
         }
     }
 }

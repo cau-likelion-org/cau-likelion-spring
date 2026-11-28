@@ -1,6 +1,7 @@
 package com.example.cau_likelion_spring.recruitment.domain;
 
 import com.example.cau_likelion_spring.global.common.BaseTimeEntity;
+import com.example.cau_likelion_spring.organization.domain.Generation;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -24,6 +25,14 @@ public class Round extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    /**
+     * 이 회차에서 모집하는 기수 (회차 하나 = 기수 하나).
+     * 모집공고 등록 때 입력받지 않고, 새 기수가 생성될 때 자동으로 채운다.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "generation_id")
+    private Generation generation;
 
     /** 서류 접수 **/
     private LocalDateTime startDate;

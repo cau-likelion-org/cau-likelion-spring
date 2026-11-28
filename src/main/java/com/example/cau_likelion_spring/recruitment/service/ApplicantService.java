@@ -46,7 +46,7 @@ public class ApplicantService {
 
         LocalDateTime now = LocalDateTime.now();
         Round round = currentRoundFinder.find();
-        if (!isInApplyPeriod(round, now)) {
+        if (!round.isInApplyPeriod(now)) {
             throw new CustomException(ErrorCode.RECRUITMENT_NOT_IN_APPLY_PERIOD);
         }
         validateEmailAvailable(round, email);
@@ -82,7 +82,7 @@ public class ApplicantService {
                 .orElseThrow(() -> new CustomException(ErrorCode.RECRUITMENT_LOGIN_FAILED));
 
         LocalDateTime now = LocalDateTime.now();
-        if (isInApplyPeriod(round, now)) {
+        if (round.isInApplyPeriod(now)) {
             applicant.updateFormEnteredAt(now);
         }
         return ApplicantLoginResponse.of(jwtTokenProvider.createApplicantToken(applicant.getId()));
@@ -121,11 +121,6 @@ public class ApplicantService {
             }
             throw new CustomException(ErrorCode.RECRUITMENT_APPLICATION_IN_PROGRESS);
         });
-    }
-
-    private boolean isInApplyPeriod(Round round, LocalDateTime now) {
-        return round.getStartDate() != null && round.getDeadLine() != null
-                && !now.isBefore(round.getStartDate()) && !now.isAfter(round.getDeadLine());
     }
 
     /** 가입 용도로 이 이메일을 인증하고 받은 토큰인지 확인한다 */

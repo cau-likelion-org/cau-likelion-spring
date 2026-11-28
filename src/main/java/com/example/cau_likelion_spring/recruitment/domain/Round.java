@@ -1,6 +1,7 @@
 package com.example.cau_likelion_spring.recruitment.domain;
 
 import com.example.cau_likelion_spring.global.common.BaseTimeEntity;
+import com.example.cau_likelion_spring.organization.domain.Generation;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -25,15 +26,20 @@ public class Round extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(length = 100)
-    private String name;
+    /**
+     * 이 회차에서 모집하는 기수 (회차 하나 = 기수 하나).
+     * 모집공고 등록 때 입력받지 않고, 새 기수가 생성될 때 회차와 함께 채운다 (RoundService).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "generation_id")
+    private Generation generation;
 
+    /** 서류 접수 **/
     private LocalDateTime startDate;
-
     private LocalDateTime deadLine;
 
+    /** 면접 **/
     private LocalDateTime interviewStartDate;
-
     private LocalDateTime interviewDeadLine;
 
     /**
@@ -51,14 +57,15 @@ public class Round extends BaseTimeEntity {
     /** 결과 확인 종료일 (최종 결과 예약 시 함께 설정) */
     private LocalDateTime resultCheckDeadLine;
 
+    /** ot **/
     private LocalDateTime otDate;
 
     @Builder
-    public Round(String name, LocalDateTime startDate, LocalDateTime deadLine,
+    public Round(Generation generation, LocalDateTime startDate, LocalDateTime deadLine,
                  LocalDateTime interviewStartDate, LocalDateTime interviewDeadLine,
                  LocalDateTime documentResultDate, LocalDateTime finalResultDate,
                  LocalDateTime resultCheckDeadLine, LocalDateTime otDate) {
-        this.name = name;
+        this.generation = generation;
         this.startDate = startDate;
         this.deadLine = deadLine;
         this.interviewStartDate = interviewStartDate;
@@ -74,12 +81,26 @@ public class Round extends BaseTimeEntity {
         return startDate != null && !now.isBefore(startDate);
     }
 
-    /** 모집공고 일정 수정 (서류접수 시작·마감, 서류 결과발표, OT) */
+    /** 지금이 서류 접수 기간인지 (시작·마감 모두 포함, 일정이 비어 있으면 접수 기간 아님) */
+    public boolean isInApplyPeriod(LocalDateTime now) {
+        return isApplyStarted(now) && deadLine != null && !now.isAfter(deadLine);
+    }
+
+    /** 모집공고가 등록됐는지 (회차는 기수 생성 때 일정 없이 만들어지고, 모집공고 등록 때 일정이 채워진다) */
+    public boolean isNoticeRegistered() {
+        return startDate != null;
+    }
+
+    /** 모집공고 일정 저장·수정 (서류접수 시작·마감, 서류 결과발표, 면접 시작·종료, OT) */
     public void updateNoticeSchedule(LocalDateTime startDate, LocalDateTime deadLine,
-                                     LocalDateTime documentResultDate, LocalDateTime otDate) {
+                                     LocalDateTime documentResultDate,
+                                     LocalDateTime interviewStartDate, LocalDateTime interviewDeadLine,
+                                     LocalDateTime otDate) {
         this.startDate = startDate;
         this.deadLine = deadLine;
         this.documentResultDate = documentResultDate;
+        this.interviewStartDate = interviewStartDate;
+        this.interviewDeadLine = interviewDeadLine;
         this.otDate = otDate;
     }
 
@@ -97,8 +118,18 @@ public class Round extends BaseTimeEntity {
         this.documentResultPublishAt = null;
     }
 
+    /** 서류 결과 공개 예약 중인지 (예약 중에는 서류 결과·면접 일정·서류 문구를 수정할 수 없다) */
+    public boolean isDocumentResultLocked(LocalDateTime now) {
+        return getDocumentPublishStatus(now) == ResultPublishStatus.RESERVED;
+    }
+
     public ResultPublishStatus getFinalPublishStatus(LocalDateTime now) {
         return ResultPublishStatus.of(finalResultDate, now);
+    }
+
+    /** 최종 결과 공개 예약 중인지 (예약 중에는 면접 결과·최종 문구를 수정할 수 없다) */
+    public boolean isFinalResultLocked(LocalDateTime now) {
+        return getFinalPublishStatus(now) == ResultPublishStatus.RESERVED;
     }
 
     /** 최종 결과 공개 예약 (결과 확인 종료일 함께 설정) */

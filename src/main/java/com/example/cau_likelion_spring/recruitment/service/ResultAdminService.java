@@ -4,7 +4,6 @@ import com.example.cau_likelion_spring.global.exception.CustomException;
 import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.recruitment.domain.Application;
 import com.example.cau_likelion_spring.recruitment.domain.Result;
-import com.example.cau_likelion_spring.recruitment.domain.ResultPublishStatus;
 import com.example.cau_likelion_spring.recruitment.domain.Round;
 import com.example.cau_likelion_spring.recruitment.dto.DocumentResultRequest;
 import com.example.cau_likelion_spring.recruitment.dto.DocumentResultResponse;
@@ -174,7 +173,7 @@ public class ResultAdminService {
 
     /** 최종 결과 공개 예약 중에는 면접 결과를 입력할 수 없다 */
     private void validateFinalNotReserved(Round round) {
-        if (round.getFinalPublishStatus(LocalDateTime.now()) == ResultPublishStatus.RESERVED) {
+        if (round.isFinalResultLocked(LocalDateTime.now())) {
             throw new CustomException(ErrorCode.RECRUITMENT_RESULT_LOCKED,
                     "최종 결과 공개 예약 중에는 수정할 수 없습니다. 예약을 취소한 후 수정해주세요.");
         }
@@ -182,7 +181,7 @@ public class ResultAdminService {
 
     /** 서류 결과 공개 예약 중에는 서류 결과·면접 일정을 입력할 수 없다 */
     private void validateDocumentNotReserved(Round round) {
-        if (round.getDocumentPublishStatus(LocalDateTime.now()) == ResultPublishStatus.RESERVED) {
+        if (round.isDocumentResultLocked(LocalDateTime.now())) {
             throw new CustomException(ErrorCode.RECRUITMENT_RESULT_LOCKED,
                     "서류 결과 공개 예약 중에는 수정할 수 없습니다. 예약을 취소한 후 수정해주세요.");
         }
@@ -205,8 +204,7 @@ public class ResultAdminService {
             warnings.add(new Warning(WarningType.OUT_OF_AVAILABLE_TIME, "지원자가 선택한 면접 가능 시간이 아닙니다."));
         }
 
-        long sameTimeCount = resultRepository.countByFixedInterviewDateAndApplication_RoundPart_RoundAndApplicationNot(
-                fixedInterviewDate, round, application);
+        long sameTimeCount = resultRepository.countOthersAtSameInterviewDate(round, application, fixedInterviewDate);
         if (sameTimeCount > 0) {
             warnings.add(new Warning(WarningType.DUPLICATE_SCHEDULE,
                     "같은 일시에 이미 배정된 지원자가 " + sameTimeCount + "명 있습니다."));

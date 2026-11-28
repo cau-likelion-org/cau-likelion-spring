@@ -22,6 +22,12 @@ public record RoundNoticeResponse(
         @Schema(description = "서류 결과발표 일시")
         LocalDateTime documentResultDate,
 
+        @Schema(description = "면접 시작일시")
+        LocalDateTime interviewStartDate,
+
+        @Schema(description = "면접 종료일시")
+        LocalDateTime interviewDeadLine,
+
         @Schema(description = "OT 일시")
         LocalDateTime otDate,
 
@@ -35,6 +41,8 @@ public record RoundNoticeResponse(
                 round.getStartDate(),
                 round.getDeadLine(),
                 round.getDocumentResultDate(),
+                round.getInterviewStartDate(),
+                round.getInterviewDeadLine(),
                 round.getOtDate(),
                 faqs.stream().map(RoundFaqResponse::from).toList()
         );

@@ -141,8 +141,7 @@ public class ApplicationService {
         Round round = currentRoundFinder.find();
 
         LocalDateTime now = LocalDateTime.now();
-        boolean applyOpen = round.getStartDate() != null && round.getDeadLine() != null
-                && !now.isBefore(round.getStartDate()) && !now.isAfter(round.getDeadLine());
+        boolean applyOpen = round.isInApplyPeriod(now);
 
         return applicationRepository.findByApplicantAndRoundPart_Round(applicant, round)
                 .map(application -> MyApplicationResponse.submitted(application, applyOpen))
@@ -154,12 +153,13 @@ public class ApplicationService {
      * 마감 후라도 폼 진입 시각이 마감 전이면 지각 제출로 허용한다 (7.4.3).
      */
     private void validateSubmitTime(Round round, Applicant applicant, LocalDateTime now) {
-        if (round.getStartDate() == null || round.getDeadLine() == null || now.isBefore(round.getStartDate())) {
-            throw new CustomException(ErrorCode.RECRUITMENT_NOT_IN_APPLY_PERIOD);
-        }
-        if (!now.isAfter(round.getDeadLine())) {
+        if (round.isInApplyPeriod(now)) {
             return;
         }
+        if (!round.isApplyStarted(now) || round.getDeadLine() == null) {
+            throw new CustomException(ErrorCode.RECRUITMENT_NOT_IN_APPLY_PERIOD);
+        }
+        // 여기부터는 마감 후
         LocalDateTime formEnteredAt = applicant.getFormEnteredAt();
         if (formEnteredAt == null || formEnteredAt.isAfter(round.getDeadLine())) {
             throw new CustomException(ErrorCode.RECRUITMENT_NOT_IN_APPLY_PERIOD, "서류 접수 기간이 종료되었습니다.");

@@ -81,6 +81,11 @@ public class Round extends BaseTimeEntity {
         return startDate != null && !now.isBefore(startDate);
     }
 
+    /** 지금이 서류 접수 기간인지 (시작·마감 모두 포함, 일정이 비어 있으면 접수 기간 아님) */
+    public boolean isInApplyPeriod(LocalDateTime now) {
+        return isApplyStarted(now) && deadLine != null && !now.isAfter(deadLine);
+    }
+
     /** 모집공고가 등록됐는지 (회차는 기수 생성 때 일정 없이 만들어지고, 모집공고 등록 때 일정이 채워진다) */
     public boolean isNoticeRegistered() {
         return startDate != null;
@@ -113,8 +118,18 @@ public class Round extends BaseTimeEntity {
         this.documentResultPublishAt = null;
     }
 
+    /** 서류 결과 공개 예약 중인지 (예약 중에는 서류 결과·면접 일정·서류 문구를 수정할 수 없다) */
+    public boolean isDocumentResultLocked(LocalDateTime now) {
+        return getDocumentPublishStatus(now) == ResultPublishStatus.RESERVED;
+    }
+
     public ResultPublishStatus getFinalPublishStatus(LocalDateTime now) {
         return ResultPublishStatus.of(finalResultDate, now);
+    }
+
+    /** 최종 결과 공개 예약 중인지 (예약 중에는 면접 결과·최종 문구를 수정할 수 없다) */
+    public boolean isFinalResultLocked(LocalDateTime now) {
+        return getFinalPublishStatus(now) == ResultPublishStatus.RESERVED;
     }
 
     /** 최종 결과 공개 예약 (결과 확인 종료일 함께 설정) */

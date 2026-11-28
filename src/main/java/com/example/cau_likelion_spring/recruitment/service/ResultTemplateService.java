@@ -3,7 +3,6 @@ package com.example.cau_likelion_spring.recruitment.service;
 import com.example.cau_likelion_spring.global.exception.CustomException;
 import com.example.cau_likelion_spring.global.exception.ErrorCode;
 import com.example.cau_likelion_spring.recruitment.domain.Application;
-import com.example.cau_likelion_spring.recruitment.domain.ResultPublishStatus;
 import com.example.cau_likelion_spring.recruitment.domain.ResultTemplate;
 import com.example.cau_likelion_spring.recruitment.domain.ResultTemplateType;
 import com.example.cau_likelion_spring.recruitment.domain.ResultTemplateVariable;
@@ -81,10 +80,8 @@ public class ResultTemplateService {
 
     private void validateNotReserved(Round round, ResultTemplateType type) {
         LocalDateTime now = LocalDateTime.now();
-        ResultPublishStatus status = type.isFinalStage()
-                ? round.getFinalPublishStatus(now)
-                : round.getDocumentPublishStatus(now);
-        if (status == ResultPublishStatus.RESERVED) {
+        boolean locked = type.isFinalStage() ? round.isFinalResultLocked(now) : round.isDocumentResultLocked(now);
+        if (locked) {
             throw new CustomException(ErrorCode.RECRUITMENT_RESULT_LOCKED,
                     type.getLabel() + " 문구는 결과 공개 예약 중에는 수정할 수 없습니다. 예약을 취소한 후 수정해주세요.");
         }

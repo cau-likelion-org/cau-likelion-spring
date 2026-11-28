@@ -122,11 +122,9 @@ public class ResultPublishService {
      */
     private List<Condition> documentConditions(Round round) {
         long applicants = applicationRepository.countByRoundPart_Round(round);
-        long resultEntered = resultRepository.countByApplication_RoundPart_RoundAndDocumentResultIsNotNull(round);
+        long resultEntered = resultRepository.countDocumentResultEntered(round);
         long passed = countDocumentPassed(round);
-        long scheduleEntered = resultRepository
-                .countByApplication_RoundPart_RoundAndDocumentResultAndFixedInterviewDateIsNotNullAndFixedInterviewSpotIsNotNull(
-                        round, ApplicationResult.PASS);
+        long scheduleEntered = resultRepository.countInterviewScheduleEntered(round, ApplicationResult.PASS);
 
         return List.of(
                 condition(ResultPublishCondition.DOCUMENT_RESULT_ENTERED, resultEntered, applicants),
@@ -143,8 +141,7 @@ public class ResultPublishService {
      */
     private List<Condition> finalConditions(Round round) {
         long passed = countDocumentPassed(round);
-        long finalEntered = resultRepository
-                .countByApplication_RoundPart_RoundAndDocumentResultAndFinalResultIsNotNull(round, ApplicationResult.PASS);
+        long finalEntered = resultRepository.countFinalResultEntered(round, ApplicationResult.PASS);
 
         return List.of(
                 condition(ResultPublishCondition.FINAL_RESULT_ENTERED, finalEntered, passed),
@@ -153,7 +150,7 @@ public class ResultPublishService {
     }
 
     private long countDocumentPassed(Round round) {
-        return resultRepository.countByApplication_RoundPart_RoundAndDocumentResult(round, ApplicationResult.PASS);
+        return resultRepository.countByDocumentResult(round, ApplicationResult.PASS);
     }
 
     /** 문구는 저장한 적이 있어야 작성한 것으로 본다 (기본 문구 그대로는 미작성) */

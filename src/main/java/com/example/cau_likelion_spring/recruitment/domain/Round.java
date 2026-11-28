@@ -28,7 +28,7 @@ public class Round extends BaseTimeEntity {
 
     /**
      * 이 회차에서 모집하는 기수 (회차 하나 = 기수 하나).
-     * 모집공고 등록 때 입력받지 않고, 새 기수가 생성될 때 자동으로 채운다.
+     * 모집공고 등록 때 입력받지 않고, 새 기수가 생성될 때 회차와 함께 채운다 (RoundService).
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "generation_id")
@@ -61,10 +61,11 @@ public class Round extends BaseTimeEntity {
     private LocalDateTime otDate;
 
     @Builder
-    public Round(LocalDateTime startDate, LocalDateTime deadLine,
+    public Round(Generation generation, LocalDateTime startDate, LocalDateTime deadLine,
                  LocalDateTime interviewStartDate, LocalDateTime interviewDeadLine,
                  LocalDateTime documentResultDate, LocalDateTime finalResultDate,
                  LocalDateTime resultCheckDeadLine, LocalDateTime otDate) {
+        this.generation = generation;
         this.startDate = startDate;
         this.deadLine = deadLine;
         this.interviewStartDate = interviewStartDate;
@@ -80,7 +81,12 @@ public class Round extends BaseTimeEntity {
         return startDate != null && !now.isBefore(startDate);
     }
 
-    /** 모집공고 일정 수정 (서류접수 시작·마감, 서류 결과발표, 면접 시작·종료, OT) */
+    /** 모집공고가 등록됐는지 (회차는 기수 생성 때 일정 없이 만들어지고, 모집공고 등록 때 일정이 채워진다) */
+    public boolean isNoticeRegistered() {
+        return startDate != null;
+    }
+
+    /** 모집공고 일정 저장·수정 (서류접수 시작·마감, 서류 결과발표, 면접 시작·종료, OT) */
     public void updateNoticeSchedule(LocalDateTime startDate, LocalDateTime deadLine,
                                      LocalDateTime documentResultDate,
                                      LocalDateTime interviewStartDate, LocalDateTime interviewDeadLine,

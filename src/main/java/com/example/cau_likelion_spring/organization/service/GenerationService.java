@@ -9,6 +9,7 @@ import com.example.cau_likelion_spring.organization.repository.GenerationReposit
 import com.example.cau_likelion_spring.organization.repository.PartRepository;
 import com.example.cau_likelion_spring.global.exception.CustomException;
 import com.example.cau_likelion_spring.global.exception.ErrorCode;
+import com.example.cau_likelion_spring.recruitment.service.RoundService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,7 @@ public class GenerationService {
 
     private final GenerationRepository generationRepository;
     private final PartRepository partRepository;
+    private final RoundService roundService;
 
     @Transactional
     public GenerationListResponseDto createGeneration(GenerationCreateRequestDto request) {
@@ -48,6 +50,9 @@ public class GenerationService {
                         .build())
                 .toList();
         List<Part> savedParts = partRepository.saveAll(parts);
+
+        // 새 기수의 모집 회차를 함께 만든다 (이 회차가 현재 회차가 되고, 모집공고·정원은 이후 리크루팅 API로 입력)
+        roundService.createForGeneration(savedGeneration);
 
         return GenerationListResponseDto.of(savedGeneration, sortPartsByCategory(savedParts));
     }
